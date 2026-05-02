@@ -35,12 +35,37 @@
     }
 
     header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
       max-width: 1180px;
       margin: 0 auto;
-      padding: 28px;
+      padding: 22px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    header::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 76px;
+      background: rgba(8, 17, 31, 0.72);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: -1;
+    }
+
+    @media (max-width: 900px) {
+      header {
+        padding: 20px 28px;
+      }
     }
 
     .logo a {
