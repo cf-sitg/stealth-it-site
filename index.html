@@ -26,7 +26,7 @@
     header {
       max-width: 1180px;
       margin: 0 auto;
-      padding: 28px 28px;
+      padding: 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -49,9 +49,10 @@
     .hero {
       max-width: 1180px;
       margin: 0 auto;
-      padding: 90px 28px 70px;
+      padding: 70px 28px;
+      min-height: calc(100vh - 160px);
       display: grid;
-      grid-template-columns: 1.2fr .8fr;
+      grid-template-columns: 1.15fr .85fr;
       gap: 60px;
       align-items: center;
     }
@@ -68,6 +69,7 @@
     }
 
     h1 {
+      max-width: 780px;
       font-size: clamp(42px, 6vw, 72px);
       line-height: 1.02;
       margin: 0 0 24px;
@@ -78,7 +80,7 @@
       font-size: 20px;
       line-height: 1.6;
       color: #c6d2e2;
-      max-width: 720px;
+      max-width: 680px;
       margin: 0 0 34px;
     }
 
@@ -93,6 +95,7 @@
       border-radius: 10px;
       font-weight: 700;
       font-size: 15px;
+      display: inline-block;
     }
 
     .btn.primary {
@@ -129,68 +132,15 @@
       padding: 14px 0;
       border-bottom: 1px solid rgba(255,255,255,.08);
       color: #c8d3e3;
+      line-height: 1.45;
     }
 
     .panel li:last-child { border-bottom: 0; }
 
-    section {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 40px 28px;
-    }
-
-    .section-title {
-      font-size: 32px;
-      margin-bottom: 22px;
-      letter-spacing: -.6px;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    .card {
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      border-radius: 18px;
-      padding: 24px;
-    }
-
-    .card h3 {
-      margin: 0 0 10px;
-      font-size: 20px;
-    }
-
-    .card p {
-      color: #b9c6d8;
-      line-height: 1.55;
-      margin: 0;
-    }
-
-    .tools {
-      margin-top: 40px;
-      border-radius: 22px;
-      background: #e8eef7;
-      color: #08111f;
-      padding: 32px;
-      display: flex;
-      justify-content: space-between;
-      gap: 24px;
-      align-items: center;
-    }
-
-    .tools p {
-      margin: 8px 0 0;
-      color: #334155;
-      line-height: 1.5;
-    }
-
     footer {
       max-width: 1180px;
       margin: 0 auto;
-      padding: 50px 28px;
+      padding: 0 28px 32px;
       color: #7f8da3;
       font-size: 14px;
     }
@@ -198,20 +148,11 @@
     @media (max-width: 850px) {
       .hero {
         grid-template-columns: 1fr;
-        padding-top: 56px;
-      }
-
-      .cards {
-        grid-template-columns: 1fr;
+        padding-top: 48px;
       }
 
       nav {
         display: none;
-      }
-
-      .tools {
-        flex-direction: column;
-        align-items: flex-start;
       }
     }
   </style>
@@ -223,81 +164,41 @@
       <div class="logo">Stealth IT Group</div>
       <nav>
         <a href="/services.html">Services</a>
-        <a href="#tools">Tools</a>
-        <a href="#contact">Contact</a>
+        <a href="/tools.html">Tools</a>
+        <a href="mailto:stealthitgroup@example.com">Contact</a>
       </nav>
     </header>
 
     <main class="hero">
       <div>
         <div class="badge">Cloud • Infrastructure • Security • Risk</div>
+
         <h1>Practical IT help for real-world environments.</h1>
+
         <p>
-          We help small and mid-sized businesses clean up, secure, and modernize their infrastructure without the bloated consulting theater.
+          Stealth IT Group helps organizations clean up, secure, and stabilize their infrastructure without the bloated consulting theater.
         </p>
+
         <div class="buttons">
-          <a class="btn primary" href="mailto:stealthitgroup@example.com">Start a Conversation</a>
-          <a class="btn secondary" href="#tools">View Tools</a>
+          <a class="btn primary" href="/services.html">View Services</a>
+          <a class="btn secondary" href="mailto:stealthitgroup@example.com">Start a Conversation</a>
         </div>
       </div>
 
       <aside class="panel">
-        <h3>Where we can help</h3>
-<ul>
-  <li>Cloud IaaS setup, cleanup, and migration</li>
-  <li>Windows Server, IIS, and Active Directory</li>
-  <li>Security hardening and vulnerability remediation</li>
-  <li>Application testing and VPAT support</li>
-  <li>Third-party risk and vendor security reviews</li>
-  <li>Networking, DNS, certificates, and troubleshooting</li>
-  <li>Microsoft 365, endpoint, and device management</li>
-  <li>Security posture and policy development</li>
-</ul>
+        <h3>Built for teams that need practical help</h3>
+        <ul>
+          <li>Cloud infrastructure and migrations</li>
+          <li>Microsoft 365, Windows Server, IIS, and Active Directory</li>
+          <li>Endpoint protection and device management</li>
+          <li>Vulnerability, penetration testing, and remediation support</li>
+          <li>Security posture, policies, procedures, and standards</li>
+          <li>Third-party risk and vendor security reviews</li>
+        </ul>
       </aside>
     </main>
 
-    <section id="services">
-  <h2 class="section-title">What we do</h2>
-  <div class="cards">
-    <div class="card">
-      <h3>Cloud Infrastructure</h3>
-      <p>Azure, GCP, AWS, Oracle Cloud, IBM Cloud, compute, storage, networking, access, and practical architecture support.</p>
-    </div>
-    <div class="card">
-      <h3>Microsoft Environments</h3>
-      <p>Windows Server, Active Directory, IIS, DNS, certificates, permissions, and operational cleanup.</p>
-    </div>
-    <div class="card">
-      <h3>Security & Hardening</h3>
-      <p>Baseline hardening, exposure review, access control, backup checks, and risk-focused remediation.</p>
-    </div>
-    <div class="card">
-      <h3>Vulnerability & Penetration Testing</h3>
-      <p>Application and infrastructure testing support, findings review, remediation planning, and validation guidance.</p>
-    </div>
-    <div class="card">
-      <h3>Third-Party Risk Management</h3>
-      <p>Vendor security reviews, questionnaire support, evidence review, and practical risk decisioning.</p>
-    </div>
-    <div class="card">
-      <h3>Operational Support</h3>
-      <p>Troubleshooting, incident cleanup, environment reviews, and help when something is already broken.</p>
-    </div>
-  </div>
-</section>
-    <section id="tools">
-      <div class="tools">
-        <div>
-          <h2 style="margin:0;">Small tools. Clear answers.</h2>
-          <p>
-            We’re building simple utilities that answer practical questions: what is exposed, what is broken, and what should be fixed first.
-          </p>
-        </div>
-        <a class="btn primary" href="/tools.html">Tools Coming Soon</a>
-      </div>
-    </section>
-
-    <footer id="contact">
+    <footer>
       © 2026 Stealth IT Group
     </footer>
   </div>
