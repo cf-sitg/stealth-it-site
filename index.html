@@ -1,71 +1,291 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stealth IT Group</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #0b0f14;
-      color: #e6edf3;
       margin: 0;
-      padding: 40px;
-      max-width: 900px;
+      font-family: Inter, Arial, sans-serif;
+      background: #08111f;
+      color: #e8eef7;
     }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(47, 128, 237, .22), transparent 35%),
+        linear-gradient(180deg, #08111f 0%, #0b1220 100%);
+    }
+
+    header {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+
+    nav a {
+      margin-left: 24px;
+      color: #b9c6d8;
+      font-size: 14px;
+    }
+
+    nav a:hover { color: #ffffff; }
+
+    .hero {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 90px 28px 70px;
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 999px;
+      color: #b9c6d8;
+      font-size: 13px;
+      margin-bottom: 22px;
+      background: rgba(255,255,255,.04);
+    }
+
     h1 {
-      font-size: 36px;
-      margin-bottom: 10px;
+      font-size: clamp(42px, 6vw, 72px);
+      line-height: 1.02;
+      margin: 0 0 24px;
+      letter-spacing: -2px;
     }
-    h2 {
-      margin-top: 40px;
-    }
-    p {
+
+    .hero p {
+      font-size: 20px;
       line-height: 1.6;
+      color: #c6d2e2;
+      max-width: 720px;
+      margin: 0 0 34px;
     }
-    ul {
-      line-height: 1.8;
+
+    .buttons {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .btn.primary {
+      background: #ffffff;
+      color: #08111f;
+    }
+
+    .btn.secondary {
+      border: 1px solid rgba(255,255,255,.18);
+      color: #dce6f5;
+      background: rgba(255,255,255,.04);
+    }
+
+    .panel {
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .panel ul {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .panel li {
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #c8d3e3;
+    }
+
+    .panel li:last-child { border-bottom: 0; }
+
+    section {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 40px 28px;
+    }
+
+    .section-title {
+      font-size: 32px;
+      margin-bottom: 22px;
+      letter-spacing: -.6px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 18px;
+      padding: 24px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .card p {
+      color: #b9c6d8;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .tools {
+      margin-top: 40px;
+      border-radius: 22px;
+      background: #e8eef7;
+      color: #08111f;
+      padding: 32px;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .tools p {
+      margin: 8px 0 0;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    footer {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 50px 28px;
+      color: #7f8da3;
+      font-size: 14px;
+    }
+
+    @media (max-width: 850px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 56px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        display: none;
+      }
+
+      .tools {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
+
 <body>
+  <div class="page">
+    <header>
+      <div class="logo">Stealth IT Group</div>
+      <nav>
+        <a href="#services">Services</a>
+        <a href="#tools">Tools</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
 
-<h1>Stealth IT Group</h1>
+    <main class="hero">
+      <div>
+        <div class="badge">Cloud • Infrastructure • Security</div>
+        <h1>Practical IT help for real-world environments.</h1>
+        <p>
+          We help small and mid-sized businesses clean up, secure, and modernize their infrastructure without the bloated consulting theater.
+        </p>
+        <div class="buttons">
+          <a class="btn primary" href="mailto:stealthitgroup@example.com">Start a Conversation</a>
+          <a class="btn secondary" href="#tools">View Tools</a>
+        </div>
+      </div>
 
-<p>
-We build, fix, and secure real infrastructure.  
-Cloud, Windows environments, networking, and security — handled by people who actually run it, not just talk about it.
-</p>
+      <aside class="panel">
+        <h3>Where we can help</h3>
+        <ul>
+          <li>Cloud IaaS setup, cleanup, and migration</li>
+          <li>Windows Server, IIS, and Active Directory</li>
+          <li>Security hardening and risk reduction</li>
+          <li>Networking, access, DNS, certificates, and troubleshooting</li>
+          <li>Incident cleanup and “something is broken” support</li>
+        </ul>
+      </aside>
+    </main>
 
-<h2>What We Do</h2>
-<ul>
-  <li>Cloud infrastructure (AWS, OCI, IBM)</li>
-  <li>Windows Server & Active Directory</li>
-  <li>Security hardening and risk reduction</li>
-  <li>Troubleshooting environments that are already in trouble</li>
-</ul>
+    <section id="services">
+      <h2 class="section-title">What we do</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>Cloud Infrastructure</h3>
+          <p>AWS, Oracle Cloud, IBM Cloud, compute, storage, networking, access, and practical architecture support.</p>
+        </div>
+        <div class="card">
+          <h3>Microsoft Environments</h3>
+          <p>Windows Server, Active Directory, IIS, DNS, certificates, permissions, and operational cleanup.</p>
+        </div>
+        <div class="card">
+          <h3>Security & Hardening</h3>
+          <p>Baseline hardening, exposure review, access control, backup checks, and risk-focused remediation.</p>
+        </div>
+      </div>
+    </section>
 
-<h2>How We Work</h2>
-<p>
-We don’t start with long engagements or big promises.  
-We start with a real problem, fix it, and go from there.
-</p>
+    <section id="tools">
+      <div class="tools">
+        <div>
+          <h2 style="margin:0;">Small tools. Clear answers.</h2>
+          <p>
+            We’re building simple utilities that answer practical questions: what is exposed, what is broken, and what should be fixed first.
+          </p>
+        </div>
+        <a class="btn primary" href="/tools.html">Tools Coming Soon</a>
+      </div>
+    </section>
 
-<h2>Tools</h2>
-<p>
-We’re building a set of small, practical tools we use ourselves — things that answer simple questions like:
-</p>
-<ul>
-  <li>Is this secure?</li>
-  <li>Is something broken?</li>
-  <li>What should I fix first?</li>
-</ul>
-
-<p><a href="/tools.html">View Tools →</a></p>
-
-<h2>Contact</h2>
-<p>
-stealthitgroup@example.com
-</p>
-
+    <footer id="contact">
+      © 2026 Stealth IT Group
+    </footer>
+  </div>
 </body>
 </html>
