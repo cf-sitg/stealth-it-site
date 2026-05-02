@@ -323,3 +323,25 @@ h1 {
     padding-top: 48px;
   }
 }
+
+/* Privacy page */
+.content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.section {
+  min-height: auto;
+}
+
+.section p:last-child,
+.section li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}
