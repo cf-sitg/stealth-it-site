@@ -55,6 +55,7 @@ a {
 nav a {
   margin-left: 24px;
   color: #b9c6d8;
+  transition: color 0.2s ease;
   font-size: 14px;
   position: relative;
   padding-bottom: 4px;
@@ -225,6 +226,16 @@ h1 {
   background: #08111f;
   color: #ffffff;
   white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  background: #0d1628;
+}
+
+.btn.primary:hover {
+  background: #e2e8f0;
 }
 
 @media (max-width: 900px) {
@@ -344,4 +355,8 @@ h1 {
   .content {
     grid-template-columns: 1fr;
   }
+}
+
+html {
+  scrollbar-gutter: stable;
 }
