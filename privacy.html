@@ -3,23 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy | Stealth IT Group</title>
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-
   <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
-
   <link rel="manifest" href="/site.webmanifest">
-
   <meta name="theme-color" content="#08111f">
-  
-  <title>Privacy Notice | Stealth IT Group</title>
+
   <style>
     * { box-sizing: border-box; }
 
@@ -40,7 +35,7 @@
     }
 
     header {
-      max-width: 980px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 28px;
       display: flex;
@@ -48,190 +43,253 @@
       align-items: center;
     }
 
-    .logo {
+    .logo a {
       font-size: 20px;
       font-weight: 800;
       letter-spacing: .5px;
+      color: #e8eef7;
     }
 
     nav a {
       margin-left: 24px;
       color: #b9c6d8;
       font-size: 14px;
+      position: relative;
+      padding-bottom: 4px;
     }
 
     nav a:hover { color: #ffffff; }
 
-    main {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 50px 28px 80px;
+    nav a.active {
+      color: #ffffff;
     }
 
-    .notice {
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      border-radius: 22px;
-      padding: 34px;
-      box-shadow: 0 24px 70px rgba(0,0,0,.28);
+    nav a.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -6px;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, #ffffff, #8ab4ff);
+      border-radius: 2px;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 60px 28px 90px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 999px;
+      color: #b9c6d8;
+      font-size: 13px;
+      margin-bottom: 22px;
+      background: rgba(255,255,255,.04);
     }
 
     h1 {
-      font-size: clamp(36px, 5vw, 56px);
-      line-height: 1.05;
-      margin: 0 0 18px;
-      letter-spacing: -1.5px;
+      max-width: 860px;
+      font-size: clamp(42px, 6vw, 64px);
+      line-height: 1.04;
+      margin: 0 0 22px;
+      letter-spacing: -1.7px;
     }
 
-    h2 {
-      margin-top: 34px;
-      font-size: 22px;
-    }
-
-    p, li {
+    .intro {
+      max-width: 780px;
+      font-size: 20px;
+      line-height: 1.6;
       color: #c6d2e2;
-      line-height: 1.65;
-      font-size: 16px;
+      margin: 0 0 46px;
     }
 
-    ul { padding-left: 20px; }
-
-    .updated {
-      color: #92a3ba;
-      margin-bottom: 32px;
+    .content {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
     }
 
-    .note {
-      margin-top: 28px;
-      padding: 18px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
+    .section {
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      border-radius: 22px;
+      padding: 26px;
+    }
+
+    .section h2 {
+      font-size: 20px;
+      margin: 0 0 12px;
+    }
+
+    .section p, .section li {
+      color: #c6d2e2;
+      line-height: 1.6;
+    }
+
+    .section ul {
+      padding-left: 18px;
+      margin: 10px 0 0;
+    }
+
+    .cta {
+      margin-top: 56px;
+      border-radius: 22px;
+      background: #e8eef7;
+      color: #08111f;
+      padding: 34px;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .cta h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .cta p {
+      margin: 0;
+      color: #334155;
+      line-height: 1.55;
+      max-width: 720px;
+    }
+
+    .btn {
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      display: inline-block;
+      background: #08111f;
+      color: #ffffff;
+      white-space: nowrap;
     }
 
     footer {
-      max-width: 980px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 0 28px 32px;
       color: #7f8da3;
       font-size: 14px;
     }
 
-    @media (max-width: 750px) {
-      nav { display: none; }
-      .notice { padding: 24px; }
+    footer a {
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
-    /* Nav base */
-nav a {
-  margin-left: 24px;
-  color: #b9c6d8;
-  font-size: 14px;
-  position: relative;
-  padding-bottom: 4px;
-}
+    @media (max-width: 900px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
 
-/* Hover */
-nav a:hover {
-  color: #ffffff;
-}
+      .cta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
 
-/* Active link */
-nav a.active {
-  color: #ffffff;
-}
-
-/* Subtle underline indicator */
-nav a.active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -6px;
-  width: 100%;
-  height: 2px;
-  background: #ffffff;
-  border-radius: 2px;
-}
-    
+      nav {
+        display: none;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div class="page">
     <header>
-      <div class="logo">Stealth IT Group</div>
+      <div class="logo">
+        <a href="/">Stealth IT Group</a>
+      </div>
+
       <nav>
         <a href="/services.html">Services</a>
         <a href="/tools.html">Tools</a>
-        <a href="https://calendar.app.google/ZoHRH6gXWqQ1Mrjn7" target="_blank" rel="noopener noreferrer">Schedule Intro</a>
+        <a href="https://calendar.app.google/ZoHRH6gXWqQ1Mrjn7" target="_blank">Schedule Intro</a>
         <a href="/privacy.html" class="active">Privacy</a>
       </nav>
     </header>
 
     <main>
-      <div class="notice">
-        <h1>Privacy Notice</h1>
-        <p class="updated">Last updated: May 2, 2026</p>
+      <div class="badge">Privacy</div>
 
-        <p>
-          Stealth IT Group keeps initial contact simple. We do not use a general website contact form, and we do not collect unnecessary information through this website.
-        </p>
+      <h1>We keep this simple and practical.</h1>
 
-        <h2>Information we collect</h2>
-        <p>
-          If you schedule an introductory call through our Google Calendar booking page, we may receive information you provide during booking, such as:
-        </p>
-        <ul>
-          <li>Name</li>
-          <li>Business email address</li>
-          <li>Company name</li>
-          <li>Meeting details you choose to provide</li>
-        </ul>
+      <p class="intro">
+        We don’t collect unnecessary information. We don’t run a marketing list. We only use what’s needed to respond to you and manage a conversation.
+      </p>
 
-        <h2>What not to submit</h2>
-        <p>
-          Please do not include passwords, customer records, regulated data, sensitive logs, production credentials, confidential documents, or other sensitive information in your booking request.
-        </p>
+      <div class="content">
+        <div class="section">
+          <h2>What we collect</h2>
+          <p>When you schedule a call, we may receive:</p>
+          <ul>
+            <li>Name</li>
+            <li>Business email</li>
+            <li>Company</li>
+            <li>What you choose to share</li>
+          </ul>
+        </div>
 
-        <h2>How we use information</h2>
-        <p>
-          We use the information you provide only to respond to your inquiry, schedule and manage the conversation, understand the general nature of your request, and follow up on services you asked about.
-        </p>
+        <div class="section">
+          <h2>What not to send</h2>
+          <p>Please do not include:</p>
+          <ul>
+            <li>Passwords or credentials</li>
+            <li>Customer or regulated data</li>
+            <li>Sensitive logs or screenshots</li>
+          </ul>
+        </div>
 
-        <h2>Lawful basis</h2>
-        <p>
-          Where privacy laws such as the GDPR apply, we process this information based on your request to engage with us, our legitimate interest in responding to business inquiries, and, where applicable, steps taken before entering into a services relationship.
-        </p>
+        <div class="section">
+          <h2>How we use it</h2>
+          <p>
+            We use your information to respond, understand your request, and follow up if needed. Nothing more.
+          </p>
+        </div>
 
-        <h2>Where information is processed</h2>
-        <p>
-          Scheduling information is handled through Google Workspace / Google Calendar. We may also retain related business communications in our Google Workspace account.
-        </p>
+        <div class="section">
+          <h2>Where it goes</h2>
+          <p>
+            Scheduling and communication are handled through Google Workspace.
+          </p>
+        </div>
 
-        <h2>How long we keep it</h2>
-        <p>
-          We keep inquiry and scheduling information only as long as needed to manage the conversation, maintain reasonable business records, and meet legal or administrative needs. If no services relationship follows, we will delete or minimize the information when it is no longer needed.
-        </p>
+        <div class="section">
+          <h2>Retention</h2>
+          <p>
+            We keep information only as long as needed to manage the conversation or meet basic business needs.
+          </p>
+        </div>
 
-        <h2>Sharing</h2>
-        <p>
-          We do not sell personal information. We do not add booking contacts to a marketing list. We only share information where needed to provide services, use our business systems, comply with law, or protect our rights.
-        </p>
+        <div class="section">
+          <h2>Your rights</h2>
+          <p>
+            You can request access, correction, or deletion of your information at any time.
+          </p>
+        </div>
+      </div>
 
-        <h2>Your rights</h2>
-        <p>
-          Depending on your location, you may have rights to request access, correction, deletion, restriction, or objection to certain processing of your personal information.
-        </p>
+      <div class="cta">
+        <div>
+          <h2>Questions before reaching out?</h2>
+          <p>
+            Book a quick intro and ask directly. No forms, no pressure.
+          </p>
+        </div>
 
-        <h2>Contact</h2>
-        <p>
-          To make a privacy request, use the same business contact channel you used to schedule with us or raise it during your scheduled conversation.
-        </p>
+        <a class="btn" href="https://calendar.app.google/ZoHRH6gXWqQ1Mrjn7" target="_blank">Schedule Intro</a>
       </div>
     </main>
 
     <footer>
-      © 2026 Stealth IT Group
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
     </footer>
   </div>
 </body>
