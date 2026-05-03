@@ -1,3 +1,5 @@
+const BOOKING_URL = "https://calendar.app.google/ZoHRH6gXWqQ1Mrjn7";
+
 async function loadPartials() {
   const includes = document.querySelectorAll("[data-include]");
 
@@ -104,6 +106,18 @@ function formatToolResult(data) {
 
   const ports = Array.isArray(data?.ports) ? data.ports : [];
 
+  const hasIssues =
+    !spfPresent ||
+    !dmarcPresent ||
+    !httpsAvailable ||
+    !certValid ||
+    !hstsPresent ||
+    !cspPresent ||
+    !framePresent ||
+    !contentTypePresent ||
+    !referrerPresent ||
+    ports.some(p => p.status === "open" && (p.port === 22 || p.port === 3389));
+
   return `
     <div class="result-section">
       <h4>Domain</h4>
@@ -174,6 +188,15 @@ function formatToolResult(data) {
         </div>
       `).join("")}
     </div>
+
+    ${hasIssues ? `
+      <div class="result-section result-cta">
+        <p>
+          Need help fixing this?
+          <a href="${escapeHtml(BOOKING_URL)}" target="_blank" rel="noopener noreferrer">Schedule a quick intro.</a>
+        </p>
+      </div>
+    ` : ""}
   `;
 }
 
