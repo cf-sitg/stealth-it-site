@@ -300,6 +300,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const button2 = document.getElementById("runEmailCheckButton");
   if (button2) button2.addEventListener("click", runEmailCheck);
+
+  const button3 = document.getElementById("runPriorityCheckButton");
+  if (button3) button3.addEventListener("click", runPriorityCheck);
 });
 
 function formatEmailResult(sec, domain) {
