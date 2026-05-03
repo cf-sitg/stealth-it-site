@@ -416,3 +416,9 @@ html {
 .cta a:hover {
   text-decoration: underline;
 }
+
+.note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+}
