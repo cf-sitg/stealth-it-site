@@ -400,3 +400,19 @@ html {
 .bad {
   color: #ef4444;
 }
+
+.cta {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.cta a {
+  color: #3b82f6;
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+.cta a:hover {
+  text-decoration: underline;
+}
