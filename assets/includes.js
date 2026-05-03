@@ -137,10 +137,18 @@ function formatToolResult(data) {
 const maxScore = 9;
 const scorePercent = Math.max(0, Math.round((score / maxScore) * 100));
 
-const grade =
+let grade =
   scorePercent >= 85 ? "Good" :
   scorePercent >= 60 ? "Fair" :
   "Needs Work";
+
+if (!dmarcPresent) {
+  grade = "Fair";
+}
+
+if (!httpsAvailable || !certValid || ports.some(p => p.status === "open" && (p.port === 22 || p.port === 3389))) {
+  grade = "Needs Work";
+}
 
 const gradeClass =
   grade === "Good" ? "ok" :
