@@ -94,6 +94,44 @@ async function runCheck() {
   }
 }
 
+async function runEmailCheck() {
+  const input = document.getElementById("emailDomainInput");
+  const resultBox = document.getElementById("emailResultBox");
+  const button = document.getElementById("runEmailCheckButton");
+
+  if (!input || !resultBox) return;
+
+  const domain = input.value.trim();
+
+  if (!domain) {
+    resultBox.innerHTML = `<div class="result-section"><p>Enter a domain.</p></div>`;
+    return;
+  }
+
+  resultBox.innerHTML = `<div class="result-section"><p>Running check...</p></div>`;
+  if (button) button.disabled = true;
+
+  try {
+    const res = await fetch("https://api.stealthitgroup.com/api/email-check", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ domain })
+    });
+
+    const data = await res.json();
+
+    resultBox.innerHTML = formatEmailResult(data.emailSecurity, domain);
+
+  } catch (err) {
+    console.error(err);
+    resultBox.innerHTML = `<div class="result-section"><p>Error running check.</p></div>`;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 function formatToolResult(data) {
   const spfPresent = Boolean(data?.dns?.spf?.present);
   const dmarcPresent = Boolean(data?.dns?.dmarc?.present);
@@ -257,9 +295,93 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadPartials();
   setActiveNav();
 
-  const button = document.getElementById("runCheckButton");
+  const button1 = document.getElementById("runCheckButton");
+  if (button1) button1.addEventListener("click", runCheck);
 
-  if (button) {
-    button.addEventListener("click", runCheck);
-  }
+  const button2 = document.getElementById("runEmailCheckButton");
+  if (button2) button2.addEventListener("click", runEmailCheck);
 });
+
+function formatEmailResult(sec, domain) {
+  const spf = sec.spf;
+  const dmarc = sec.dmarc;
+  const dkim = sec.dkim;
+  const risk = sec.summary.spoofingRisk;
+
+  const riskClass =
+    risk === "Low" ? "ok" :
+    risk === "Medium" ? "warn" :
+    "bad";
+
+  const hasIssues =
+    !dmarc.present ||
+    dmarc.policy === "none" ||
+    !dkim.present;
+
+  return `
+    <div class="result-section">
+      <h4>Summary</h4>
+      <div class="result-item">
+        <span>Domain</span>
+        <span>${escapeHtml(domain)}</span>
+      </div>
+      <div class="result-item">
+        <span>Spoofing Risk</span>
+        <span class="${riskClass}">${risk}</span>
+      </div>
+    </div>
+
+    <div class="result-section">
+      <h4>SPF</h4>
+      <div class="result-item">
+        <span>Status</span>
+        <span class="${statusClass(spf.present, spf.present)}">
+          ${spf.present ? "Present" : "Missing"}
+        </span>
+      </div>
+      ${spf.softFail ? `<p class="note">SPF is softfail (~all). Consider hard fail (-all).</p>` : ""}
+      ${spf.overlyPermissive ? `<p class="note">SPF contains +all (very permissive).</p>` : ""}
+    </div>
+
+    <div class="result-section">
+      <h4>DMARC</h4>
+      <div class="result-item">
+        <span>Status</span>
+        <span class="${statusClass(dmarc.present, dmarc.present)}">
+          ${dmarc.present ? "Present" : "Missing"}
+        </span>
+      </div>
+      <div class="result-item">
+        <span>Policy</span>
+        <span>${dmarc.policy || "None"}</span>
+      </div>
+
+      ${!dmarc.present ? `
+        <p class="note">DMARC is missing. Your domain can likely be spoofed.</p>
+      ` : ""}
+
+      ${dmarc.policy === "none" ? `
+        <p class="note">DMARC is not enforced (p=none).</p>
+      ` : ""}
+    </div>
+
+    <div class="result-section">
+      <h4>DKIM</h4>
+      <div class="result-item">
+        <span>Status</span>
+        <span class="${statusClass(dkim.present, dkim.present)}">
+          ${dkim.present ? "Detected" : "Not detected"}
+        </span>
+      </div>
+    </div>
+
+    ${hasIssues ? `
+      <div class="result-section">
+        <p class="cta">
+          Need help locking this down?
+          <a href="${BOOKING_URL}" target="_blank">Schedule a quick intro.</a>
+        </p>
+      </div>
+    ` : ""}
+  `;
+}
