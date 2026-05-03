@@ -122,6 +122,31 @@ function formatToolResult(data) {
     !referrerPresent ||
     ports.some(p => p.status === "open" && (p.port === 22 || p.port === 3389));
 
+  const score =
+  (spfPresent ? 1 : 0) +
+  (dmarcPresent ? 1 : 0) +
+  (httpsAvailable ? 1 : 0) +
+  (certValid ? 1 : 0) +
+  (hstsPresent ? 1 : 0) +
+  (cspPresent ? 1 : 0) +
+  (framePresent ? 1 : 0) +
+  (contentTypePresent ? 1 : 0) +
+  (referrerPresent ? 1 : 0) -
+  (ports.some(p => p.status === "open" && (p.port === 22 || p.port === 3389)) ? 2 : 0);
+
+const maxScore = 9;
+const scorePercent = Math.max(0, Math.round((score / maxScore) * 100));
+
+const grade =
+  scorePercent >= 85 ? "Good" :
+  scorePercent >= 60 ? "Fair" :
+  "Needs Work";
+
+const gradeClass =
+  grade === "Good" ? "ok" :
+  grade === "Fair" ? "warn" :
+  "bad";
+
   return `
     <div class="result-section">
       <h4>Domain</h4>
@@ -130,6 +155,18 @@ function formatToolResult(data) {
         <span>${escapeHtml(data.domain)}</span>
       </div>
     </div>
+
+      <div class="result-section">
+    <h4>Summary</h4>
+    <div class="result-item">
+      <span>Security posture</span>
+      <span class="${gradeClass}">${grade}</span>
+    </div>
+    <div class="result-item">
+      <span>Quick score</span>
+      <span>${scorePercent}%</span>
+    </div>
+  </div>
 
 <div class="result-section">
   <h4>DNS</h4>
