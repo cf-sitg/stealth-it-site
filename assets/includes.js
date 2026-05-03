@@ -82,3 +82,11 @@ Ports
 ${data.ports.map(p => `- ${p.port}: ${p.status}`).join("\n")}
 `;
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const button = document.getElementById("runCheckButton");
+
+  if (button) {
+    button.addEventListener("click", window.runCheck);
+  }
+});
