@@ -39,7 +39,7 @@ window.runCheck = async function () {
   resultBox.textContent = "Running check...";
 
   try {
-    const res = await fetch("https://stealth-tools-api.onrender.com/api/check", {
+    const res = await fetch("https://api.stealthitgroup.com/api/check", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
