@@ -43,7 +43,11 @@ function statusClass(value, goodCondition = true) {
 
 function portClass(port, status) {
   if (status !== "open") return "ok";
+
   if (port === 22 || port === 3389) return "bad";
+  if (port === 443) return "ok";
+  if (port === 80) return "warn";
+
   return "warn";
 }
 
@@ -127,17 +131,21 @@ function formatToolResult(data) {
       </div>
     </div>
 
-    <div class="result-section">
-      <h4>DNS</h4>
-      <div class="result-item">
-        <span>SPF</span>
-        <span class="${statusClass(spfPresent, spfPresent)}">${spfPresent ? "Present" : "Missing"}</span>
-      </div>
-      <div class="result-item">
-        <span>DMARC</span>
-        <span class="${statusClass(dmarcPresent, dmarcPresent)}">${dmarcPresent ? "Present" : "Missing"}</span>
-      </div>
-    </div>
+<div class="result-section">
+  <h4>DNS</h4>
+  <div class="result-item">
+    <span>SPF</span>
+    <span class="${statusClass(spfPresent, spfPresent)}">${spfPresent ? "Present" : "Missing"}</span>
+  </div>
+  <div class="result-item">
+    <span>DMARC</span>
+    <span class="${statusClass(dmarcPresent, dmarcPresent)}">${dmarcPresent ? "Present" : "Missing"}</span>
+  </div>
+
+  ${!dmarcPresent ? `
+    <p class="note">DMARC helps prevent email spoofing and phishing.</p>
+  ` : ""}
+</div>
 
     <div class="result-section">
       <h4>TLS</h4>
