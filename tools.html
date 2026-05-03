@@ -46,6 +46,16 @@
 
       <div class="tools-grid">
         <div class="tool-card">
+          <h2>External Exposure Quick Check</h3>
+          <p>Quick look at DNS, TLS, headers, and exposed services.</p>
+
+          <input id="domainInput" placeholder="example.com" />
+          <button onclick="runCheck()">Run Check</button>
+
+          <pre id="resultBox"></pre>
+        </div>
+        
+        <div class="tool-card">
           <h2>Server Security Quick Check</h2>
           <p>
             A lightweight review for common exposure points, risky services, and basic hardening gaps.
