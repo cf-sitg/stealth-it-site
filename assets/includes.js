@@ -376,9 +376,11 @@ function formatEmailResult(sec, domain) {
     </div>
 
     ${hasIssues ? `
-      <div class="result-cta">
-       <span>Need help fixing this?</span>
-       <a href="${BOOKING_URL}" target="_blank">Schedule a quick intro →</a>
+      <div class="result-section result-cta">
+        <p>
+          Need help fixing this?
+          <a href="${escapeHtml(BOOKING_URL)}" target="_blank" rel="noopener noreferrer">Schedule a quick intro.</a>
+        </p>
       </div>
     ` : ""}
   `;
