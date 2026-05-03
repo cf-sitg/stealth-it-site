@@ -56,31 +56,56 @@ window.runCheck = async function () {
   }
 };
 
+function statusClass(value, goodCondition = true) {
+  if (value === null || value === undefined) return "warn";
+  return goodCondition ? "ok" : "bad";
+}
+
 function formatToolResult(data) {
-  if (!data || !data.dns || !data.tls) {
-    return "Invalid response.";
-  }
+  const spfClass = statusClass(data.dns.spf.present, data.dns.spf.present);
+  const dmarcClass = statusClass(data.dns.dmarc.present, data.dns.dmarc.present);
+
+  const httpsClass = statusClass(data.tls.httpsAvailable, data.tls.httpsAvailable);
+  const certClass = statusClass(data.tls.authorized, data.tls.authorized);
+
+  const hstsClass = statusClass(data.headers.headers.hsts, data.headers.headers.hsts);
+  const cspClass = statusClass(data.headers.headers.csp, data.headers.headers.csp);
+  const frameClass = statusClass(data.headers.headers.xFrameOptions, data.headers.headers.xFrameOptions);
 
   return `
-Domain: ${data.domain}
+    <div class="result-section">
+      <h4>Domain</h4>
+      <div class="result-item">${data.domain}</div>
+    </div>
 
-DNS
-- SPF: ${data.dns.spf.present ? "Present" : "Missing"}
-- DMARC: ${data.dns.dmarc.present ? "Present" : "Missing"}
+    <div class="result-section">
+      <h4>DNS</h4>
+      <div class="result-item">SPF <span class="${spfClass}">${data.dns.spf.present ? "Present" : "Missing"}</span></div>
+      <div class="result-item">DMARC <span class="${dmarcClass}">${data.dns.dmarc.present ? "Present" : "Missing"}</span></div>
+    </div>
 
-TLS
-- HTTPS: ${data.tls.httpsAvailable ? "Yes" : "No"}
-- Cert Valid: ${data.tls.authorized ? "Yes" : "No"}
-- Days Remaining: ${data.tls.daysRemaining ?? "N/A"}
+    <div class="result-section">
+      <h4>TLS</h4>
+      <div class="result-item">HTTPS <span class="${httpsClass}">${data.tls.httpsAvailable ? "Yes" : "No"}</span></div>
+      <div class="result-item">Cert Valid <span class="${certClass}">${data.tls.authorized ? "Yes" : "No"}</span></div>
+      <div class="result-item">Days Remaining <span>${data.tls.daysRemaining ?? "N/A"}</span></div>
+    </div>
 
-Headers
-- HSTS: ${data.headers?.headers?.hsts ? "Yes" : "No"}
-- CSP: ${data.headers?.headers?.csp ? "Yes" : "No"}
-- X-Frame: ${data.headers?.headers?.xFrameOptions ? "Yes" : "No"}
+    <div class="result-section">
+      <h4>Headers</h4>
+      <div class="result-item">HSTS <span class="${hstsClass}">${data.headers.headers.hsts ? "Yes" : "No"}</span></div>
+      <div class="result-item">CSP <span class="${cspClass}">${data.headers.headers.csp ? "Yes" : "No"}</span></div>
+      <div class="result-item">X-Frame <span class="${frameClass}">${data.headers.headers.xFrameOptions ? "Yes" : "No"}</span></div>
+    </div>
 
-Ports
-${data.ports.map(p => `- ${p.port}: ${p.status}`).join("\n")}
-`;
+    <div class="result-section">
+      <h4>Ports</h4>
+      ${data.ports.map(p => {
+        const cls = p.status === "open" ? "warn" : "ok";
+        return `<div class="result-item">${p.port} <span class="${cls}">${p.status}</span></div>`;
+      }).join("")}
+    </div>
+  `;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
