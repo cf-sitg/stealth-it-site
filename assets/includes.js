@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", async () => {
+async function loadPartials() {
   const includes = document.querySelectorAll("[data-include]");
 
   for (const el of includes) {
@@ -7,7 +7,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const html = await response.text();
     el.outerHTML = html;
   }
+}
 
+function setActiveNav() {
   const path = window.location.pathname;
 
   document.querySelectorAll("nav a[data-nav]").forEach(link => {
@@ -21,22 +23,45 @@ document.addEventListener("DOMContentLoaded", async () => {
       link.classList.add("active");
     }
   });
-});
+}
 
-window.runCheck = async function () {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function statusClass(value, goodCondition = true) {
+  if (value === null || value === undefined) return "warn";
+  return goodCondition ? "ok" : "bad";
+}
+
+function portClass(port, status) {
+  if (status !== "open") return "ok";
+  if (port === 22 || port === 3389) return "bad";
+  return "warn";
+}
+
+async function runCheck() {
   const domainInput = document.getElementById("domainInput");
   const resultBox = document.getElementById("resultBox");
+  const button = document.getElementById("runCheckButton");
 
   if (!domainInput || !resultBox) return;
 
   const domain = domainInput.value.trim();
 
   if (!domain) {
-    resultBox.textContent = "Enter a domain.";
+    resultBox.innerHTML = `<div class="result-section"><p>Enter a domain.</p></div>`;
     return;
   }
 
-  resultBox.textContent = "Running check...";
+  resultBox.innerHTML = `<div class="result-section"><p>Running check...</p></div>`;
+
+  if (button) button.disabled = true;
 
   try {
     const res = await fetch("https://api.stealthitgroup.com/api/check", {
@@ -49,69 +74,116 @@ window.runCheck = async function () {
 
     const data = await res.json();
 
-    resultBox.textContent = formatToolResult(data);
+    if (!res.ok) {
+      resultBox.innerHTML = `<div class="result-section"><p>${escapeHtml(data.error || "Error running check.")}</p></div>`;
+      return;
+    }
 
+    resultBox.innerHTML = formatToolResult(data);
   } catch (err) {
-    resultBox.textContent = "Error running check.";
+    console.error(err);
+    resultBox.innerHTML = `<div class="result-section"><p>Error running check.</p></div>`;
+  } finally {
+    if (button) button.disabled = false;
   }
-};
-
-function statusClass(value, goodCondition = true) {
-  if (value === null || value === undefined) return "warn";
-  return goodCondition ? "ok" : "bad";
 }
 
 function formatToolResult(data) {
-  const spfClass = statusClass(data.dns.spf.present, data.dns.spf.present);
-  const dmarcClass = statusClass(data.dns.dmarc.present, data.dns.dmarc.present);
+  const spfPresent = Boolean(data?.dns?.spf?.present);
+  const dmarcPresent = Boolean(data?.dns?.dmarc?.present);
 
-  const httpsClass = statusClass(data.tls.httpsAvailable, data.tls.httpsAvailable);
-  const certClass = statusClass(data.tls.authorized, data.tls.authorized);
+  const httpsAvailable = Boolean(data?.tls?.httpsAvailable);
+  const certValid = Boolean(data?.tls?.authorized);
 
-  const hstsClass = statusClass(data.headers.headers.hsts, data.headers.headers.hsts);
-  const cspClass = statusClass(data.headers.headers.csp, data.headers.headers.csp);
-  const frameClass = statusClass(data.headers.headers.xFrameOptions, data.headers.headers.xFrameOptions);
+  const headers = data?.headers?.headers || {};
+  const hstsPresent = Boolean(headers.hsts);
+  const cspPresent = Boolean(headers.csp);
+  const framePresent = Boolean(headers.xFrameOptions);
+  const contentTypePresent = Boolean(headers.xContentTypeOptions);
+  const referrerPresent = Boolean(headers.referrerPolicy);
+
+  const ports = Array.isArray(data?.ports) ? data.ports : [];
 
   return `
     <div class="result-section">
       <h4>Domain</h4>
-      <div class="result-item">${data.domain}</div>
+      <div class="result-item">
+        <span>Checked domain</span>
+        <span>${escapeHtml(data.domain)}</span>
+      </div>
     </div>
 
     <div class="result-section">
       <h4>DNS</h4>
-      <div class="result-item">SPF <span class="${spfClass}">${data.dns.spf.present ? "Present" : "Missing"}</span></div>
-      <div class="result-item">DMARC <span class="${dmarcClass}">${data.dns.dmarc.present ? "Present" : "Missing"}</span></div>
+      <div class="result-item">
+        <span>SPF</span>
+        <span class="${statusClass(spfPresent, spfPresent)}">${spfPresent ? "Present" : "Missing"}</span>
+      </div>
+      <div class="result-item">
+        <span>DMARC</span>
+        <span class="${statusClass(dmarcPresent, dmarcPresent)}">${dmarcPresent ? "Present" : "Missing"}</span>
+      </div>
     </div>
 
     <div class="result-section">
       <h4>TLS</h4>
-      <div class="result-item">HTTPS <span class="${httpsClass}">${data.tls.httpsAvailable ? "Yes" : "No"}</span></div>
-      <div class="result-item">Cert Valid <span class="${certClass}">${data.tls.authorized ? "Yes" : "No"}</span></div>
-      <div class="result-item">Days Remaining <span>${data.tls.daysRemaining ?? "N/A"}</span></div>
+      <div class="result-item">
+        <span>HTTPS</span>
+        <span class="${statusClass(httpsAvailable, httpsAvailable)}">${httpsAvailable ? "Yes" : "No"}</span>
+      </div>
+      <div class="result-item">
+        <span>Certificate valid</span>
+        <span class="${statusClass(certValid, certValid)}">${certValid ? "Yes" : "No"}</span>
+      </div>
+      <div class="result-item">
+        <span>Days remaining</span>
+        <span>${escapeHtml(data?.tls?.daysRemaining ?? "N/A")}</span>
+      </div>
     </div>
 
     <div class="result-section">
       <h4>Headers</h4>
-      <div class="result-item">HSTS <span class="${hstsClass}">${data.headers.headers.hsts ? "Yes" : "No"}</span></div>
-      <div class="result-item">CSP <span class="${cspClass}">${data.headers.headers.csp ? "Yes" : "No"}</span></div>
-      <div class="result-item">X-Frame <span class="${frameClass}">${data.headers.headers.xFrameOptions ? "Yes" : "No"}</span></div>
+      <div class="result-item">
+        <span>HSTS</span>
+        <span class="${statusClass(hstsPresent, hstsPresent)}">${hstsPresent ? "Yes" : "No"}</span>
+      </div>
+      <div class="result-item">
+        <span>CSP</span>
+        <span class="${statusClass(cspPresent, cspPresent)}">${cspPresent ? "Yes" : "No"}</span>
+      </div>
+      <div class="result-item">
+        <span>X-Frame-Options</span>
+        <span class="${statusClass(framePresent, framePresent)}">${framePresent ? "Yes" : "No"}</span>
+      </div>
+      <div class="result-item">
+        <span>X-Content-Type-Options</span>
+        <span class="${statusClass(contentTypePresent, contentTypePresent)}">${contentTypePresent ? "Yes" : "No"}</span>
+      </div>
+      <div class="result-item">
+        <span>Referrer-Policy</span>
+        <span class="${statusClass(referrerPresent, referrerPresent)}">${referrerPresent ? "Yes" : "No"}</span>
+      </div>
     </div>
 
     <div class="result-section">
       <h4>Ports</h4>
-      ${data.ports.map(p => {
-        const cls = p.status === "open" ? "warn" : "ok";
-        return `<div class="result-item">${p.port} <span class="${cls}">${p.status}</span></div>`;
-      }).join("")}
+      ${ports.map(p => `
+        <div class="result-item">
+          <span>${escapeHtml(p.port)}</span>
+          <span class="${portClass(p.port, p.status)}">${escapeHtml(p.status)}</span>
+        </div>
+      `).join("")}
     </div>
   `;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadPartials();
+  setActiveNav();
+
   const button = document.getElementById("runCheckButton");
 
   if (button) {
-    button.addEventListener("click", window.runCheck);
+    button.addEventListener("click", runCheck);
   }
 });
