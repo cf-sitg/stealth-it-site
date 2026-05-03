@@ -360,3 +360,43 @@ h1 {
 html {
   scrollbar-gutter: stable;
 }
+
+.result-grid {
+  margin-top: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.result-section {
+  padding: 16px;
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+
+.result-section h4 {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.ok {
+  color: #22c55e;
+}
+
+.warn {
+  color: #f59e0b;
+}
+
+.bad {
+  color: #ef4444;
+}
