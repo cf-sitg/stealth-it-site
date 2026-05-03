@@ -469,3 +469,42 @@ html {
   color: #6b7280;
   margin-bottom: 4px;
 }
+
+.cta-strip {
+  margin-top: 40px;
+  padding: 18px 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255,255,255,0.02);
+}
+
+.cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #cbd5f5;
+}
+
+.cta-text strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.cta-button {
+  background: #0b1220;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.cta-button:hover {
+  background: #111a2e;
+}
