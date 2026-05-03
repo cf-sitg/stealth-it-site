@@ -385,3 +385,133 @@ function formatEmailResult(sec, domain) {
     ` : ""}
   `;
 }
+
+async function runPriorityCheck() {
+  const input = document.getElementById("priorityDomainInput");
+  const resultBox = document.getElementById("priorityResultBox");
+  const button = document.getElementById("runPriorityCheckButton");
+
+  if (!input || !resultBox) return;
+
+  const domain = input.value.trim();
+
+  if (!domain) {
+    resultBox.innerHTML = `<div class="result-section"><p>Enter a domain.</p></div>`;
+    return;
+  }
+
+  resultBox.innerHTML = `<div class="result-section"><p>Running prioritization...</p></div>`;
+  if (button) button.disabled = true;
+
+  try {
+    const res = await fetch("https://api.stealthitgroup.com/api/prioritized-check", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ domain })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      resultBox.innerHTML = `<div class="result-section"><p>${escapeHtml(data.error || "Error running check.")}</p></div>`;
+      return;
+    }
+
+    resultBox.innerHTML = formatPriorityResult(data);
+  } catch (err) {
+    console.error(err);
+    resultBox.innerHTML = `<div class="result-section"><p>Error running check.</p></div>`;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function severityClass(severity) {
+  if (severity === "High") return "bad";
+  if (severity === "Medium") return "warn";
+  return "ok";
+}
+
+function formatPriorityResult(data) {
+  const issues = Array.isArray(data.issues) ? data.issues : [];
+
+  if (issues.length === 0) {
+    return `
+      <div class="result-section">
+        <h4>Summary</h4>
+        <div class="result-item">
+          <span>Domain</span>
+          <span>${escapeHtml(data.domain)}</span>
+        </div>
+        <div class="result-item">
+          <span>Open issues</span>
+          <span class="ok">None found</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="result-section">
+      <h4>Summary</h4>
+      <div class="result-item">
+        <span>Domain</span>
+        <span>${escapeHtml(data.domain)}</span>
+      </div>
+      <div class="result-item">
+        <span>Total issues</span>
+        <span>${escapeHtml(data.summary.totalIssues)}</span>
+      </div>
+      <div class="result-item">
+        <span>High</span>
+        <span class="bad">${escapeHtml(data.summary.high)}</span>
+      </div>
+      <div class="result-item">
+        <span>Medium</span>
+        <span class="warn">${escapeHtml(data.summary.medium)}</span>
+      </div>
+      <div class="result-item">
+        <span>Low</span>
+        <span class="ok">${escapeHtml(data.summary.low)}</span>
+      </div>
+    </div>
+
+    <div class="result-section">
+      <h4>Fix first</h4>
+      ${issues.map((issue, index) => `
+        <div class="priority-issue">
+          <div class="priority-title">
+            <span>${index + 1}. ${escapeHtml(issue.title)}</span>
+            <span class="${severityClass(issue.severity)}">${escapeHtml(issue.severity)}</span>
+          </div>
+
+          <p class="note">${escapeHtml(issue.why)}</p>
+
+          <div class="result-item">
+            <span>Category</span>
+            <span>${escapeHtml(issue.category)}</span>
+          </div>
+          <div class="result-item">
+            <span>Effort</span>
+            <span>${escapeHtml(issue.effort)}</span>
+          </div>
+          <div class="result-item">
+            <span>Impact</span>
+            <span>${escapeHtml(issue.impact)}</span>
+          </div>
+
+          <p class="note"><strong>Fix:</strong> ${escapeHtml(issue.fix)}</p>
+        </div>
+      `).join("")}
+    </div>
+
+      <div class="result-section result-cta">
+        <p>
+          Need help fixing this?
+          <a href="${escapeHtml(BOOKING_URL)}" target="_blank" rel="noopener noreferrer">Schedule a quick intro.</a>
+        </p>
+      </div>
+  `;
+}
