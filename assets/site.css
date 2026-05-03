@@ -445,3 +445,21 @@ html {
 .result-cta a:hover {
   text-decoration: underline;
 }
+
+.priority-issue {
+  padding: 14px 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.priority-issue:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.priority-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
