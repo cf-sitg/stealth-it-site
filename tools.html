@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Practical IT support for cloud infrastructure, Microsoft environments, and security. We help teams fix, secure, and stabilize real-world systems.">
+  <meta name="description" content="Run quick checks for external exposure, email security, and prioritized security fixes. No login, no long form, no noise.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Stealth IT Group">
-  <meta property="og:title" content="IT Tools | Stealth IT Group">
-  <meta property="og:description" content="Simple tools for real IT problems. Exposure checks, security snapshots, and practical utilities.">
+  <meta property="og:title" content="Quick Checks | Stealth IT Group">
+  <meta property="og:description" content="Fast checks for common security and infrastructure gaps. Review exposure, email spoofing risk, and what to fix first.">
   <meta property="og:url" content="https://stealthitgroup.com/tools.html">
 
   <link rel="canonical" href="https://stealthitgroup.com/">
   
-  <title>IT Tools | Security & Infrastructure Utilities | Stealth IT Group</title>
+  <title>Quick Security Checks | Exposure, Email, and Fix Priorities | Stealth IT Group</title>
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -36,18 +36,19 @@
     <div data-include="/partials/header.html"></div>
 
     <main>
-      <div class="badge">Tools</div>
+      <div class="badge">Quick Checks</div>
 
-      <h1>Small utilities for common IT problems.</h1>
+      <h1>What’s exposed, what can be abused, and what to fix first.</h1>
 
       <p class="intro">
-        We’re building simple tools that answer practical questions quickly: what is exposed, what looks broken, and what should be fixed first.
+        Fast checks that answer three questions: what’s exposed, what can be abused, and what should be fixed first.
       </p>
 
       <div class="tools-grid">
         <div class="tool-card">
-          <h2>External Exposure Quick Check</h3>
-          <p>Quick look at DNS, TLS, headers, and exposed services.</p>
+          <div class="step">1</div>
+          <h3>Exposure Check</h3>
+          <p>See what’s publicly exposed and misconfigured.</p>
 
           <input id="domainInput" placeholder="example.com" />
           <button id="runCheckButton" type="button">Run Check</button>
@@ -56,8 +57,9 @@
         </div>
 
         <div class="tool-card">
-          <h3>Email Security Quick Check</h3>
-          <p>Check SPF, DKIM, DMARC, and spoofing risk.</p>
+          <div class="step">2</div>
+          <h3>Email Risk Check</h3>
+          <p>Identify spoofing risk and weak email protections.</p>
 
           <input id="emailDomainInput" placeholder="example.com" />
           <button id="runEmailCheckButton">Run Check</button>
@@ -66,37 +68,14 @@
         </div>
 
         <div class="tool-card">
-          <h3>Security Fix Prioritizer</h3>
-          <p>Run the external and email checks together, then see what should be fixed first.</p>
+          <div class="step">3</div>
+          <h3>Fix Priorities</h3>
+          <p>Know what to fix first based on actual risk.</p>
 
           <input id="priorityDomainInput" placeholder="example.com" />
           <button id="runPriorityCheckButton" type="button">Prioritize Fixes</button>
 
           <div id="priorityResultBox" class="result-grid"></div>
-        </div>
-        
-        <div class="tool-card">
-          <h2>Server Security Quick Check</h2>
-          <p>
-            A lightweight review for common exposure points, risky services, and basic hardening gaps.
-          </p>
-          <span class="status">Planned</span>
-        </div>
-
-        <div class="tool-card">
-          <h2>AD Health Snapshot</h2>
-          <p>
-            A practical look at stale accounts, privilege sprawl, basic hygiene, and obvious Active Directory risk.
-          </p>
-          <span class="status">Planned</span>
-        </div>
-
-        <div class="tool-card">
-          <h2>Cloud Cost Sanity Check</h2>
-          <p>
-            A simple way to spot idle resources, oversized systems, and cloud spend that deserves a second look.
-          </p>
-          <span class="status">Planned</span>
         </div>
       </div>
 
