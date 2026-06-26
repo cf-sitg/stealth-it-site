@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes Ingress, how it routes HTTP traffic into a cluster, and how to test Ingress locally with kind and the NGINX Ingress Controller.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Ingress: Getting Traffic Into the Cluster | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes Field Notes lesson on Ingress, ingress controllers, HTTP routing, Services, hostnames, and local testing with kind.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-ingress-getting-traffic-into-the-cluster.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-ingress-getting-traffic-into-the-cluster.html">
+  
+  <title>Ingress: Getting Traffic Into the Cluster | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Core Concepts</div>
+
+        <h1>Ingress: Getting Traffic Into the Cluster</h1>
+
+        <p class="intro">
+          Services give workloads stable internal network access. Ingress adds HTTP routing into the cluster from outside, usually through an ingress controller that receives traffic and forwards it to Services.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Core Concepts · Estimated reading time: 26 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          In the Services lesson, you learned how a Service gives stable access to changing Pods. But a ClusterIP Service is only reachable inside the cluster. Ingress helps route external HTTP or HTTPS traffic to Services inside the cluster.
+        </p>
+
+        <p>
+          By the end of this lesson, you should understand:
+        </p>
+
+        <ul>
+          <li>What Ingress is</li>
+          <li>What an ingress controller is</li>
+          <li>Why Ingress is different from a Service</li>
+          <li>How host-based routing works</li>
+          <li>How path-based routing works</li>
+          <li>How Ingress routes to Services</li>
+          <li>How to install an ingress controller in a local kind lab</li>
+          <li>How to create and test an Ingress resource</li>
+          <li>How to troubleshoot common Ingress issues</li>
+          <li>How to clean up the lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          An Ingress resource is just the routing rule. It does not do anything useful unless an ingress controller is installed and watching for those rules.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          Ingress is a Kubernetes API object that defines HTTP and HTTPS routing rules.
+        </p>
+
+        <p>
+          An ingress controller is the actual software component that implements those rules.
+        </p>
+
+        <div class="code-block">
+<pre>Browser or client
+  sends HTTP request
+    Ingress controller receives request
+      Ingress rule matches host/path
+        Service receives traffic
+          Pods handle the request</pre>
+        </div>
+
+        <p>
+          That means Ingress does not replace Services. Ingress usually routes to Services, and Services route to Pods.
+        </p>
+
+        <h2>Service vs Ingress</h2>
+
+        <p>
+          A Service gives stable network access to Pods.
+        </p>
+
+        <p>
+          An Ingress gives HTTP routing into Services.
+        </p>
+
+        <div class="code-block">
+<pre>Deployment
+  creates Pods
+
+Service
+  gives stable access to Pods
+
+Ingress
+  defines HTTP routing to Services
+
+Ingress controller
+  actually receives and forwards HTTP traffic</pre>
+        </div>
+
+        <p>
+          A good mental model is:
+        </p>
+
+        <ul>
+          <li><strong>Deployment:</strong> runs the application Pods.</li>
+          <li><strong>Service:</strong> gives those Pods a stable internal address.</li>
+          <li><strong>Ingress:</strong> defines external HTTP routing rules.</li>
+          <li><strong>Ingress controller:</strong> enforces those routing rules.</li>
+        </ul>
+
+        <h2>Why Ingress exists</h2>
+
+        <p>
+          Without Ingress, exposing multiple HTTP applications can get messy.
+        </p>
+
+        <p>
+          You could create separate NodePort or LoadBalancer Services for each application, but that often creates too many ports, too many load balancers, and too much provider-specific setup.
+        </p>
+
+        <p>
+          Ingress gives you a cleaner pattern:
+        </p>
+
+        <div class="code-block">
+<pre>app1.example.com  -> service/app1
+app2.example.com  -> service/app2
+example.com/api   -> service/api
+example.com/web   -> service/web</pre>
+        </div>
+
+        <p>
+          This is similar to reverse proxy routing in traditional infrastructure.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          If you have worked with IIS ARR, NGINX, Apache reverse proxy, HAProxy, or cloud load balancer routing rules, Ingress will feel familiar. It is Kubernetes' way of declaring HTTP routing rules.
+        </div>
+
+        <h2>Host-based routing</h2>
+
+        <p>
+          Host-based routing sends traffic to different Services based on the requested hostname.
+        </p>
+
+        <div class="code-block">
+<pre>training.localhost      -> training-service
+api.training.localhost  -> api-service</pre>
+        </div>
+
+        <p>
+          The incoming HTTP Host header determines which backend Service receives the request.
+        </p>
+
+        <h2>Path-based routing</h2>
+
+        <p>
+          Path-based routing sends traffic to different Services based on the URL path.
+        </p>
+
+        <div class="code-block">
+<pre>training.localhost/      -> web-service
+training.localhost/api   -> api-service
+training.localhost/admin -> admin-service</pre>
+        </div>
+
+        <p>
+          This is useful when multiple applications or components share the same hostname but use different paths.
+        </p>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes:
+        </p>
+
+        <ul>
+          <li>Docker Desktop is running</li>
+          <li>Your kind cluster exists</li>
+          <li>kubectl is installed</li>
+          <li>Your current context is <strong>kind-stealth-k8s-lab</strong></li>
+        </ul>
+
+        <p>
+          Check your context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check your node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Important kind networking note</h2>
+
+        <p>
+          In a local kind cluster, the Kubernetes nodes run as Docker containers. That means external access behaves differently than it does in a cloud cluster.
+        </p>
+
+        <p>
+          To make this Ingress lab reliable, we will install an ingress controller and then use <strong>kubectl port-forward</strong> to forward local traffic to the ingress controller.
+        </p>
+
+        <p>
+          This keeps the lab simple and avoids needing a special kind cluster configuration with host port mappings.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          In production, Ingress is usually connected to a real load balancer, DNS record, and TLS certificate. In this lab, we use port-forwarding so you can learn the routing model locally.
+        </div>
+
+        <h2>Step 1: Install the NGINX Ingress Controller</h2>
+
+        <p>
+          Install the NGINX Ingress Controller for the local lab:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/kind/deploy.yaml</pre>
+        </div>
+
+        <p>
+          This creates resources in the <strong>ingress-nginx</strong> namespace.
+        </p>
+
+        <h3>What this command does</h3>
+
+        <ul>
+          <li>Creates the ingress-nginx namespace</li>
+          <li>Creates service accounts, roles, and role bindings</li>
+          <li>Deploys the NGINX Ingress Controller</li>
+          <li>Creates supporting Services and admission webhook resources</li>
+        </ul>
+
+        <p>
+          The install may take a minute or two to become ready.
+        </p>
+
+        <h2>Step 2: Wait for the ingress controller to be ready</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n ingress-nginx</pre>
+        </div>
+
+        <p>
+          You should see the ingress controller Pod.
+        </p>
+
+        <p>
+          Wait for it to become ready:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s</pre>
+        </div>
+
+        <p>
+          If the wait command times out, check the Pods again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n ingress-nginx
+kubectl describe pod -n ingress-nginx &lt;controller-pod-name&gt;</pre>
+        </div>
+
+        <h2>Step 3: Create a test application Deployment</h2>
+
+        <p>
+          Create a simple web application using nginx:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment ingress-web-lab --image=nginx:latest</pre>
+        </div>
+
+        <p>
+          Scale it to two replicas:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl scale deployment ingress-web-lab --replicas=2</pre>
+        </div>
+
+        <p>
+          Check the Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -o wide</pre>
+        </div>
+
+        <p>
+          You should see two nginx Pods running.
+        </p>
+
+        <h2>Step 4: Create a Service for the application</h2>
+
+        <p>
+          Create a ClusterIP Service for the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment ingress-web-lab --port=80 --target-port=80 --type=ClusterIP</pre>
+        </div>
+
+        <p>
+          Check the Service:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services</pre>
+        </div>
+
+        <p>
+          Check endpoints:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints ingress-web-lab</pre>
+        </div>
+
+        <p>
+          You should see endpoints for the nginx Pods.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Ingress routes to Services. If the Service has no endpoints, the Ingress may route correctly but still have no healthy backend Pods to receive traffic.
+        </div>
+
+        <h2>Step 5: Create an Ingress resource</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>ingress-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-web-lab
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: training.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ingress-web-lab
+            port:
+              number: 80</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f ingress-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Ingress:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get ingress</pre>
+        </div>
+
+        <p>
+          Describe it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe ingress ingress-web-lab</pre>
+        </div>
+
+        <h3>What this Ingress does</h3>
+
+        <ul>
+          <li>Uses the nginx ingress class</li>
+          <li>Matches requests for the host <strong>training.localhost</strong></li>
+          <li>Matches the path <strong>/</strong></li>
+          <li>Forwards matching requests to the Service named <strong>ingress-web-lab</strong> on port <strong>80</strong></li>
+        </ul>
+
+        <h2>Step 6: Port-forward to the ingress controller</h2>
+
+        <p>
+          In this local kind lab, we will forward local port <strong>8080</strong> to the NGINX Ingress Controller.
+        </p>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80</pre>
+        </div>
+
+        <p>
+          Keep this PowerShell window open while testing.
+        </p>
+
+        <h2>Step 7: Test the Ingress with curl</h2>
+
+        <p>
+          Open a second PowerShell window and run:
+        </p>
+
+        <div class="code-block">
+<pre>curl.exe -H "Host: training.localhost" http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page HTML returned.
+        </p>
+
+        <h3>Why we pass the Host header</h3>
+
+        <p>
+          The Ingress rule is matching on the hostname <strong>training.localhost</strong>.
+        </p>
+
+        <p>
+          Since we are testing through <strong>localhost:8080</strong>, we manually send the Host header so the ingress controller can match the rule.
+        </p>
+
+        <h2>Step 8: Test in a browser</h2>
+
+        <p>
+          You can also test with a browser by adding a temporary hosts file entry.
+        </p>
+
+        <p>
+          Open Notepad as Administrator and edit:
+        </p>
+
+        <div class="code-block">
+<pre>C:\Windows\System32\drivers\etc\hosts</pre>
+        </div>
+
+        <p>
+          Add:
+        </p>
+
+        <div class="code-block">
+<pre>127.0.0.1 training.localhost</pre>
+        </div>
+
+        <p>
+          Save the file.
+        </p>
+
+        <p>
+          With the port-forward still running, open:
+        </p>
+
+        <div class="code-block">
+<pre>http://training.localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page.
+        </p>
+
+        <p>
+          When you are done testing, you can remove the hosts file entry.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          DNS and hostnames matter for Ingress. If the request hostname does not match the Ingress rule, the request may not route where you expect.
+        </div>
+
+        <h2>Step 9: Add a second application</h2>
+
+        <p>
+          Create another Deployment using httpd:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment ingress-api-lab --image=httpd:latest</pre>
+        </div>
+
+        <p>
+          Expose it with a Service:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment ingress-api-lab --port=80 --target-port=80 --type=ClusterIP</pre>
+        </div>
+
+        <p>
+          Check the Service endpoints:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints ingress-api-lab</pre>
+        </div>
+
+        <h2>Step 10: Update the Ingress for path-based routing</h2>
+
+        <p>
+          Replace the contents of <strong>ingress-lab.yaml</strong> with this:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-web-lab
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: training.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ingress-web-lab
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: ingress-api-lab
+            port:
+              number: 80</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f ingress-lab.yaml</pre>
+        </div>
+
+        <p>
+          Describe the Ingress again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe ingress ingress-web-lab</pre>
+        </div>
+
+        <p>
+          You should now see two paths:
+        </p>
+
+        <ul>
+          <li><strong>/</strong> routes to <strong>ingress-web-lab</strong></li>
+          <li><strong>/api</strong> routes to <strong>ingress-api-lab</strong></li>
+        </ul>
+
+        <h2>Step 11: Test path-based routing</h2>
+
+        <p>
+          In the second PowerShell window, test the root path:
+        </p>
+
+        <div class="code-block">
+<pre>curl.exe -H "Host: training.localhost" http://localhost:8080/</pre>
+        </div>
+
+        <p>
+          Then test the API path:
+        </p>
+
+        <div class="code-block">
+<pre>curl.exe -H "Host: training.localhost" http://localhost:8080/api</pre>
+        </div>
+
+        <p>
+          You should see responses from different backend applications.
+        </p>
+
+        <p>
+          In this basic lab, the exact page content is not as important as understanding that the ingress controller is routing based on the path.
+        </p>
+
+        <h2>Step 12: Break the Ingress on purpose</h2>
+
+        <p>
+          Edit <strong>ingress-lab.yaml</strong> and change the backend Service name for the <strong>/api</strong> path:
+        </p>
+
+        <div class="code-block">
+<pre>service:
+  name: service-that-does-not-exist
+  port:
+    number: 80</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f ingress-lab.yaml</pre>
+        </div>
+
+        <p>
+          Describe the Ingress:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe ingress ingress-web-lab</pre>
+        </div>
+
+        <p>
+          Test the broken path:
+        </p>
+
+        <div class="code-block">
+<pre>curl.exe -H "Host: training.localhost" http://localhost:8080/api</pre>
+        </div>
+
+        <p>
+          You may see an error response because the route points to a Service that does not exist.
+        </p>
+
+        <h2>Step 13: Fix the Ingress</h2>
+
+        <p>
+          Change the backend Service name back to:
+        </p>
+
+        <div class="code-block">
+<pre>name: ingress-api-lab</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f ingress-lab.yaml</pre>
+        </div>
+
+        <p>
+          Test again:
+        </p>
+
+        <div class="code-block">
+<pre>curl.exe -H "Host: training.localhost" http://localhost:8080/api</pre>
+        </div>
+
+        <p>
+          The route should work again.
+        </p>
+
+        <h2>Step 14: Check ingress controller logs</h2>
+
+        <p>
+          Get the ingress controller Pod name:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n ingress-nginx</pre>
+        </div>
+
+        <p>
+          View logs from the controller:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl logs -n ingress-nginx &lt;controller-pod-name&gt;</pre>
+        </div>
+
+        <p>
+          The controller logs can help when routes are not behaving as expected.
+        </p>
+
+        <h2>Step 15: Stop port-forwarding</h2>
+
+        <p>
+          Go back to the PowerShell window running port-forward and press:
+        </p>
+
+        <div class="code-block">
+<pre>Ctrl+C</pre>
+        </div>
+
+        <p>
+          This stops forwarding local traffic to the ingress controller.
+        </p>
+
+        <h2>Step 16: Clean up the lab applications</h2>
+
+        <p>
+          Delete the Ingress:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f ingress-lab.yaml</pre>
+        </div>
+
+        <p>
+          Delete the Services:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete service ingress-web-lab
+kubectl delete service ingress-api-lab</pre>
+        </div>
+
+        <p>
+          Delete the Deployments:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete deployment ingress-web-lab
+kubectl delete deployment ingress-api-lab</pre>
+        </div>
+
+        <p>
+          Confirm cleanup:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get ingress
+kubectl get services
+kubectl get deployments
+kubectl get pods</pre>
+        </div>
+
+        <h2>Optional: Remove the ingress controller</h2>
+
+        <p>
+          If you want to remove the NGINX Ingress Controller from your lab cluster, run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete namespace ingress-nginx</pre>
+        </div>
+
+        <p>
+          You can also leave it installed for future Ingress labs.
+        </p>
+
+        <h2>Common Ingress troubleshooting commands</h2>
+
+        <p>
+          Use this flow when Ingress does not work:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get ingress
+kubectl describe ingress &lt;ingress-name&gt;
+kubectl get ingressclass
+kubectl get services
+kubectl describe service &lt;service-name&gt;
+kubectl get endpoints &lt;service-name&gt;
+kubectl get pods --show-labels
+kubectl get pods -n ingress-nginx
+kubectl logs -n ingress-nginx &lt;controller-pod-name&gt;
+kubectl get events --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <p>
+          This usually tells you:
+        </p>
+
+        <ul>
+          <li>Whether the Ingress exists</li>
+          <li>Whether an ingress controller is installed</li>
+          <li>Whether the ingress class matches the controller</li>
+          <li>Whether the backend Service exists</li>
+          <li>Whether the Service has endpoints</li>
+          <li>Whether the selected Pods are running</li>
+          <li>Whether the request hostname and path match the Ingress rule</li>
+        </ul>
+
+        <h2>Common Ingress problems</h2>
+
+        <h3>No ingress controller installed</h3>
+
+        <p>
+          Creating an Ingress resource does not automatically install a controller. Without a controller, nothing is available to enforce the routing rules.
+        </p>
+
+        <h3>Wrong ingress class</h3>
+
+        <p>
+          If the Ingress specifies an ingress class that does not match the installed controller, the controller may ignore it.
+        </p>
+
+        <h3>Backend Service does not exist</h3>
+
+        <p>
+          The Ingress may point to a Service name that is misspelled or missing.
+        </p>
+
+        <h3>Service has no endpoints</h3>
+
+        <p>
+          The Service exists, but it does not match any healthy Pods.
+        </p>
+
+        <h3>Host header does not match</h3>
+
+        <p>
+          The Ingress rule may require a specific hostname. If the request uses a different hostname, the rule may not match.
+        </p>
+
+        <h3>DNS points to the wrong place</h3>
+
+        <p>
+          In real environments, DNS must point to the load balancer or ingress entry point.
+        </p>
+
+        <h2>What about TLS?</h2>
+
+        <p>
+          In production, Ingress commonly handles HTTPS traffic with TLS certificates.
+        </p>
+
+        <p>
+          That usually involves:
+        </p>
+
+        <ul>
+          <li>A DNS name</li>
+          <li>A certificate</li>
+          <li>A Kubernetes Secret containing certificate material</li>
+          <li>An Ingress rule referencing the TLS Secret</li>
+          <li>An ingress controller configured to terminate TLS</li>
+        </ul>
+
+        <p>
+          We are intentionally staying with HTTP in this beginner lab. TLS, certificates, cert-manager, and production-grade ingress patterns come later.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Ingress is where Kubernetes starts to look like traditional edge routing: DNS, hostnames, paths, TLS, load balancers, and reverse proxy behavior all come together.
+        </div>
+
+        <h2>What you just learned</h2>
+
+        <p>
+          In this lesson, you:
+        </p>
+
+        <ul>
+          <li>Installed the NGINX Ingress Controller</li>
+          <li>Created a Deployment and Service</li>
+          <li>Created an Ingress resource</li>
+          <li>Used host-based routing</li>
+          <li>Tested Ingress with curl and a Host header</li>
+          <li>Tested Ingress in a browser with a hosts file entry</li>
+          <li>Added a second application</li>
+          <li>Configured path-based routing</li>
+          <li>Broke and fixed an Ingress backend Service reference</li>
+          <li>Checked ingress controller logs</li>
+          <li>Cleaned up the lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Services provide stable internal access to Pods. Ingress defines HTTP routing into Services. The ingress controller is the component that actually receives traffic and applies the routing rules.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the Ingress concepts made sense.
+        </p>
+
+        <ol>
+          <li>What problem does Ingress solve?</li>
+          <li>Does an Ingress resource work by itself without an ingress controller?</li>
+          <li>What does an ingress controller do?</li>
+          <li>Does Ingress usually route directly to Pods or to Services?</li>
+          <li>What is host-based routing?</li>
+          <li>What is path-based routing?</li>
+          <li>Why did we use port-forwarding in the kind lab?</li>
+          <li>Why did we pass a Host header when testing with curl?</li>
+          <li>What should you check if an Ingress backend Service has no endpoints?</li>
+          <li>What command shows Ingress resources?</li>
+          <li>What namespace did the NGINX Ingress Controller run in during this lab?</li>
+          <li>What are three things involved in production HTTPS Ingress?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Ingress defines HTTP and HTTPS routing into Services inside the cluster.</li>
+            <li>No. An ingress controller is needed to implement the routing rules.</li>
+            <li>It watches Ingress resources and routes incoming traffic according to those rules.</li>
+            <li>Ingress usually routes to Services, and Services route to Pods.</li>
+            <li>Routing based on the requested hostname.</li>
+            <li>Routing based on the URL path.</li>
+            <li>kind runs Kubernetes nodes as Docker containers, so port-forwarding gives a simple reliable way to test locally.</li>
+            <li>The Ingress rule matched the hostname training.localhost, so the request needed that Host header.</li>
+            <li>Check whether the Service selector matches the Pod labels and whether the Pods are running and ready.</li>
+            <li><strong>kubectl get ingress</strong>.</li>
+            <li><strong>ingress-nginx</strong>.</li>
+            <li>Examples: DNS name, TLS certificate, Kubernetes TLS Secret, Ingress TLS configuration, ingress controller, and load balancer.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-configmaps-and-secrets.html">← Previous: ConfigMaps and Secrets</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Next lesson coming soon →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
