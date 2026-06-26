@@ -626,3 +626,28 @@ html {
     flex-direction: column;
   }
 }
+
+.article-nav.three-link {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.article-nav.three-link .nav-index {
+  text-align: center;
+}
+
+.article-nav.three-link .nav-next {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .article-nav.three-link {
+    grid-template-columns: 1fr;
+  }
+
+  .article-nav.three-link .nav-index,
+  .article-nav.three-link .nav-next {
+    text-align: left;
+  }
+}
