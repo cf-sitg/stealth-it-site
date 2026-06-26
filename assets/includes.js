@@ -20,6 +20,10 @@ function setActiveNav() {
     if (
       (key === "services" && path.includes("services.html")) ||
       (key === "tools" && path.includes("tools.html")) ||
+      (key === "training" && (
+        path.includes("training.html") ||
+        path.includes("kubernetes")
+      )) ||
       (key === "privacy" && path.includes("privacy.html"))
     ) {
       link.classList.add("active");
