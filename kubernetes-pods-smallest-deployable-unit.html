@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn what Kubernetes Pods are, why they exist, and how to create, inspect, troubleshoot, and delete Pods in a local Kubernetes lab.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Pods: The Smallest Deployable Unit | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes Field Notes lesson on Pods, the smallest deployable unit in Kubernetes.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-pods-smallest-deployable-unit.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-pods-smallest-deployable-unit.html">
+  
+  <title>Pods: The Smallest Deployable Unit | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Core Concepts</div>
+
+        <h1>Pods: The Smallest Deployable Unit</h1>
+
+        <p class="intro">
+          A Pod is the smallest deployable unit Kubernetes manages. Before learning Deployments, Services, scaling, rollouts, or troubleshooting, you need to understand what a Pod is and what Kubernetes is actually running.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Core Concepts · Estimated reading time: 20 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          This lesson introduces Pods as the basic workload unit in Kubernetes.
+        </p>
+
+        <p>
+          By the end, you should understand:
+        </p>
+
+        <ul>
+          <li>What a Pod is</li>
+          <li>How a Pod relates to a container</li>
+          <li>Why Kubernetes usually manages Pods through higher-level objects</li>
+          <li>How to create a simple Pod</li>
+          <li>How to inspect Pod status</li>
+          <li>How to view Pod logs</li>
+          <li>How to exec into a Pod</li>
+          <li>How to expose a Pod locally for testing</li>
+          <li>How to delete a Pod</li>
+          <li>Why manually created Pods are not usually how production workloads are managed</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Kubernetes does not run containers by themselves. It runs containers inside Pods. That distinction matters.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          A Pod is a wrapper around one or more containers.
+        </p>
+
+        <p>
+          Most beginner examples use one container per Pod, but a Pod can contain multiple containers when those containers need to be tightly coupled and share the same network and storage context.
+        </p>
+
+        <p>
+          In normal application deployments, you usually do not create standalone Pods directly. You create a higher-level object like a Deployment, and that Deployment creates and manages Pods for you.
+        </p>
+
+        <h2>Pod vs container</h2>
+
+        <p>
+          A container is the running application process created from an image.
+        </p>
+
+        <p>
+          A Pod is the Kubernetes object that holds that container.
+        </p>
+
+        <div class="code-block">
+<pre>Container:
+  The application process and its runtime environment.
+
+Pod:
+  The Kubernetes wrapper around one or more containers.</pre>
+        </div>
+
+        <p>
+          If Kubernetes is managing a containerized application, it is doing that through a Pod.
+        </p>
+
+        <h2>What a Pod provides</h2>
+
+        <p>
+          A Pod gives containers a shared execution environment.
+        </p>
+
+        <p>
+          Containers in the same Pod share:
+        </p>
+
+        <ul>
+          <li>The same network namespace</li>
+          <li>The same Pod IP address</li>
+          <li>The ability to communicate over localhost</li>
+          <li>Shared volumes, if configured</li>
+          <li>The same scheduling lifecycle</li>
+        </ul>
+
+        <p>
+          That last point is important. Containers in the same Pod are scheduled together. They are meant to be tightly related.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not put unrelated applications into the same Pod. A Pod is not a mini server where you install a pile of services. It is for tightly coupled containers that should live and die together.
+        </div>
+
+        <h2>Why most Pods have one container</h2>
+
+        <p>
+          Most application Pods contain one main application container.
+        </p>
+
+        <p>
+          That keeps the model simple:
+        </p>
+
+        <ul>
+          <li>One application process</li>
+          <li>One container image</li>
+          <li>One set of logs</li>
+          <li>One primary lifecycle</li>
+        </ul>
+
+        <p>
+          Multi-container Pods exist, but they are usually used for helper patterns such as sidecars, proxies, log shippers, or tightly coupled support containers.
+        </p>
+
+        <h2>Pods are disposable</h2>
+
+        <p>
+          Pods are not meant to be long-lived pets. They are meant to be replaceable.
+        </p>
+
+        <p>
+          A Pod can disappear because:
+        </p>
+
+        <ul>
+          <li>The node failed</li>
+          <li>The Pod was deleted</li>
+          <li>A Deployment rolled out a new version</li>
+          <li>A health check failed</li>
+          <li>The scheduler moved workload elsewhere</li>
+          <li>The cluster needed to reclaim resources</li>
+        </ul>
+
+        <p>
+          This is why Kubernetes uses higher-level controllers like Deployments to keep the desired number of Pods running.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          If a Pod dies, Kubernetes may replace it, but the replacement is a new Pod. Do not design around a specific Pod name or Pod IP staying forever.
+        </div>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes:
+        </p>
+
+        <ul>
+          <li>Docker Desktop is running</li>
+          <li>Your kind cluster exists</li>
+          <li>kubectl is installed</li>
+          <li>Your current context is <strong>kind-stealth-k8s-lab</strong></li>
+        </ul>
+
+        <p>
+          Check your context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check your node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a simple Pod imperatively</h2>
+
+        <p>
+          The fastest way to create a simple Pod is with <strong>kubectl run</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl run nginx-pod-lab --image=nginx:latest</pre>
+        </div>
+
+        <p>
+          This tells Kubernetes to create a Pod named <strong>nginx-pod-lab</strong> using the <strong>nginx:latest</strong> container image.
+        </p>
+
+        <h3>What this command does</h3>
+
+        <ul>
+          <li>Creates a Pod object</li>
+          <li>Uses the nginx container image</li>
+          <li>Asks Kubernetes to schedule the Pod onto a node</li>
+          <li>Starts the container inside the Pod</li>
+        </ul>
+
+        <p>
+          This is called an imperative command because you directly told Kubernetes to create something from the command line.
+        </p>
+
+        <h2>Step 2: List Pods</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should see something like:
+        </p>
+
+        <div class="code-block">
+<pre>NAME            READY   STATUS    RESTARTS   AGE
+nginx-pod-lab   1/1     Running   0          30s</pre>
+        </div>
+
+        <h3>What to look for</h3>
+
+        <ul>
+          <li><strong>READY:</strong> How many containers are ready compared to how many are expected.</li>
+          <li><strong>STATUS:</strong> The current Pod phase or status summary.</li>
+          <li><strong>RESTARTS:</strong> How many times the container restarted.</li>
+          <li><strong>AGE:</strong> How long the Pod has existed.</li>
+        </ul>
+
+        <p>
+          For this simple Pod, <strong>1/1</strong> means one container is expected and one container is ready.
+        </p>
+
+        <h2>Step 3: Show more detail with wide output</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -o wide</pre>
+        </div>
+
+        <p>
+          This gives you more information, usually including:
+        </p>
+
+        <ul>
+          <li>Pod IP</li>
+          <li>Node where the Pod is running</li>
+          <li>Readiness gates, if any</li>
+        </ul>
+
+        <p>
+          In a local kind cluster, the node name will usually be something like:
+        </p>
+
+        <div class="code-block">
+<pre>stealth-k8s-lab-control-plane</pre>
+        </div>
+
+        <h2>Step 4: Describe the Pod</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod nginx-pod-lab</pre>
+        </div>
+
+        <p>
+          The describe output is one of your most useful troubleshooting views.
+        </p>
+
+        <h3>What to look for</h3>
+
+        <ul>
+          <li>Pod name and namespace</li>
+          <li>Node placement</li>
+          <li>Pod IP</li>
+          <li>Container image</li>
+          <li>Container state</li>
+          <li>Restart count</li>
+          <li>Events at the bottom</li>
+        </ul>
+
+        <p>
+          The events section often tells you what Kubernetes did: scheduled the Pod, pulled the image, created the container, and started the container.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          When a Pod is broken, always check the bottom of <strong>kubectl describe pod</strong>. The events section often tells you exactly what Kubernetes tried to do.
+        </div>
+
+        <h2>Step 5: View Pod logs</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl logs nginx-pod-lab</pre>
+        </div>
+
+        <p>
+          nginx may not show much until it receives traffic. That is normal.
+        </p>
+
+        <p>
+          Logs come from the container running inside the Pod. If a Pod has multiple containers, you may need to specify which container you want logs from.
+        </p>
+
+        <h2>Step 6: Exec into the Pod</h2>
+
+        <p>
+          Open a shell inside the container:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl exec -it nginx-pod-lab -- /bin/sh</pre>
+        </div>
+
+        <p>
+          Inside the container, run:
+        </p>
+
+        <div class="code-block">
+<pre>hostname
+ps
+ls
+exit</pre>
+        </div>
+
+        <p>
+          This shows that you can inspect the running container through Kubernetes.
+        </p>
+
+        <p>
+          This is useful for learning and emergency inspection, but you should not treat containers like traditional servers that you manually repair from the inside.
+        </p>
+
+        <h2>Step 7: Port-forward to the Pod</h2>
+
+        <p>
+          Use port-forwarding to test the nginx Pod from your local browser:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl port-forward pod/nginx-pod-lab 8080:80</pre>
+        </div>
+
+        <p>
+          Keep that PowerShell window open. Then open a browser and go to:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page.
+        </p>
+
+        <p>
+          Press <strong>Ctrl+C</strong> in PowerShell to stop the port-forward session.
+        </p>
+
+        <h2>Step 8: Check logs again after traffic</h2>
+
+        <p>
+          After visiting the nginx page, check logs again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl logs nginx-pod-lab</pre>
+        </div>
+
+        <p>
+          You should now see nginx access log entries.
+        </p>
+
+        <h2>Step 9: View the Pod as YAML</h2>
+
+        <p>
+          Kubernetes resources are API objects. You can view the Pod in YAML:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pod nginx-pod-lab -o yaml</pre>
+        </div>
+
+        <p>
+          The output will be long. For now, look for these major sections:
+        </p>
+
+        <ul>
+          <li><strong>apiVersion</strong></li>
+          <li><strong>kind</strong></li>
+          <li><strong>metadata</strong></li>
+          <li><strong>spec</strong></li>
+          <li><strong>status</strong></li>
+        </ul>
+
+        <h3>What these sections mean</h3>
+
+        <ul>
+          <li><strong>apiVersion:</strong> Which Kubernetes API version this object uses.</li>
+          <li><strong>kind:</strong> What type of Kubernetes object this is.</li>
+          <li><strong>metadata:</strong> Name, namespace, labels, and system-managed information.</li>
+          <li><strong>spec:</strong> The desired configuration for the Pod.</li>
+          <li><strong>status:</strong> What is currently happening with the Pod.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Kubernetes resources usually have a <strong>spec</strong> and a <strong>status</strong>. The spec is what you asked for. The status is what Kubernetes reports is actually happening.
+        </div>
+
+        <h2>Step 10: Create a Pod from YAML</h2>
+
+        <p>
+          Imperative commands are useful for quick testing, but Kubernetes work usually moves toward YAML files.
+        </p>
+
+        <p>
+          Create a new file named:
+        </p>
+
+        <div class="code-block">
+<pre>pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-yaml-pod-lab
+  labels:
+    app: nginx-yaml-pod-lab
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80</pre>
+        </div>
+
+        <p>
+          Apply the file:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should now see both Pods:
+        </p>
+
+        <div class="code-block">
+<pre>nginx-pod-lab
+nginx-yaml-pod-lab</pre>
+        </div>
+
+        <h2>Step 11: Compare the two Pods</h2>
+
+        <p>
+          Describe the YAML-created Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod nginx-yaml-pod-lab</pre>
+        </div>
+
+        <p>
+          Then view its YAML:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pod nginx-yaml-pod-lab -o yaml</pre>
+        </div>
+
+        <p>
+          The important point is that both methods created a Pod object. The YAML method is more repeatable because the desired configuration is saved in a file.
+        </p>
+
+        <h2>Step 12: Delete the first Pod</h2>
+
+        <p>
+          Delete the Pod you created imperatively:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete pod nginx-pod-lab</pre>
+        </div>
+
+        <p>
+          Check Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          Notice that the Pod does not come back.
+        </p>
+
+        <h3>Why it does not come back</h3>
+
+        <p>
+          You created a standalone Pod. There is no Deployment or controller watching it and saying, “Keep one copy running.”
+        </p>
+
+        <p>
+          When you delete a standalone Pod, it is gone.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          This is why production workloads are usually managed by Deployments or other controllers. A controller keeps the desired number of Pods running.
+        </div>
+
+        <h2>Step 13: Delete the YAML-created Pod</h2>
+
+        <p>
+          Delete it using the YAML file:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Confirm it is gone:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          This removes the object defined in the YAML file.
+        </p>
+
+        <h2>Common Pod statuses</h2>
+
+        <p>
+          As you work with Pods, you will see different status values. Some common ones include:
+        </p>
+
+        <ul>
+          <li><strong>Pending:</strong> Kubernetes accepted the Pod, but it has not started running yet.</li>
+          <li><strong>Running:</strong> The Pod is assigned to a node and at least one container is running.</li>
+          <li><strong>Succeeded:</strong> Containers completed successfully and will not restart.</li>
+          <li><strong>Failed:</strong> Containers terminated with failure.</li>
+          <li><strong>CrashLoopBackOff:</strong> A container keeps crashing and Kubernetes is backing off before restarting it again.</li>
+          <li><strong>ImagePullBackOff:</strong> Kubernetes cannot pull the container image.</li>
+        </ul>
+
+        <p>
+          The status alone does not always tell the full story. Use <strong>describe</strong>, <strong>logs</strong>, and <strong>events</strong> to understand what is happening.
+        </p>
+
+        <h2>Quick troubleshooting flow for Pods</h2>
+
+        <p>
+          When a Pod does not work, start with:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods
+kubectl get pods -o wide
+kubectl describe pod &lt;pod-name&gt;
+kubectl logs &lt;pod-name&gt;
+kubectl get events --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <p>
+          This usually answers:
+        </p>
+
+        <ul>
+          <li>Does the Pod exist?</li>
+          <li>Is it running?</li>
+          <li>Which node is it on?</li>
+          <li>Did the image pull successfully?</li>
+          <li>Did the container start?</li>
+          <li>Is the app crashing?</li>
+          <li>What did Kubernetes report in events?</li>
+        </ul>
+
+        <h2>What you just learned</h2>
+
+        <p>
+          In this lesson, you:
+        </p>
+
+        <ul>
+          <li>Created a Pod with <strong>kubectl run</strong></li>
+          <li>Listed Pods</li>
+          <li>Used wide output</li>
+          <li>Described a Pod</li>
+          <li>Viewed Pod logs</li>
+          <li>Used exec for inspection</li>
+          <li>Used port-forward for local testing</li>
+          <li>Viewed a Pod as YAML</li>
+          <li>Created a Pod from YAML</li>
+          <li>Deleted standalone Pods</li>
+          <li>Learned why controllers matter</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          A Pod is the smallest deployable unit in Kubernetes, but standalone Pods are not usually how production applications are managed. Pods are usually created and maintained by controllers such as Deployments.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the Pod concepts made sense.
+        </p>
+
+        <ol>
+          <li>What is the smallest deployable unit Kubernetes manages?</li>
+          <li>Does Kubernetes run containers directly by themselves, or inside Pods?</li>
+          <li>Can a Pod contain more than one container?</li>
+          <li>When should multiple containers be placed in the same Pod?</li>
+          <li>Why are Pods considered disposable?</li>
+          <li>What does <strong>READY 1/1</strong> mean for a Pod?</li>
+          <li>What command gives detailed troubleshooting information about a Pod?</li>
+          <li>Where should you look in describe output when a Pod fails to start?</li>
+          <li>What is the difference between <strong>spec</strong> and <strong>status</strong>?</li>
+          <li>Why does a standalone Pod not come back after you delete it?</li>
+          <li>Why is YAML useful for creating Kubernetes resources?</li>
+          <li>What are two commands you would run when troubleshooting a broken Pod?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>A Pod.</li>
+            <li>Kubernetes runs containers inside Pods.</li>
+            <li>Yes.</li>
+            <li>When the containers are tightly coupled and need to share the same network or storage context.</li>
+            <li>Because they can be deleted, replaced, rescheduled, or recreated as part of normal Kubernetes operation.</li>
+            <li>One container is expected and one container is ready.</li>
+            <li><strong>kubectl describe pod &lt;pod-name&gt;</strong>.</li>
+            <li>The events section at the bottom.</li>
+            <li><strong>spec</strong> is the desired configuration. <strong>status</strong> is what Kubernetes reports is currently happening.</li>
+            <li>Because no controller is managing it and recreating it.</li>
+            <li>YAML makes the desired configuration repeatable and reviewable.</li>
+            <li>Examples: <strong>kubectl describe pod &lt;pod-name&gt;</strong>, <strong>kubectl logs &lt;pod-name&gt;</strong>, <strong>kubectl get events</strong>, <strong>kubectl get pods -o wide</strong>.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav">
+          <a href="/kubernetes-kubectl-basics-for-troubleshooting.html">← Previous: kubectl Basics for Troubleshooting</a>
+          <a href="/kubernetes-field-notes.html">Back to Kubernetes Field Notes →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
