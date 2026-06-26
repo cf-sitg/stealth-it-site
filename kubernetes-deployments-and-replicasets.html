@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes Deployments and ReplicaSets, how they manage Pods, and how to scale, inspect, update, roll back, and troubleshoot workloads.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Deployments and ReplicaSets | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes Field Notes lesson on Deployments, ReplicaSets, scaling, rollouts, and workload recovery.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-deployments-and-replicasets.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-deployments-and-replicasets.html">
+  
+  <title>Deployments and ReplicaSets | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Core Concepts</div>
+
+        <h1>Deployments and ReplicaSets Explained Practically</h1>
+
+        <p class="intro">
+          A standalone Pod disappears when you delete it. A Deployment changes that model. Deployments tell Kubernetes how many copies of a workload should exist, how to update them, and how to recover when Pods fail.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Core Concepts · Estimated reading time: 22 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          In the Pods lesson, you created standalone Pods and saw that they do not come back after deletion. In this lesson, you move one level up and learn how Kubernetes keeps workloads running with Deployments and ReplicaSets.
+        </p>
+
+        <p>
+          By the end, you should understand:
+        </p>
+
+        <ul>
+          <li>What a Deployment is</li>
+          <li>What a ReplicaSet is</li>
+          <li>How Deployments create and manage Pods</li>
+          <li>Why standalone Pods are not normally used for production workloads</li>
+          <li>How to scale a Deployment</li>
+          <li>How Kubernetes replaces deleted Pods</li>
+          <li>How to update an image</li>
+          <li>How to check rollout status</li>
+          <li>How to roll back a bad change</li>
+          <li>How to clean up the lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Pods are the workload unit, but Deployments are usually how you manage application workloads. The Deployment is what keeps the desired number of Pods running.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          A Deployment is a Kubernetes object that manages application Pods.
+        </p>
+
+        <p>
+          You tell the Deployment what you want:
+        </p>
+
+        <ul>
+          <li>Which container image to run</li>
+          <li>How many copies should exist</li>
+          <li>Which labels identify the workload</li>
+          <li>How updates should roll out</li>
+        </ul>
+
+        <p>
+          Kubernetes then works to make the actual state match that desired state.
+        </p>
+
+        <h2>Deployment, ReplicaSet, and Pod relationship</h2>
+
+        <p>
+          The relationship looks like this:
+        </p>
+
+        <div class="code-block">
+<pre>Deployment
+  controls ReplicaSet
+    controls Pods
+      run containers</pre>
+        </div>
+
+        <p>
+          You usually interact with the Deployment. The Deployment creates a ReplicaSet. The ReplicaSet creates and maintains the Pods.
+        </p>
+
+        <h2>What is a ReplicaSet?</h2>
+
+        <p>
+          A ReplicaSet makes sure a specified number of matching Pods are running.
+        </p>
+
+        <p>
+          For example, if a ReplicaSet expects three Pods and one Pod disappears, the ReplicaSet creates another Pod to bring the count back to three.
+        </p>
+
+        <p>
+          You usually do not create ReplicaSets directly. Deployments create and manage ReplicaSets for you.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Think of the Deployment as the object you manage and the ReplicaSet as the object Kubernetes uses underneath to maintain Pod count.
+        </div>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes:
+        </p>
+
+        <ul>
+          <li>Docker Desktop is running</li>
+          <li>Your kind cluster exists</li>
+          <li>kubectl is installed</li>
+          <li>Your current context is <strong>kind-stealth-k8s-lab</strong></li>
+        </ul>
+
+        <p>
+          Check your context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check your node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a Deployment imperatively</h2>
+
+        <p>
+          Create a simple nginx Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment nginx-deploy-lab --image=nginx:latest</pre>
+        </div>
+
+        <p>
+          This creates a Deployment named <strong>nginx-deploy-lab</strong>.
+        </p>
+
+        <h3>What this command does</h3>
+
+        <ul>
+          <li>Creates a Deployment object</li>
+          <li>Defines the container image as <strong>nginx:latest</strong></li>
+          <li>Creates a ReplicaSet</li>
+          <li>Creates one Pod through that ReplicaSet</li>
+        </ul>
+
+        <h2>Step 2: Inspect the Deployment</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments</pre>
+        </div>
+
+        <p>
+          You should see something like:
+        </p>
+
+        <div class="code-block">
+<pre>NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deploy-lab   1/1     1            1           30s</pre>
+        </div>
+
+        <h3>What to look for</h3>
+
+        <ul>
+          <li><strong>READY:</strong> How many desired Pods are ready.</li>
+          <li><strong>UP-TO-DATE:</strong> How many Pods match the current Deployment spec.</li>
+          <li><strong>AVAILABLE:</strong> How many Pods are available to serve traffic.</li>
+          <li><strong>AGE:</strong> How long the Deployment has existed.</li>
+        </ul>
+
+        <h2>Step 3: Inspect the ReplicaSet</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get replicasets</pre>
+        </div>
+
+        <p>
+          You should see a ReplicaSet with a name that starts with <strong>nginx-deploy-lab</strong> and ends with a generated suffix.
+        </p>
+
+        <div class="code-block">
+<pre>NAME                          DESIRED   CURRENT   READY   AGE
+nginx-deploy-lab-xxxxxxxxxx    1         1         1       1m</pre>
+        </div>
+
+        <p>
+          That ReplicaSet was created by the Deployment.
+        </p>
+
+        <h2>Step 4: Inspect the Pod</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should see a Pod with a generated name.
+        </p>
+
+        <div class="code-block">
+<pre>NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deploy-lab-xxxxxxxxxx-yyyyy   1/1     Running   0          1m</pre>
+        </div>
+
+        <p>
+          The generated Pod name is a clue that this Pod is managed by higher-level Kubernetes objects.
+        </p>
+
+        <h2>Step 5: Describe the Deployment</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe deployment nginx-deploy-lab</pre>
+        </div>
+
+        <p>
+          Look for:
+        </p>
+
+        <ul>
+          <li>Labels</li>
+          <li>Selector</li>
+          <li>Replicas</li>
+          <li>Pod template</li>
+          <li>Container image</li>
+          <li>Events</li>
+        </ul>
+
+        <p>
+          The selector is important because it tells the Deployment which Pods belong to it.
+        </p>
+
+        <h2>Step 6: Scale the Deployment</h2>
+
+        <p>
+          Scale the Deployment to three replicas:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl scale deployment nginx-deploy-lab --replicas=3</pre>
+        </div>
+
+        <p>
+          Check the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments</pre>
+        </div>
+
+        <p>
+          Check the Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should see three Pods for the same Deployment.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Scaling a Deployment changes the desired state. Kubernetes then creates or removes Pods until the actual state matches that desired state.
+        </div>
+
+        <h2>Step 7: Delete one Pod and watch it come back</h2>
+
+        <p>
+          Get the Pod names:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          Delete one of the Pods. Replace <strong>&lt;pod-name&gt;</strong> with one actual Pod name:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete pod &lt;pod-name&gt;</pre>
+        </div>
+
+        <p>
+          Immediately check Pods again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should see Kubernetes create a replacement Pod.
+        </p>
+
+        <h3>Why this happens</h3>
+
+        <p>
+          The Deployment still wants three replicas. The ReplicaSet sees that one Pod disappeared, so it creates another Pod to restore the desired count.
+        </p>
+
+        <p>
+          This is the key difference from a standalone Pod. A standalone Pod does not come back after deletion. A Pod managed by a Deployment does.
+        </p>
+
+        <h2>Step 8: View ownership</h2>
+
+        <p>
+          Pick one current Pod and describe it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod &lt;pod-name&gt;</pre>
+        </div>
+
+        <p>
+          Look for a line like:
+        </p>
+
+        <div class="code-block">
+<pre>Controlled By:  ReplicaSet/nginx-deploy-lab-xxxxxxxxxx</pre>
+        </div>
+
+        <p>
+          This tells you the Pod is controlled by a ReplicaSet, not manually managed by you.
+        </p>
+
+        <h2>Step 9: Scale back down</h2>
+
+        <p>
+          Scale the Deployment back to one replica:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl scale deployment nginx-deploy-lab --replicas=1</pre>
+        </div>
+
+        <p>
+          Check Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          Kubernetes removes extra Pods until only one remains.
+        </p>
+
+        <h2>Step 10: Create a Deployment from YAML</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-yaml-deploy-lab
+  labels:
+    app: nginx-yaml-deploy-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-yaml-deploy-lab
+  template:
+    metadata:
+      labels:
+        app: nginx-yaml-deploy-lab
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Deployment, ReplicaSet, and Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments
+kubectl get replicasets
+kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should see the YAML-created Deployment running two Pods.
+        </p>
+
+        <h2>Step 11: Understand labels and selectors</h2>
+
+        <p>
+          In the YAML, this selector:
+        </p>
+
+        <div class="code-block">
+<pre>selector:
+  matchLabels:
+    app: nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          matches this Pod template label:
+        </p>
+
+        <div class="code-block">
+<pre>template:
+  metadata:
+    labels:
+      app: nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          This relationship matters. The Deployment uses the selector to identify which Pods belong to it.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Selector and label mismatches are a common source of Kubernetes confusion. The controller needs a reliable way to know which Pods it owns.
+        </div>
+
+        <h2>Step 12: Update the Deployment image</h2>
+
+        <p>
+          Update the image from <strong>nginx:1.25</strong> to <strong>nginx:1.27</strong>:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl set image deployment/nginx-yaml-deploy-lab nginx=nginx:1.27</pre>
+        </div>
+
+        <p>
+          Watch the rollout:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl rollout status deployment/nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          Check ReplicaSets:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get replicasets</pre>
+        </div>
+
+        <p>
+          You may see an older ReplicaSet and a newer ReplicaSet. Deployments use ReplicaSets to manage rollout history.
+        </p>
+
+        <h2>Step 13: Check rollout history</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl rollout history deployment/nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          This shows rollout revisions for the Deployment.
+        </p>
+
+        <h2>Step 14: Simulate a bad image update</h2>
+
+        <p>
+          Now intentionally set a bad image name:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl set image deployment/nginx-yaml-deploy-lab nginx=nginx:badtag-lab</pre>
+        </div>
+
+        <p>
+          Check rollout status:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl rollout status deployment/nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          This may wait because the new Pods cannot become healthy.
+        </p>
+
+        <p>
+          In another PowerShell window, inspect the Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods
+kubectl describe pod &lt;pod-name&gt;</pre>
+        </div>
+
+        <p>
+          You should see image pull errors such as <strong>ImagePullBackOff</strong> or <strong>ErrImagePull</strong>.
+        </p>
+
+        <h2>Step 15: Roll back the bad update</h2>
+
+        <p>
+          Undo the rollout:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl rollout undo deployment/nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          Check rollout status:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl rollout status deployment/nginx-yaml-deploy-lab</pre>
+        </div>
+
+        <p>
+          Check Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          Kubernetes should move back to the previous working version.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Rollbacks are one reason Deployments matter. They provide a safer way to change application versions than manually replacing Pods.
+        </div>
+
+        <h2>Step 16: View Deployment YAML</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployment nginx-yaml-deploy-lab -o yaml</pre>
+        </div>
+
+        <p>
+          Again, do not try to memorize the whole output. Look for:
+        </p>
+
+        <ul>
+          <li><strong>metadata</strong></li>
+          <li><strong>spec.replicas</strong></li>
+          <li><strong>spec.selector</strong></li>
+          <li><strong>spec.template</strong></li>
+          <li><strong>status</strong></li>
+        </ul>
+
+        <p>
+          The Pod template inside the Deployment is the blueprint used to create Pods.
+        </p>
+
+        <h2>Step 17: Clean up</h2>
+
+        <p>
+          Delete the imperative Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete deployment nginx-deploy-lab</pre>
+        </div>
+
+        <p>
+          Delete the YAML-created Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Confirm cleanup:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments
+kubectl get replicasets
+kubectl get pods</pre>
+        </div>
+
+        <p>
+          You should not see the lab Deployments or their Pods anymore.
+        </p>
+
+        <h2>Common Deployment troubleshooting commands</h2>
+
+        <p>
+          Use this flow when a Deployment does not look right:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments
+kubectl describe deployment &lt;deployment-name&gt;
+kubectl get replicasets
+kubectl get pods
+kubectl get pods -o wide
+kubectl describe pod &lt;pod-name&gt;
+kubectl logs &lt;pod-name&gt;
+kubectl rollout status deployment/&lt;deployment-name&gt;
+kubectl rollout history deployment/&lt;deployment-name&gt;
+kubectl get events --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <p>
+          This usually tells you:
+        </p>
+
+        <ul>
+          <li>Whether the Deployment exists</li>
+          <li>How many replicas are desired</li>
+          <li>How many replicas are available</li>
+          <li>Whether Pods are being created</li>
+          <li>Whether images are pulling successfully</li>
+          <li>Whether containers are starting</li>
+          <li>Whether the rollout is stuck</li>
+        </ul>
+
+        <h2>What you just learned</h2>
+
+        <p>
+          In this lesson, you:
+        </p>
+
+        <ul>
+          <li>Created a Deployment</li>
+          <li>Inspected the Deployment, ReplicaSet, and Pods</li>
+          <li>Scaled a Deployment up and down</li>
+          <li>Deleted a Pod and watched Kubernetes replace it</li>
+          <li>Created a Deployment from YAML</li>
+          <li>Updated a Deployment image</li>
+          <li>Checked rollout status</li>
+          <li>Simulated a bad image update</li>
+          <li>Rolled back a failed change</li>
+          <li>Cleaned up the lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          A Deployment is the normal way to manage stateless application Pods. It gives Kubernetes enough information to create, replace, scale, update, and roll back workloads.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the Deployment and ReplicaSet concepts made sense.
+        </p>
+
+        <ol>
+          <li>What does a Deployment manage?</li>
+          <li>What does a ReplicaSet try to maintain?</li>
+          <li>Do you usually create ReplicaSets directly?</li>
+          <li>What happens when you delete a Pod managed by a Deployment?</li>
+          <li>Why did the standalone Pod from the previous lesson not come back after deletion?</li>
+          <li>What command scales a Deployment to three replicas?</li>
+          <li>What is the relationship between labels and selectors?</li>
+          <li>What part of a Deployment acts as the blueprint for Pods?</li>
+          <li>What command checks rollout status?</li>
+          <li>What status might you see when Kubernetes cannot pull a bad image tag?</li>
+          <li>What command rolls back the previous Deployment change?</li>
+          <li>Why are Deployments safer than manually replacing Pods?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>A Deployment manages application Pods through ReplicaSets.</li>
+            <li>A ReplicaSet tries to maintain the desired number of matching Pods.</li>
+            <li>No. Deployments usually create and manage ReplicaSets for you.</li>
+            <li>Kubernetes creates a replacement Pod to restore the desired replica count.</li>
+            <li>Because no controller was managing it.</li>
+            <li><strong>kubectl scale deployment nginx-deploy-lab --replicas=3</strong>.</li>
+            <li>Selectors identify resources by matching labels.</li>
+            <li><strong>spec.template</strong>, the Pod template.</li>
+            <li><strong>kubectl rollout status deployment/&lt;deployment-name&gt;</strong>.</li>
+            <li><strong>ImagePullBackOff</strong> or <strong>ErrImagePull</strong>.</li>
+            <li><strong>kubectl rollout undo deployment/&lt;deployment-name&gt;</strong>.</li>
+            <li>They manage desired state, replacement, scaling, rollout history, and rollback behavior.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-pods-smallest-deployable-unit.html">← Previous: Pods</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Next lesson coming soon →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
