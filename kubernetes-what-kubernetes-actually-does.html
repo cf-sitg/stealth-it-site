@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="A practical explanation of what Kubernetes actually does, why it exists, and how infrastructure teams should think about it.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="What Kubernetes Actually Does | Stealth IT Group">
+  <meta property="og:description" content="Kubernetes is not magic. It is a control plane for running workloads across infrastructure.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-what-kubernetes-actually-does.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-what-kubernetes-actually-does.html">
+  
+  <title>What Kubernetes Actually Does | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Basics</div>
+
+        <h1>What Kubernetes Actually Does</h1>
+
+        <p class="intro">
+          Kubernetes is not magic, and it does not replace infrastructure knowledge. It gives you a control plane for describing how workloads should run, how they should recover, and how traffic should reach them.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Foundation Level · Estimated reading time: 6 minutes
+        </p>
+
+        <h2>The simple version</h2>
+
+        <p>
+          Kubernetes is a platform for running and managing containers across a group of machines.
+        </p>
+
+        <p>
+          At a basic level, Kubernetes answers a few operational questions:
+        </p>
+
+        <ul>
+          <li>Where should this workload run?</li>
+          <li>How many copies should be running?</li>
+          <li>Is the workload healthy?</li>
+          <li>How should traffic reach it?</li>
+          <li>What configuration does it need?</li>
+          <li>What should happen if it fails?</li>
+          <li>How do we update it without taking everything down?</li>
+        </ul>
+
+        <p>
+          A single container can run on a single server without Kubernetes. The value of Kubernetes starts to show up when you need to manage many workloads across many nodes with repeatable deployment, health checks, scaling, networking, and recovery.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          If you are coming from traditional infrastructure, do not think of Kubernetes as replacing servers. Think of it as a scheduler and control plane that constantly works to make the actual state of the environment match the desired state you define.
+        </div>
+
+        <h2>Desired state vs actual state</h2>
+
+        <p>
+          One of the most important Kubernetes concepts is desired state.
+        </p>
+
+        <p>
+          You tell Kubernetes what you want. Kubernetes compares that desired state against what is actually running. If something does not match, Kubernetes tries to correct it.
+        </p>
+
+        <p>
+          For example, you might define a Deployment that says:
+        </p>
+
+        <div class="code-block">
+<pre>Run three copies of this application.
+Use this container image.
+Expose this port.
+Restart failed containers.
+Roll out updates in a controlled way.</pre>
+        </div>
+
+        <p>
+          If one pod dies, Kubernetes tries to bring another one up. If a node fails, Kubernetes can reschedule workloads somewhere else, assuming the cluster has capacity and the workload can run on another node.
+        </p>
+
+        <p>
+          That does not mean Kubernetes fixes every problem. If the application is badly designed, the image is broken, DNS is wrong, storage is unavailable, or the network path is blocked, Kubernetes may keep trying to recover but still fail.
+        </p>
+
+        <h2>The core building blocks</h2>
+
+        <p>
+          Kubernetes has many objects, but the first few matter most when you are starting.
+        </p>
+
+        <h3>Pods</h3>
+
+        <p>
+          A Pod is the smallest deployable unit in Kubernetes. It usually contains one application container, although it can contain more than one when containers need to share the same network and storage context.
+        </p>
+
+        <h3>Deployments</h3>
+
+        <p>
+          A Deployment manages how pods are created, updated, scaled, and replaced. In normal application deployments, you usually create a Deployment rather than creating individual pods by hand.
+        </p>
+
+        <h3>Services</h3>
+
+        <p>
+          Pods are temporary. They can be destroyed and recreated. A Service gives those changing pods a stable network identity so other workloads can reach them.
+        </p>
+
+        <h3>Ingress</h3>
+
+        <p>
+          Ingress helps route external HTTP or HTTPS traffic into services inside the cluster. In real environments, this usually involves an ingress controller, DNS, certificates, firewall rules, and load balancer configuration.
+        </p>
+
+        <h3>ConfigMaps and Secrets</h3>
+
+        <p>
+          ConfigMaps and Secrets let you separate configuration from container images. ConfigMaps are for general configuration. Secrets are for sensitive values, although you still need to handle them carefully and understand how your cluster stores and exposes them.
+        </p>
+
+        <h2>Kubernetes does not remove infrastructure problems</h2>
+
+        <p>
+          Kubernetes gives you a common way to define and manage workloads, but the old problems still matter:
+        </p>
+
+        <ul>
+          <li>DNS</li>
+          <li>certificates</li>
+          <li>firewall rules</li>
+          <li>routing</li>
+          <li>storage</li>
+          <li>identity</li>
+          <li>permissions</li>
+          <li>logging</li>
+          <li>monitoring</li>
+          <li>patching</li>
+          <li>backups</li>
+        </ul>
+
+        <p>
+          This is why Kubernetes can feel confusing at first. When something breaks, the issue might be inside Kubernetes, but it might also be below it or around it.
+        </p>
+
+        <p>
+          A failed application could be caused by a bad container image, missing environment variable, failed secret mount, blocked network path, DNS failure, expired certificate, unavailable storage volume, or insufficient CPU and memory.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Kubernetes troubleshooting is often infrastructure troubleshooting with another control plane in the middle. Learn to check the pod, the node, the service, DNS, storage, and the application logs before assuming the cluster itself is broken.
+        </div>
+
+        <h2>A tiny example</h2>
+
+        <p>
+          This simple Deployment tells Kubernetes to run one copy of nginx:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-demo
+  template:
+    metadata:
+      labels:
+        app: nginx-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80</pre>
+        </div>
+
+        <p>
+          This does not just start a container. It creates a desired state. Kubernetes will try to keep one matching pod running.
+        </p>
+
+        <p>
+          If you change the replica count from one to three, Kubernetes will try to run three copies:
+        </p>
+
+        <div class="code-block">
+<pre>replicas: 3</pre>
+        </div>
+
+        <p>
+          That simple idea is the foundation of Kubernetes: define the desired state, then let the control plane work to maintain it.
+        </p>
+
+        <h2>What Kubernetes is good at</h2>
+
+        <p>
+          Kubernetes is useful when you need repeatable workload deployment and management across infrastructure.
+        </p>
+
+        <ul>
+          <li>Running containerized workloads</li>
+          <li>Restarting failed workloads</li>
+          <li>Scaling workloads up or down</li>
+          <li>Rolling out application updates</li>
+          <li>Rolling back failed changes</li>
+          <li>Providing internal service discovery</li>
+          <li>Managing configuration and secrets</li>
+          <li>Standardizing deployment patterns</li>
+        </ul>
+
+        <h2>What Kubernetes is not</h2>
+
+        <p>
+          Kubernetes is not an automatic fix for poor application design or weak operations.
+        </p>
+
+        <ul>
+          <li>It is not a security program by itself.</li>
+          <li>It is not a replacement for backups.</li>
+          <li>It is not a replacement for monitoring.</li>
+          <li>It does not automatically make applications highly available.</li>
+          <li>It does not eliminate the need for infrastructure knowledge.</li>
+          <li>It does not make bad networking or DNS designs disappear.</li>
+        </ul>
+
+        <p>
+          Kubernetes can help make a good platform more consistent, but it can also make a messy environment harder to understand if the fundamentals are weak.
+        </p>
+
+        <h2>What to learn next</h2>
+
+        <p>
+          The next practical step is to understand the basic Kubernetes objects in more detail:
+        </p>
+
+        <ul>
+          <li>Pods</li>
+          <li>Deployments</li>
+          <li>ReplicaSets</li>
+          <li>Services</li>
+          <li>ConfigMaps</li>
+          <li>Secrets</li>
+          <li>Namespaces</li>
+          <li>Ingress</li>
+        </ul>
+
+        <p>
+          Once those objects make sense, the rest of Kubernetes becomes easier to reason about.
+        </p>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Kubernetes is a control plane. It lets you describe how workloads should run, then continuously works to make the real environment match that description. That is powerful, but only if you understand the infrastructure it is controlling.
+        </div>
+
+        <div class="article-nav">
+          <a href="/kubernetes-field-notes.html">← Back to Kubernetes Field Notes</a>
+          <a href="/training.html">View all training →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
