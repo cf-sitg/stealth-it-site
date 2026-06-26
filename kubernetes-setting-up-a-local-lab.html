@@ -435,39 +435,53 @@ sudo apt upgrade -y</pre>
           <li>Restart Docker Desktop if the Docker engine is not responding.</li>
         </ul>
 
-        <h2>Step 12: Install kubectl</h2>
+<h2>Step 12: Install kubectl</h2>
 
-        <p>
-          kubectl is the command-line tool used to talk to the Kubernetes API server.
-        </p>
+<p>
+  kubectl is the command-line tool used to talk to the Kubernetes API server.
+</p>
 
-        <p>
-          On Windows, you can install kubectl with winget:
-        </p>
+<p>
+  On Windows, you can install kubectl with winget:
+</p>
 
-        <div class="code-block">
+<div class="code-block">
 <pre>winget install -e --id Kubernetes.kubectl</pre>
-        </div>
+</div>
 
-        <p>
-          After installation, close and reopen PowerShell. Then run:
-        </p>
+<p>
+  If kubectl is already installed, winget may show a message like:
+</p>
 
-        <div class="code-block">
+<div class="code-block">
+<pre>Found an existing package already installed.
+No available upgrade found.
+No newer package versions are available from the configured sources.</pre>
+</div>
+
+<p>
+  That is not an error. It means kubectl is already installed and winget did not find a newer version to apply.
+</p>
+
+<p>
+  After installation, close and reopen PowerShell. Then run:
+</p>
+
+<div class="code-block">
 <pre>kubectl version --client</pre>
-        </div>
+</div>
 
-        <h3>What you should see</h3>
+<h3>What you should see</h3>
 
-        <p>
-          You should see client version information for kubectl.
-        </p>
+<p>
+  You should see client version information for kubectl.
+</p>
 
-        <h3>What this means</h3>
+<h3>What this means</h3>
 
-        <p>
-          This confirms kubectl is installed locally. It does not mean you have a Kubernetes cluster yet. It only means the command-line tool exists and can run.
-        </p>
+<p>
+  This confirms kubectl is installed locally. It does not mean you have a Kubernetes cluster yet. It only means the command-line tool exists and can run.
+</p>
 
         <h2>Step 13: Install kind</h2>
 
