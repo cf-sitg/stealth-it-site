@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Set up a local Kubernetes lab with Docker, kubectl, and kind. A practical hands-on lab for the Kubernetes Field Notes series.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Setting Up a Local Kubernetes Lab | Stealth IT Group">
+  <meta property="og:description" content="Build a safe local Kubernetes environment with Docker, kubectl, and kind.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-setting-up-a-local-lab.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-setting-up-a-local-lab.html">
+  
+  <title>Setting Up a Local Kubernetes Lab | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Lab Setup</div>
+
+        <h1>Setting Up a Local Kubernetes Lab</h1>
+
+        <p class="intro">
+          Before learning Kubernetes deeply, you need a safe place to build, break, inspect, and rebuild clusters. This lab gives you a repeatable local environment for the rest of the Kubernetes Field Notes series.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Foundation Level · Estimated reading time: 12 minutes
+        </p>
+
+        <h2>What this lab gives you</h2>
+
+        <p>
+          This lab sets up a local Kubernetes cluster on your own machine. The goal is not to build a production environment. The goal is to create a safe practice environment where you can learn Kubernetes commands, deploy workloads, break things, and reset quickly.
+        </p>
+
+        <p>
+          For this series, the standard local lab uses:
+        </p>
+
+        <ul>
+          <li>Docker Desktop or another local container runtime</li>
+          <li>kubectl, the Kubernetes command-line tool</li>
+          <li>kind, which stands for Kubernetes in Docker</li>
+          <li>Visual Studio Code or another editor for YAML files</li>
+          <li>PowerShell or a terminal</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A good lab is disposable. You should be able to create it, test with it, break it, delete it, and rebuild it without worrying about damaging anything important.
+        </div>
+
+        <h2>Why start local?</h2>
+
+        <p>
+          Cloud Kubernetes platforms are useful, but they add extra moving parts: cloud networking, IAM, billing, load balancers, managed node pools, private endpoints, and provider-specific behavior.
+        </p>
+
+        <p>
+          Those things matter later. At the beginning, they can distract from the core Kubernetes model.
+        </p>
+
+        <p>
+          A local lab keeps the first learning goal simple:
+        </p>
+
+        <ul>
+          <li>Can you create a cluster?</li>
+          <li>Can kubectl talk to the Kubernetes API?</li>
+          <li>Can you see the nodes?</li>
+          <li>Can you see the system pods?</li>
+          <li>Can you delete and rebuild the cluster?</li>
+        </ul>
+
+        <h2>Lab options</h2>
+
+        <p>
+          There are several ways to run Kubernetes locally. The main options are:
+        </p>
+
+        <ul>
+          <li><strong>kind:</strong> Lightweight and easy to rebuild. Good for this training series.</li>
+          <li><strong>minikube:</strong> Also popular for local Kubernetes learning.</li>
+          <li><strong>Docker Desktop Kubernetes:</strong> Convenient if you already use Docker Desktop.</li>
+          <li><strong>kubeadm:</strong> Better for learning real cluster administration later, but heavier for the first lab.</li>
+        </ul>
+
+        <p>
+          We are starting with kind because it is fast, disposable, and easy to use for repeatable labs.
+        </p>
+
+        <h2>Recommended Windows setup</h2>
+
+        <p>
+          If you are using Windows, the cleanest path is:
+        </p>
+
+        <ul>
+          <li>Windows 11 or a modern Windows workstation</li>
+          <li>WSL 2 enabled</li>
+          <li>Docker Desktop using the WSL 2 backend</li>
+          <li>PowerShell for commands</li>
+          <li>kubectl</li>
+          <li>kind</li>
+          <li>Visual Studio Code with a YAML extension</li>
+        </ul>
+
+        <p>
+          Docker Desktop can use WSL 2 as its backend on Windows. If Docker is in Windows container mode, switch it to Linux containers before running these Kubernetes labs.
+        </p>
+
+        <h2>Step 1: Confirm Docker is working</h2>
+
+        <p>
+          Open PowerShell and run:
+        </p>
+
+        <div class="code-block">
+<pre>docker version</pre>
+        </div>
+
+        <p>
+          Then run:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps</pre>
+        </div>
+
+        <p>
+          The first command checks whether the Docker client and server are responding. The second command lists running containers.
+        </p>
+
+        <p>
+          It is okay if no containers are running yet. What matters is that Docker responds without an error.
+        </p>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see Docker version information and an empty or populated container list.
+        </p>
+
+        <h3>If this fails</h3>
+
+        <ul>
+          <li>Start Docker Desktop.</li>
+          <li>Confirm Docker Desktop is using Linux containers.</li>
+          <li>Confirm WSL 2 integration is enabled if you are using WSL.</li>
+          <li>Restart PowerShell after installing Docker.</li>
+        </ul>
+
+        <h2>Step 2: Install kubectl</h2>
+
+        <p>
+          kubectl is the command-line tool used to talk to the Kubernetes API server.
+        </p>
+
+        <p>
+          On Windows, you can install kubectl with winget:
+        </p>
+
+        <div class="code-block">
+<pre>winget install Kubernetes.kubectl</pre>
+        </div>
+
+        <p>
+          After installation, close and reopen PowerShell. Then run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl version --client</pre>
+        </div>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see client version information for kubectl.
+        </p>
+
+        <h3>What this means</h3>
+
+        <p>
+          This confirms kubectl is installed locally. It does not mean you have a Kubernetes cluster yet. It only means the command-line tool exists and can run.
+        </p>
+
+        <h2>Step 3: Install kind</h2>
+
+        <p>
+          kind is the tool we will use to create local Kubernetes clusters.
+        </p>
+
+        <p>
+          On Windows, install kind with winget:
+        </p>
+
+        <div class="code-block">
+<pre>winget install Kubernetes.kind</pre>
+        </div>
+
+        <p>
+          After installation, close and reopen PowerShell. Then run:
+        </p>
+
+        <div class="code-block">
+<pre>kind version</pre>
+        </div>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see the installed kind version.
+        </p>
+
+        <h2>Step 4: Create your first cluster</h2>
+
+        <p>
+          Now create a local Kubernetes cluster named <strong>stealth-k8s-lab</strong>:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          This may take a few minutes the first time because kind needs to pull the required node image.
+        </p>
+
+        <h3>What this command does</h3>
+
+        <p>
+          This creates a Kubernetes cluster using Docker containers as the cluster nodes. For the first lab, this is usually a single-node cluster.
+        </p>
+
+        <p>
+          kind also updates your local Kubernetes configuration so kubectl can talk to the new cluster.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          In Kubernetes, kubectl talks to a cluster through a context. A context is basically a saved connection profile that tells kubectl which cluster to use.
+        </div>
+
+        <h2>Step 5: Verify your kubectl context</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          That tells you kubectl is pointed at your new kind cluster.
+        </p>
+
+        <h2>Step 6: Check cluster information</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl cluster-info</pre>
+        </div>
+
+        <p>
+          This checks whether kubectl can reach the Kubernetes control plane.
+        </p>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see cluster information showing the Kubernetes control plane endpoint.
+        </p>
+
+        <h2>Step 7: Check the nodes</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          This asks the Kubernetes API for the list of registered nodes.
+        </p>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see one node with a status of <strong>Ready</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>NAME                            STATUS   ROLES           AGE   VERSION
+stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
+        </div>
+
+        <h3>What this means</h3>
+
+        <p>
+          The cluster exists, the node registered successfully, and the control plane can report node status.
+        </p>
+
+        <h2>Step 8: Check all pods</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -A</pre>
+        </div>
+
+        <p>
+          The <strong>-A</strong> means all namespaces.
+        </p>
+
+        <p>
+          Kubernetes system components do not usually run in the default namespace. They often run in namespaces such as <strong>kube-system</strong>, so using <strong>-A</strong> gives you a broader view.
+        </p>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see several system pods. In a kind cluster, these may include components for DNS, the API server, the scheduler, the controller manager, etcd, and networking.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not just check whether the command worked. Look at the namespaces, pod names, and statuses. Kubernetes learning comes from noticing what is running and asking why it exists.
+        </div>
+
+        <h2>Step 9: Create a test deployment</h2>
+
+        <p>
+          Now deploy a simple nginx workload:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment nginx-lab --image=nginx:latest</pre>
+        </div>
+
+        <p>
+          Check the deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments</pre>
+        </div>
+
+        <p>
+          Check the pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <h3>What this means</h3>
+
+        <p>
+          You did not directly create a pod. You created a Deployment. The Deployment created and manages the pod for you.
+        </p>
+
+        <h2>Step 10: Delete the test deployment</h2>
+
+        <p>
+          Remove the nginx deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete deployment nginx-lab</pre>
+        </div>
+
+        <p>
+          Confirm it is gone:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          If the pod briefly shows a terminating status, that is normal.
+        </p>
+
+        <h2>Step 11: Delete and rebuild the lab</h2>
+
+        <p>
+          One of the best parts of a local kind lab is that it can be destroyed and rebuilt quickly.
+        </p>
+
+        <p>
+          Delete the cluster:
+        </p>
+
+        <div class="code-block">
+<pre>kind delete cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check the nodes again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          This rebuild process matters. It teaches you that the lab is disposable and gives you confidence to experiment.
+        </p>
+
+        <h2>Common setup problems</h2>
+
+        <h3>Docker is not running</h3>
+
+        <p>
+          If kind cannot create the cluster, check Docker first.
+        </p>
+
+        <div class="code-block">
+<pre>docker version
+docker ps</pre>
+        </div>
+
+        <h3>kubectl is installed but cannot connect</h3>
+
+        <p>
+          Check your current context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          Then check all known contexts:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config get-contexts</pre>
+        </div>
+
+        <h3>The node is not ready</h3>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes
+kubectl describe node stealth-k8s-lab-control-plane</pre>
+        </div>
+
+        <p>
+          The describe command gives more detail about what Kubernetes knows about the node.
+        </p>
+
+        <h3>The install worked, but PowerShell does not recognize the command</h3>
+
+        <p>
+          Close and reopen PowerShell. If that does not work, confirm the install path is available in your PATH environment variable.
+        </p>
+
+        <h2>What this lab is good for</h2>
+
+        <ul>
+          <li>Learning kubectl</li>
+          <li>Practicing Kubernetes objects</li>
+          <li>Testing YAML files</li>
+          <li>Breaking and rebuilding workloads</li>
+          <li>Learning deployments, services, config, and basic troubleshooting</li>
+        </ul>
+
+        <h2>What this lab is not good for</h2>
+
+        <ul>
+          <li>Production hosting</li>
+          <li>Cloud load balancer behavior</li>
+          <li>Real multi-zone availability testing</li>
+          <li>Production security validation</li>
+          <li>Enterprise identity and networking patterns</li>
+        </ul>
+
+        <p>
+          Those topics come later. The point of this lab is to build the muscle memory you need before adding cloud-specific complexity.
+        </p>
+
+        <h2>Quick lab checklist</h2>
+
+        <p>
+          Before moving to the next lesson, make sure you can run each of these successfully:
+        </p>
+
+        <div class="code-block">
+<pre>docker version
+kubectl version --client
+kind version
+kind create cluster --name stealth-k8s-lab
+kubectl config current-context
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods -A
+kubectl create deployment nginx-lab --image=nginx:latest
+kubectl get pods
+kubectl delete deployment nginx-lab
+kind delete cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          You now have a disposable Kubernetes lab. That is the foundation for the rest of the Kubernetes Field Notes series.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the lab concepts made sense. The goal is not memorization. The goal is to make sure you understand what each tool is doing.
+        </p>
+
+        <ol>
+          <li>What problem does a local Kubernetes lab solve for learning?</li>
+          <li>What role does Docker play when using kind?</li>
+          <li>What does kubectl do?</li>
+          <li>What does kind create for you?</li>
+          <li>Why do we check the current kubectl context?</li>
+          <li>What does <strong>kubectl get nodes</strong> confirm?</li>
+          <li>What does the <strong>-A</strong> flag mean in <strong>kubectl get pods -A</strong>?</li>
+          <li>When you run <strong>kubectl create deployment nginx-lab --image=nginx:latest</strong>, did you directly create a pod?</li>
+          <li>Why is it useful that the lab can be deleted and rebuilt?</li>
+          <li>Why is this kind lab not the same as a production Kubernetes environment?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It gives you a safe, disposable place to practice without affecting real systems.</li>
+            <li>Docker provides the container runtime environment where kind runs Kubernetes nodes as containers.</li>
+            <li>kubectl is the command-line tool used to communicate with the Kubernetes API server.</li>
+            <li>kind creates a local Kubernetes cluster.</li>
+            <li>The context tells kubectl which cluster it is currently pointed at.</li>
+            <li>It confirms that the cluster has registered nodes and reports their status.</li>
+            <li>It means all namespaces.</li>
+            <li>No. You created a Deployment, and the Deployment created and manages the pod.</li>
+            <li>It encourages experimentation and makes it easy to recover from mistakes.</li>
+            <li>It lacks production-grade cloud networking, availability, identity, security, scaling, and operational controls.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav">
+          <a href="/kubernetes-what-kubernetes-actually-does.html">← Previous: What Kubernetes Actually Does</a>
+          <a href="/kubernetes-field-notes.html">Back to Kubernetes Field Notes →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
