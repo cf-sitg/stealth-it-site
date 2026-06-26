@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Set up a local Kubernetes lab with Docker, kubectl, and kind. A practical hands-on lab for the Kubernetes Field Notes series.">
+  <meta name="description" content="Set up a local Kubernetes lab from scratch with WSL 2, Docker Desktop, kubectl, and kind. A practical hands-on lab for the Kubernetes Field Notes series.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Setting Up a Local Kubernetes Lab | Stealth IT Group">
-  <meta property="og:description" content="Build a safe local Kubernetes environment with Docker, kubectl, and kind.">
+  <meta property="og:description" content="Build a safe local Kubernetes environment from scratch with WSL 2, Docker Desktop, kubectl, and kind.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-setting-up-a-local-lab.html">
 
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-setting-up-a-local-lab.html">
@@ -42,11 +42,11 @@
         <h1>Setting Up a Local Kubernetes Lab</h1>
 
         <p class="intro">
-          Before learning Kubernetes deeply, you need a safe place to build, break, inspect, and rebuild clusters. This lab gives you a repeatable local environment for the rest of the Kubernetes Field Notes series.
+          Before learning Kubernetes deeply, you need a safe place to build, break, inspect, and rebuild clusters. This lab starts from a clean Windows machine and walks through WSL 2, Docker Desktop, kubectl, kind, and your first local Kubernetes cluster.
         </p>
 
         <p class="article-meta">
-          Kubernetes Field Notes · Foundation Level · Estimated reading time: 12 minutes
+          Kubernetes Field Notes · Foundation Level · Estimated reading time: 18 minutes
         </p>
 
         <h2>What this lab gives you</h2>
@@ -60,11 +60,12 @@
         </p>
 
         <ul>
-          <li>Docker Desktop or another local container runtime</li>
+          <li>WSL 2 for Linux support on Windows</li>
+          <li>Docker Desktop using the WSL 2 backend</li>
           <li>kubectl, the Kubernetes command-line tool</li>
           <li>kind, which stands for Kubernetes in Docker</li>
           <li>Visual Studio Code or another editor for YAML files</li>
-          <li>PowerShell or a terminal</li>
+          <li>PowerShell or Windows Terminal</li>
         </ul>
 
         <div class="field-note">
@@ -111,30 +112,201 @@
           We are starting with kind because it is fast, disposable, and easy to use for repeatable labs.
         </p>
 
-        <h2>Recommended Windows setup</h2>
+        <h2>Before you start</h2>
 
         <p>
-          If you are using Windows, the cleanest path is:
+          This walkthrough assumes you are starting from a Windows machine that does not already have WSL 2, Docker Desktop, kubectl, or kind configured.
+        </p>
+
+        <p>
+          You should have:
         </p>
 
         <ul>
-          <li>Windows 11 or a modern Windows workstation</li>
-          <li>WSL 2 enabled</li>
-          <li>Docker Desktop using the WSL 2 backend</li>
-          <li>PowerShell for commands</li>
-          <li>kubectl</li>
-          <li>kind</li>
-          <li>Visual Studio Code with a YAML extension</li>
+          <li>A Windows 10 or Windows 11 machine that supports WSL 2</li>
+          <li>Local administrator rights</li>
+          <li>Internet access</li>
+          <li>PowerShell or Windows Terminal</li>
+          <li>Enough disk space for Docker images and lab containers</li>
         </ul>
 
         <p>
-          Docker Desktop can use WSL 2 as its backend on Windows. If Docker is in Windows container mode, switch it to Linux containers before running these Kubernetes labs.
+          If you are using a corporate-managed device, some of these installs may be blocked by policy. In that case, you may need help from your endpoint or desktop support team.
         </p>
 
-        <h2>Step 1: Confirm Docker is working</h2>
+        <h2>Step 1: Open PowerShell as Administrator</h2>
 
         <p>
-          Open PowerShell and run:
+          Start by opening PowerShell with administrator rights.
+        </p>
+
+        <ul>
+          <li>Click Start.</li>
+          <li>Search for <strong>PowerShell</strong>.</li>
+          <li>Right-click it.</li>
+          <li>Select <strong>Run as administrator</strong>.</li>
+        </ul>
+
+        <p>
+          Some of the WSL setup commands require elevated permissions.
+        </p>
+
+        <h2>Step 2: Install WSL 2</h2>
+
+        <p>
+          Run this command from the administrator PowerShell window:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --install</pre>
+        </div>
+
+        <p>
+          This command enables the Windows features needed for WSL and installs a default Linux distribution, usually Ubuntu.
+        </p>
+
+        <p>
+          When the command finishes, restart your computer if Windows asks you to.
+        </p>
+
+        <h3>What you should see</h3>
+
+        <p>
+          You should see WSL installation progress. After rebooting, Ubuntu may open and ask you to create a Linux username and password.
+        </p>
+
+        <h3>Important note about the Linux password</h3>
+
+        <p>
+          The Linux username and password are for your local Linux environment. They do not need to match your Windows username and password.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          WSL gives you a Linux environment inside Windows. Docker Desktop can use WSL 2 as its backend, which is why we set this up before Docker.
+        </div>
+
+        <h2>Step 3: Confirm WSL is using version 2</h2>
+
+        <p>
+          After rebooting and completing the Ubuntu first-run setup, open PowerShell again and run:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -l -v</pre>
+        </div>
+
+        <p>
+          You should see a Linux distribution listed with version <strong>2</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>  NAME      STATE           VERSION
+* Ubuntu    Running         2</pre>
+        </div>
+
+        <p>
+          If your distribution shows version 1, set WSL 2 as the default:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --set-default-version 2</pre>
+        </div>
+
+        <p>
+          Then convert the distribution to WSL 2:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --set-version Ubuntu 2</pre>
+        </div>
+
+        <p>
+          If your distribution name is different, use the exact name shown by <strong>wsl -l -v</strong>.
+        </p>
+
+        <h2>Step 4: Update Ubuntu packages</h2>
+
+        <p>
+          Open Ubuntu from the Start menu, or run this from PowerShell:
+        </p>
+
+        <div class="code-block">
+<pre>wsl</pre>
+        </div>
+
+        <p>
+          Inside the Ubuntu shell, run:
+        </p>
+
+        <div class="code-block">
+<pre>sudo apt update
+sudo apt upgrade -y</pre>
+        </div>
+
+        <p>
+          This updates the package list and installed packages inside your WSL Linux environment.
+        </p>
+
+        <p>
+          When it finishes, you can return to PowerShell by typing:
+        </p>
+
+        <div class="code-block">
+<pre>exit</pre>
+        </div>
+
+        <h2>Step 5: Install Docker Desktop</h2>
+
+        <p>
+          Docker Desktop is the easiest Docker setup for this Windows-based lab. It provides the Docker engine that kind will use to create Kubernetes node containers.
+        </p>
+
+        <p>
+          From PowerShell, install Docker Desktop with winget:
+        </p>
+
+        <div class="code-block">
+<pre>winget install Docker.DockerDesktop</pre>
+        </div>
+
+        <p>
+          After the install finishes, start Docker Desktop from the Windows Start menu.
+        </p>
+
+        <p>
+          Docker may ask you to log out, reboot, or accept its service agreement. Follow the prompts.
+        </p>
+
+        <h2>Step 6: Enable Docker Desktop's WSL 2 backend</h2>
+
+        <p>
+          Open Docker Desktop and check these settings:
+        </p>
+
+        <ul>
+          <li>Go to <strong>Settings</strong>.</li>
+          <li>Go to <strong>General</strong>.</li>
+          <li>Make sure <strong>Use the WSL 2 based engine</strong> is enabled.</li>
+          <li>Go to <strong>Resources</strong>.</li>
+          <li>Go to <strong>WSL Integration</strong>.</li>
+          <li>Enable integration with your Ubuntu WSL distribution.</li>
+          <li>Select <strong>Apply & Restart</strong> if Docker prompts you.</li>
+        </ul>
+
+        <p>
+          If Docker says WSL integration is not available, Docker may be in Windows container mode. Switch Docker to Linux containers and check again.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          For this lab, Docker needs to run Linux containers. Kubernetes workloads in this series will use Linux container images.
+        </div>
+
+        <h2>Step 7: Confirm Docker is working</h2>
+
+        <p>
+          Open a new PowerShell window and run:
         </p>
 
         <div class="code-block">
@@ -157,22 +329,18 @@
           It is okay if no containers are running yet. What matters is that Docker responds without an error.
         </p>
 
-        <h3>What you should see</h3>
-
-        <p>
-          You should see Docker version information and an empty or populated container list.
-        </p>
-
         <h3>If this fails</h3>
 
         <ul>
           <li>Start Docker Desktop.</li>
+          <li>Confirm Docker Desktop is using the WSL 2 backend.</li>
           <li>Confirm Docker Desktop is using Linux containers.</li>
-          <li>Confirm WSL 2 integration is enabled if you are using WSL.</li>
+          <li>Confirm WSL integration is enabled for Ubuntu.</li>
           <li>Restart PowerShell after installing Docker.</li>
+          <li>Restart Docker Desktop if the Docker engine is not responding.</li>
         </ul>
 
-        <h2>Step 2: Install kubectl</h2>
+        <h2>Step 8: Install kubectl</h2>
 
         <p>
           kubectl is the command-line tool used to talk to the Kubernetes API server.
@@ -206,7 +374,7 @@
           This confirms kubectl is installed locally. It does not mean you have a Kubernetes cluster yet. It only means the command-line tool exists and can run.
         </p>
 
-        <h2>Step 3: Install kind</h2>
+        <h2>Step 9: Install kind</h2>
 
         <p>
           kind is the tool we will use to create local Kubernetes clusters.
@@ -234,7 +402,7 @@
           You should see the installed kind version.
         </p>
 
-        <h2>Step 4: Create your first cluster</h2>
+        <h2>Step 10: Create your first cluster</h2>
 
         <p>
           Now create a local Kubernetes cluster named <strong>stealth-k8s-lab</strong>:
@@ -263,7 +431,7 @@
           In Kubernetes, kubectl talks to a cluster through a context. A context is basically a saved connection profile that tells kubectl which cluster to use.
         </div>
 
-        <h2>Step 5: Verify your kubectl context</h2>
+        <h2>Step 11: Verify your kubectl context</h2>
 
         <p>
           Run:
@@ -285,7 +453,7 @@
           That tells you kubectl is pointed at your new kind cluster.
         </p>
 
-        <h2>Step 6: Check cluster information</h2>
+        <h2>Step 12: Check cluster information</h2>
 
         <p>
           Run:
@@ -305,7 +473,7 @@
           You should see cluster information showing the Kubernetes control plane endpoint.
         </p>
 
-        <h2>Step 7: Check the nodes</h2>
+        <h2>Step 13: Check the nodes</h2>
 
         <p>
           Run:
@@ -336,7 +504,7 @@ stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
           The cluster exists, the node registered successfully, and the control plane can report node status.
         </p>
 
-        <h2>Step 8: Check all pods</h2>
+        <h2>Step 14: Check all pods</h2>
 
         <p>
           Run:
@@ -365,7 +533,7 @@ stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
           Do not just check whether the command worked. Look at the namespaces, pod names, and statuses. Kubernetes learning comes from noticing what is running and asking why it exists.
         </div>
 
-        <h2>Step 9: Create a test deployment</h2>
+        <h2>Step 15: Create a test deployment</h2>
 
         <p>
           Now deploy a simple nginx workload:
@@ -397,7 +565,7 @@ stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
           You did not directly create a pod. You created a Deployment. The Deployment created and manages the pod for you.
         </p>
 
-        <h2>Step 10: Delete the test deployment</h2>
+        <h2>Step 16: Delete the test deployment</h2>
 
         <p>
           Remove the nginx deployment:
@@ -419,7 +587,7 @@ stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
           If the pod briefly shows a terminating status, that is normal.
         </p>
 
-        <h2>Step 11: Delete and rebuild the lab</h2>
+        <h2>Step 17: Delete and rebuild the lab</h2>
 
         <p>
           One of the best parts of a local kind lab is that it can be destroyed and rebuilt quickly.
@@ -455,6 +623,34 @@ stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
 
         <h2>Common setup problems</h2>
 
+        <h3>WSL install requires a reboot</h3>
+
+        <p>
+          This is normal. Reboot, then open Ubuntu from the Start menu and complete the Linux username and password setup.
+        </p>
+
+        <h3>Ubuntu does not show version 2</h3>
+
+        <p>
+          Check the distribution name:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -l -v</pre>
+        </div>
+
+        <p>
+          Then set that distribution to WSL 2:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --set-version Ubuntu 2</pre>
+        </div>
+
+        <p>
+          Replace <strong>Ubuntu</strong> with the exact distribution name shown in your output.
+        </p>
+
         <h3>Docker is not running</h3>
 
         <p>
@@ -465,6 +661,25 @@ stealth-k8s-lab-control-plane   Ready    control-plane   2m    v1.xx.x</pre>
 <pre>docker version
 docker ps</pre>
         </div>
+
+        <h3>Docker is in Windows container mode</h3>
+
+        <p>
+          Switch Docker Desktop to Linux containers. This option is usually available from the Docker Desktop tray icon or Docker Desktop settings.
+        </p>
+
+        <h3>Docker WSL integration is not enabled</h3>
+
+        <p>
+          Open Docker Desktop and check:
+        </p>
+
+        <ul>
+          <li><strong>Settings</strong></li>
+          <li><strong>Resources</strong></li>
+          <li><strong>WSL Integration</strong></li>
+          <li>Enable integration for Ubuntu</li>
+        </ul>
 
         <h3>kubectl is installed but cannot connect</h3>
 
@@ -536,7 +751,9 @@ kubectl describe node stealth-k8s-lab-control-plane</pre>
         </p>
 
         <div class="code-block">
-<pre>docker version
+<pre>wsl -l -v
+docker version
+docker ps
 kubectl version --client
 kind version
 kind create cluster --name stealth-k8s-lab
@@ -562,7 +779,9 @@ kind delete cluster --name stealth-k8s-lab</pre>
         </p>
 
         <ol>
-          <li>What problem does a local Kubernetes lab solve for learning?</li>
+          <li>Why do we install WSL 2 before Docker Desktop in this Windows lab?</li>
+          <li>What is the purpose of the Ubuntu distribution in WSL?</li>
+          <li>Why does Docker Desktop need to use Linux containers for this lab?</li>
           <li>What role does Docker play when using kind?</li>
           <li>What does kubectl do?</li>
           <li>What does kind create for you?</li>
@@ -577,7 +796,9 @@ kind delete cluster --name stealth-k8s-lab</pre>
         <details class="field-note">
           <summary><strong>Answer key</strong></summary>
           <ol>
-            <li>It gives you a safe, disposable place to practice without affecting real systems.</li>
+            <li>WSL 2 provides the Linux environment and backend support that Docker Desktop can use on Windows.</li>
+            <li>Ubuntu gives you a local Linux environment inside Windows for Linux-based tooling and workflows.</li>
+            <li>The Kubernetes workloads in this series use Linux container images, so Docker needs to run Linux containers.</li>
             <li>Docker provides the container runtime environment where kind runs Kubernetes nodes as containers.</li>
             <li>kubectl is the command-line tool used to communicate with the Kubernetes API server.</li>
             <li>kind creates a local Kubernetes cluster.</li>
