@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="icon" type="image/png" sizes="512x512.png" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
 
@@ -44,7 +44,26 @@
         Kubernetes is often taught like a developer tool or a cloud buzzword. This series treats it like what it is: a control plane for running workloads across infrastructure. We focus on the parts that matter in real environments — containers, networking, storage, security, troubleshooting, and operations.
       </p>
 
-      <div class="content">
+      <div class="section">
+        <h2>Current field notes</h2>
+        <p>
+          Start here and work through the series in order. Each field note builds on the previous one and includes practical checks or labs where they make sense.
+        </p>
+
+        <div class="path-list">
+          <div class="path-item">
+            <h3><a href="/kubernetes-what-kubernetes-actually-does.html">1. What Kubernetes Actually Does</a></h3>
+            <p>A practical explanation of Kubernetes as a control plane for running workloads across infrastructure.</p>
+          </div>
+
+          <div class="path-item">
+            <h3><a href="/kubernetes-setting-up-a-local-lab.html">2. Setting Up a Local Kubernetes Lab</a></h3>
+            <p>Build a safe local Kubernetes environment with Docker, kubectl, and kind.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="content" style="margin-top: 34px;">
         <div class="section">
           <h2>1. Foundations</h2>
           <p>
@@ -160,12 +179,12 @@
 
       <div class="cta-strip">
         <div class="cta-text">
-          <strong>Start the series</strong>
-          <span>Begin with the first field note: what Kubernetes actually does and why it matters.</span>
+          <strong>Next practical step</strong>
+          <span>Build a local Kubernetes lab so you have a safe place to practice the rest of the series.</span>
         </div>
 
-        <a class="cta-button" href="/kubernetes-what-kubernetes-actually-does.html">
-          Read the first note
+        <a class="cta-button" href="/kubernetes-setting-up-a-local-lab.html">
+          Set up the lab
         </a>
       </div>
     </main>
