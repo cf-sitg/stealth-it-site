@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Kubernetes Field Notes is a practical Kubernetes learning path from containers to secure, production-ready clusters.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Kubernetes Field Notes | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes path from containers to secure, production-ready clusters.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-field-notes.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-field-notes.html">
+  
+  <title>Kubernetes Field Notes | Practical Kubernetes Training | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <div class="badge">Kubernetes Field Notes</div>
+
+      <h1>A practical Kubernetes path from containers to production-ready clusters.</h1>
+
+      <p class="intro">
+        Kubernetes is often taught like a developer tool or a cloud buzzword. This series treats it like what it is: a control plane for running workloads across infrastructure. We focus on the parts that matter in real environments — containers, networking, storage, security, troubleshooting, and operations.
+      </p>
+
+      <div class="content">
+        <div class="section">
+          <h2>1. Foundations</h2>
+          <p>
+            Start with containers, images, registries, YAML, Linux basics, and the reason Kubernetes exists in the first place.
+          </p>
+          <ul>
+            <li>Containers vs virtual machines</li>
+            <li>Images, registries, and runtimes</li>
+            <li>YAML basics</li>
+            <li>Local lab setup</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>2. Core Kubernetes Concepts</h2>
+          <p>
+            Learn the objects Kubernetes uses to run and expose workloads.
+          </p>
+          <ul>
+            <li>Pods, Deployments, and ReplicaSets</li>
+            <li>Services and Ingress</li>
+            <li>ConfigMaps and Secrets</li>
+            <li>Namespaces and labels</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>3. Cluster Administration</h2>
+          <p>
+            Understand the control plane, worker nodes, scheduling, storage, upgrades, and the operational pieces needed to run a cluster.
+          </p>
+          <ul>
+            <li>Cluster architecture</li>
+            <li>Nodes, scheduling, and maintenance</li>
+            <li>Storage and networking</li>
+            <li>Troubleshooting cluster issues</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>4. Application Delivery</h2>
+          <p>
+            Learn how applications should be packaged, deployed, updated, rolled back, and operated inside Kubernetes.
+          </p>
+          <ul>
+            <li>Readiness, liveness, and startup probes</li>
+            <li>Jobs and CronJobs</li>
+            <li>Init containers and sidecars</li>
+            <li>Helm and Kustomize</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>5. Kubernetes Security</h2>
+          <p>
+            Focus on least privilege, workload isolation, policy enforcement, secrets, image security, and hardening.
+          </p>
+          <ul>
+            <li>RBAC and service accounts</li>
+            <li>Pod Security Standards</li>
+            <li>NetworkPolicies</li>
+            <li>Audit logging and runtime detection</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>6. Production Platform Engineering</h2>
+          <p>
+            Move beyond Kubernetes itself into GitOps, observability, service mesh, CNI choices, backup, recovery, and managed Kubernetes services.
+          </p>
+          <ul>
+            <li>Argo CD and GitOps</li>
+            <li>Prometheus and Grafana</li>
+            <li>Cilium, Calico, and service mesh</li>
+            <li>Backup, DR, and cost control</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top: 34px;">
+        <h2>Certification alignment</h2>
+        <p>
+          This path loosely aligns to the main Kubernetes and cloud-native certifications:
+        </p>
+
+        <div class="path-list">
+          <div class="path-item">
+            <h3>KCNA</h3>
+            <p>Kubernetes and Cloud Native Associate. Good for foundational Kubernetes and cloud-native concepts.</p>
+          </div>
+
+          <div class="path-item">
+            <h3>CKA</h3>
+            <p>Certified Kubernetes Administrator. Best first serious Kubernetes exam for infrastructure and operations work.</p>
+          </div>
+
+          <div class="path-item">
+            <h3>CKAD</h3>
+            <p>Certified Kubernetes Application Developer. Useful for understanding how workloads should be deployed and managed.</p>
+          </div>
+
+          <div class="path-item">
+            <h3>KCSA</h3>
+            <p>Kubernetes and Cloud Native Security Associate. Good bridge between Kubernetes basics and security-focused work.</p>
+          </div>
+
+          <div class="path-item">
+            <h3>CKS</h3>
+            <p>Certified Kubernetes Security Specialist. Advanced Kubernetes security, hardening, and runtime protection.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-strip">
+        <div class="cta-text">
+          <strong>Start the series</strong>
+          <span>Begin with the first field note: what Kubernetes actually does and why it matters.</span>
+        </div>
+
+        <a class="cta-button" href="/kubernetes-what-kubernetes-actually-does.html">
+          Read the first note
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
