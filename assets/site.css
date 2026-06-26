@@ -514,3 +514,115 @@ html {
   font-size: 12px;
   color: #6b7280;
 }
+
+/* Training / article pages */
+.article {
+  max-width: 860px;
+}
+
+.article h2 {
+  margin-top: 42px;
+  margin-bottom: 14px;
+  font-size: 28px;
+  letter-spacing: -.5px;
+}
+
+.article h3 {
+  margin-top: 28px;
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.article p,
+.article li {
+  color: #c6d2e2;
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.article ul,
+.article ol {
+  padding-left: 22px;
+  margin-top: 12px;
+  margin-bottom: 22px;
+}
+
+.article a {
+  color: #8ab4ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.code-block {
+  margin: 22px 0;
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.28);
+  border: 1px solid rgba(255,255,255,.10);
+  overflow-x: auto;
+  color: #dce6f5;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.field-note {
+  margin: 28px 0;
+  padding: 20px;
+  border-left: 3px solid #8ab4ff;
+  background: rgba(255,255,255,.04);
+  border-radius: 14px;
+}
+
+.field-note strong {
+  color: #ffffff;
+}
+
+.path-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.path-item {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  border-radius: 18px;
+  padding: 20px;
+}
+
+.path-item h2,
+.path-item h3 {
+  margin-top: 0;
+}
+
+.path-item p {
+  margin-bottom: 0;
+}
+
+.article-meta {
+  color: #92a3ba;
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+
+.article-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+
+.article-nav a {
+  color: #8ab4ff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .article-nav {
+    flex-direction: column;
+  }
+}
