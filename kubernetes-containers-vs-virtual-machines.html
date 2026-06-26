@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Understand containers vs virtual machines from an infrastructure perspective. A practical Kubernetes Field Notes lesson with a small Docker lab.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Containers vs Virtual Machines | Stealth IT Group">
+  <meta property="og:description" content="A practical infrastructure-focused explanation of containers, virtual machines, and why Kubernetes starts with containers.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-containers-vs-virtual-machines.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-containers-vs-virtual-machines.html">
+  
+  <title>Containers vs Virtual Machines | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16.png" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Foundations</div>
+
+        <h1>Containers vs Virtual Machines: The Infrastructure View</h1>
+
+        <p class="intro">
+          Kubernetes runs containers, not traditional virtual machines. To understand Kubernetes, you need to understand what containers are, what virtual machines are, and why they solve different infrastructure problems.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Foundation Level · Estimated reading time: 14 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          This lesson explains the difference between virtual machines and containers from an infrastructure perspective.
+        </p>
+
+        <p>
+          By the end, you should understand:
+        </p>
+
+        <ul>
+          <li>What a virtual machine is</li>
+          <li>What a container is</li>
+          <li>Why containers start faster than virtual machines</li>
+          <li>Why containers are not the same as tiny VMs</li>
+          <li>Why Kubernetes is built around containers</li>
+          <li>How to run and inspect a simple container locally</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          The goal is not to decide that containers are better than virtual machines. The goal is to understand when each model makes sense.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          A virtual machine virtualizes a full computer. It has its own operating system, kernel, services, patches, users, and processes.
+        </p>
+
+        <p>
+          A container packages an application process with the files and dependencies it needs to run. It shares the host operating system kernel.
+        </p>
+
+        <p>
+          That difference matters because Kubernetes manages containers as application workloads. It does not manage each workload like a full server.
+        </p>
+
+        <h2>What is a virtual machine?</h2>
+
+        <p>
+          A virtual machine is a software-defined computer running on top of a physical host or cloud hypervisor.
+        </p>
+
+        <p>
+          A VM usually includes:
+        </p>
+
+        <ul>
+          <li>A virtual CPU allocation</li>
+          <li>Virtual memory</li>
+          <li>Virtual disks</li>
+          <li>Virtual network adapters</li>
+          <li>A full guest operating system</li>
+          <li>System services</li>
+          <li>Applications running inside that guest operating system</li>
+        </ul>
+
+        <p>
+          If you run ten virtual machines, you are generally running ten guest operating systems.
+        </p>
+
+        <p>
+          This gives strong isolation and familiar server management boundaries, but it also adds overhead. Each VM needs operating system patching, configuration, monitoring, disk space, and security management.
+        </p>
+
+        <h2>What is a container?</h2>
+
+        <p>
+          A container is a packaged and isolated application process.
+        </p>
+
+        <p>
+          A container usually includes:
+        </p>
+
+        <ul>
+          <li>The application</li>
+          <li>Runtime dependencies</li>
+          <li>Libraries</li>
+          <li>Configuration defaults</li>
+          <li>A filesystem view built from a container image</li>
+        </ul>
+
+        <p>
+          A container does not boot a full guest operating system the way a virtual machine does. It runs as a process on the host and shares the host kernel.
+        </p>
+
+        <p>
+          This is why containers usually start quickly and use fewer resources than full virtual machines.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A container is not a tiny VM. It is closer to a packaged process with isolation around it.
+        </div>
+
+        <h2>Side-by-side comparison</h2>
+
+        <div class="code-block">
+<pre>Virtual Machine:
+Physical host or cloud host
+  Hypervisor
+    VM
+      Guest operating system
+        Application
+
+Container:
+Physical host or cloud host
+  Host operating system
+    Container runtime
+      Containerized application process</pre>
+        </div>
+
+        <p>
+          This is the core difference. A VM carries a full guest operating system. A container shares the host kernel and runs as an isolated process.
+        </p>
+
+        <h2>Why this matters for Kubernetes</h2>
+
+        <p>
+          Kubernetes is designed to schedule and manage containers across a cluster of machines.
+        </p>
+
+        <p>
+          Instead of thinking:
+        </p>
+
+        <div class="code-block">
+<pre>I need to log into a server, install the app, configure services, and manage the OS.</pre>
+        </div>
+
+        <p>
+          Kubernetes pushes you toward thinking:
+        </p>
+
+        <div class="code-block">
+<pre>I need to define the workload, the image, the configuration, the number of replicas, the network exposure, and the health checks.</pre>
+        </div>
+
+        <p>
+          That shift is one of the biggest mental changes for infrastructure people learning Kubernetes.
+        </p>
+
+        <h2>Containers are built from images</h2>
+
+        <p>
+          A container image is the packaged template used to create containers.
+        </p>
+
+        <p>
+          You can think of it like this:
+        </p>
+
+        <ul>
+          <li><strong>Image:</strong> the packaged artifact</li>
+          <li><strong>Container:</strong> a running instance of that image</li>
+        </ul>
+
+        <p>
+          If you have used virtual machines, it may be tempting to compare an image to a VM template. That comparison is useful at a high level, but not perfect.
+        </p>
+
+        <p>
+          A VM template usually represents a full machine. A container image usually represents an application and its runtime dependencies.
+        </p>
+
+        <h2>Containers should be disposable</h2>
+
+        <p>
+          In traditional server operations, a server may live for months or years. People log into it, patch it, change configuration, install tools, and troubleshoot directly on the box.
+        </p>
+
+        <p>
+          In a container model, the running container should be disposable. If you need to change the application, you build a new image and deploy a new container.
+        </p>
+
+        <p>
+          You generally should not treat a running container as something to manually nurse back to health.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          If a container is broken, the normal answer is often to fix the image, configuration, or deployment definition — not to remote into the container and hand-edit it.
+        </div>
+
+        <h2>What containers are good at</h2>
+
+        <p>
+          Containers are useful when you need application packaging and repeatability.
+        </p>
+
+        <ul>
+          <li>Packaging an application with its dependencies</li>
+          <li>Running the same image across environments</li>
+          <li>Starting workloads quickly</li>
+          <li>Scaling multiple copies of an application</li>
+          <li>Supporting automated deployment pipelines</li>
+          <li>Reducing environment drift between development, test, and production</li>
+        </ul>
+
+        <h2>What virtual machines are good at</h2>
+
+        <p>
+          Virtual machines are still useful. Kubernetes does not make them irrelevant.
+        </p>
+
+        <ul>
+          <li>Strong operating system boundaries</li>
+          <li>Running different operating systems on the same host</li>
+          <li>Traditional server workloads</li>
+          <li>Legacy applications that expect a full server</li>
+          <li>Domain controllers, management servers, and infrastructure appliances</li>
+          <li>Workloads that are not designed for container packaging</li>
+        </ul>
+
+        <p>
+          In many production environments, Kubernetes itself runs on virtual machines. The nodes are VMs, and the workloads running on those nodes are containers.
+        </p>
+
+        <h2>Security differences</h2>
+
+        <p>
+          Virtual machines and containers both provide isolation, but they do not isolate in the same way.
+        </p>
+
+        <p>
+          VMs have a full guest operating system boundary. Containers share the host kernel, so the security model depends heavily on the container runtime, Linux kernel features, host hardening, image security, workload permissions, and Kubernetes policy.
+        </p>
+
+        <p>
+          This does not mean containers are unsafe. It means they require a different security mindset.
+        </p>
+
+        <p>
+          For Kubernetes, container security eventually includes:
+        </p>
+
+        <ul>
+          <li>Using trusted images</li>
+          <li>Scanning images for vulnerabilities</li>
+          <li>Running containers as non-root where possible</li>
+          <li>Limiting container privileges</li>
+          <li>Using read-only filesystems where appropriate</li>
+          <li>Restricting host access</li>
+          <li>Using Kubernetes RBAC and admission controls</li>
+          <li>Applying network policies</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not assume container isolation is the same as VM isolation. Containers are powerful, but the shared-kernel model matters for security.
+        </div>
+
+        <h2>Hands-on lab: run and inspect a container</h2>
+
+        <p>
+          This lab assumes you completed the local lab setup and Docker Desktop is running.
+        </p>
+
+        <p>
+          First, confirm Docker is working:
+        </p>
+
+        <div class="code-block">
+<pre>docker version
+docker ps</pre>
+        </div>
+
+        <p>
+          Now run a simple nginx container:
+        </p>
+
+        <div class="code-block">
+<pre>docker run --name nginx-container-lab -d -p 8080:80 nginx:latest</pre>
+        </div>
+
+        <h3>What this command does</h3>
+
+        <ul>
+          <li><strong>docker run</strong> starts a new container.</li>
+          <li><strong>--name nginx-container-lab</strong> gives the container a friendly name.</li>
+          <li><strong>-d</strong> runs it in the background.</li>
+          <li><strong>-p 8080:80</strong> maps port 8080 on your machine to port 80 inside the container.</li>
+          <li><strong>nginx:latest</strong> tells Docker which image to use.</li>
+        </ul>
+
+        <p>
+          Open a browser and go to:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the default nginx welcome page.
+        </p>
+
+        <h2>Inspect the running container</h2>
+
+        <p>
+          List running containers:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps</pre>
+        </div>
+
+        <p>
+          View logs from the container:
+        </p>
+
+        <div class="code-block">
+<pre>docker logs nginx-container-lab</pre>
+        </div>
+
+        <p>
+          Inspect details about the container:
+        </p>
+
+        <div class="code-block">
+<pre>docker inspect nginx-container-lab</pre>
+        </div>
+
+        <p>
+          The inspect output is detailed. Do not try to memorize it. Notice that Docker knows the container image, network settings, port mappings, mounts, status, and runtime configuration.
+        </p>
+
+        <h2>Exec into the container</h2>
+
+        <p>
+          You can open a shell inside the running container:
+        </p>
+
+        <div class="code-block">
+<pre>docker exec -it nginx-container-lab /bin/sh</pre>
+        </div>
+
+        <p>
+          Once inside, run:
+        </p>
+
+        <div class="code-block">
+<pre>hostname
+ps
+ls</pre>
+        </div>
+
+        <p>
+          Then exit:
+        </p>
+
+        <div class="code-block">
+<pre>exit</pre>
+        </div>
+
+        <p>
+          This is useful for learning, but remember the field note from earlier: containers should be disposable. Avoid building operational habits around manually fixing containers from the inside.
+        </p>
+
+        <h2>Stop and remove the container</h2>
+
+        <p>
+          Stop the container:
+        </p>
+
+        <div class="code-block">
+<pre>docker stop nginx-container-lab</pre>
+        </div>
+
+        <p>
+          Remove it:
+        </p>
+
+        <div class="code-block">
+<pre>docker rm nginx-container-lab</pre>
+        </div>
+
+        <p>
+          Confirm it is gone:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps
+docker ps -a</pre>
+        </div>
+
+        <h2>What you just proved</h2>
+
+        <p>
+          In this lab, you:
+        </p>
+
+        <ul>
+          <li>Started a container from an image</li>
+          <li>Mapped a local port to a container port</li>
+          <li>Viewed the running container</li>
+          <li>Checked container logs</li>
+          <li>Inspected container details</li>
+          <li>Opened a shell inside the container</li>
+          <li>Stopped and removed the container</li>
+        </ul>
+
+        <p>
+          This is the basic unit Kubernetes builds on. Kubernetes does not remove the container model. It adds orchestration, scheduling, health checks, networking, configuration, and desired state management around it.
+        </p>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Virtual machines package servers. Containers package application processes. Kubernetes is built around managing those containerized application processes across a cluster.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the container and VM concepts made sense.
+        </p>
+
+        <ol>
+          <li>What does a virtual machine virtualize?</li>
+          <li>What does a container package?</li>
+          <li>Why do containers usually start faster than virtual machines?</li>
+          <li>Is a container the same thing as a tiny VM?</li>
+          <li>What is the difference between a container image and a running container?</li>
+          <li>Why should containers generally be treated as disposable?</li>
+          <li>Why does Kubernetes care about containers?</li>
+          <li>What does the <strong>-p 8080:80</strong> part of the Docker command do?</li>
+          <li>What command lists running containers?</li>
+          <li>What command shows logs from a container?</li>
+          <li>Why is container isolation not exactly the same as VM isolation?</li>
+          <li>In many production environments, what are Kubernetes nodes often running on?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>A virtual machine virtualizes a full computer, including virtual hardware and a guest operating system.</li>
+            <li>A container packages an application process with the files and dependencies it needs to run.</li>
+            <li>Containers usually start faster because they do not boot a full guest operating system.</li>
+            <li>No. A container is better understood as an isolated packaged process, not a tiny VM.</li>
+            <li>An image is the packaged template. A container is a running instance of that image.</li>
+            <li>Because changes should usually come from rebuilding the image or changing the deployment configuration, not manually editing a running container.</li>
+            <li>Kubernetes schedules, runs, monitors, exposes, and manages containerized workloads.</li>
+            <li>It maps port 8080 on your machine to port 80 inside the container.</li>
+            <li><strong>docker ps</strong>.</li>
+            <li><strong>docker logs &lt;container-name&gt;</strong>.</li>
+            <li>Containers share the host kernel, while VMs have a separate guest operating system boundary.</li>
+            <li>They are often running on virtual machines provided by a cloud or virtualization platform.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav">
+          <a href="/kubernetes-setting-up-a-local-lab.html">← Previous: Setting Up a Local Kubernetes Lab</a>
+          <a href="/kubernetes-field-notes.html">Back to Kubernetes Field Notes →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
