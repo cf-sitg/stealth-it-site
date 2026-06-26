@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes Services, how they provide stable networking for changing Pods, and how to use ClusterIP, NodePort, labels, selectors, and port-forwarding.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Services: Stable Networking for Unstable Pods | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes Field Notes lesson on Services, selectors, endpoints, ClusterIP, NodePort, and stable workload networking.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-services-stable-networking.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-services-stable-networking.html">
+  
+  <title>Services: Stable Networking for Unstable Pods | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Core Concepts</div>
+
+        <h1>Services: Stable Networking for Unstable Pods</h1>
+
+        <p class="intro">
+          Pods are disposable. Their names and IP addresses can change. A Kubernetes Service gives those changing Pods a stable network identity so other workloads can reach them reliably.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Core Concepts · Estimated reading time: 22 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          In the last lesson, you learned that Deployments and ReplicaSets keep the right number of Pods running. But that creates a networking problem: Pods can be deleted, replaced, and recreated with different IP addresses.
+        </p>
+
+        <p>
+          By the end of this lesson, you should understand:
+        </p>
+
+        <ul>
+          <li>Why Pods need stable network access</li>
+          <li>What a Kubernetes Service is</li>
+          <li>How Services use labels and selectors</li>
+          <li>What endpoints are</li>
+          <li>The difference between ClusterIP and NodePort</li>
+          <li>How to create a Service imperatively</li>
+          <li>How to create a Service from YAML</li>
+          <li>How to test a Service with port-forwarding</li>
+          <li>How to troubleshoot Services with no endpoints</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A Service does not run your application. It gives stable network access to Pods that match its selector.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          A Service is a stable network abstraction in front of one or more Pods.
+        </p>
+
+        <p>
+          Instead of connecting directly to a Pod IP, clients connect to the Service. The Service then routes traffic to matching Pods.
+        </p>
+
+        <div class="code-block">
+<pre>Client
+  connects to Service
+    Service selects matching Pods
+      Pods run the application containers</pre>
+        </div>
+
+        <p>
+          This matters because Pods are temporary. Services give applications a stable way to communicate even as Pods come and go.
+        </p>
+
+        <h2>Why Pod IPs are not enough</h2>
+
+        <p>
+          Each Pod gets an IP address inside the cluster. But that IP belongs to the Pod lifecycle.
+        </p>
+
+        <p>
+          If the Pod is deleted and replaced, the replacement Pod usually gets a different IP address.
+        </p>
+
+        <p>
+          That means this is a bad design:
+        </p>
+
+        <div class="code-block">
+<pre>Application A connects directly to Pod IP 10.244.0.12</pre>
+        </div>
+
+        <p>
+          If that Pod disappears, the IP may disappear with it.
+        </p>
+
+        <p>
+          This is better:
+        </p>
+
+        <div class="code-block">
+<pre>Application A connects to Service name nginx-service-lab</pre>
+        </div>
+
+        <p>
+          The Service remains stable while Kubernetes updates which Pods are behind it.
+        </p>
+
+        <h2>Services, labels, and selectors</h2>
+
+        <p>
+          Services usually find Pods through labels and selectors.
+        </p>
+
+        <p>
+          A Pod may have a label like:
+        </p>
+
+        <div class="code-block">
+<pre>app: nginx-service-lab</pre>
+        </div>
+
+        <p>
+          A Service may have a selector like:
+        </p>
+
+        <div class="code-block">
+<pre>selector:
+  app: nginx-service-lab</pre>
+        </div>
+
+        <p>
+          That selector means:
+        </p>
+
+        <div class="code-block">
+<pre>Send traffic to Pods with the label app=nginx-service-lab.</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          If a Service has no endpoints, the first thing to check is usually whether the Service selector matches the Pod labels.
+        </div>
+
+        <h2>What are endpoints?</h2>
+
+        <p>
+          Endpoints represent the actual network destinations behind a Service.
+        </p>
+
+        <p>
+          If a Service selects three healthy Pods, the Service should have endpoints pointing to those Pods.
+        </p>
+
+        <p>
+          If a Service has no endpoints, traffic has nowhere to go.
+        </p>
+
+        <p>
+          You can check endpoints with:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints</pre>
+        </div>
+
+        <p>
+          Or for a specific Service:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe service &lt;service-name&gt;</pre>
+        </div>
+
+        <h2>Common Service types</h2>
+
+        <p>
+          Kubernetes supports several Service types. These are the ones to understand first:
+        </p>
+
+        <ul>
+          <li><strong>ClusterIP:</strong> Exposes the Service inside the cluster. This is the default.</li>
+          <li><strong>NodePort:</strong> Exposes the Service on a port across cluster nodes.</li>
+          <li><strong>LoadBalancer:</strong> Requests an external load balancer from the cloud provider.</li>
+          <li><strong>ExternalName:</strong> Maps a Service to an external DNS name.</li>
+        </ul>
+
+        <p>
+          In this local kind lab, we will focus on <strong>ClusterIP</strong> and briefly look at <strong>NodePort</strong>. LoadBalancer behavior depends on cloud or local load balancer support, so it comes later.
+        </p>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes:
+        </p>
+
+        <ul>
+          <li>Docker Desktop is running</li>
+          <li>Your kind cluster exists</li>
+          <li>kubectl is installed</li>
+          <li>Your current context is <strong>kind-stealth-k8s-lab</strong></li>
+        </ul>
+
+        <p>
+          Check your context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check your node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a Deployment</h2>
+
+        <p>
+          Start by creating an nginx Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment nginx-service-lab --image=nginx:latest</pre>
+        </div>
+
+        <p>
+          Scale it to three replicas:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl scale deployment nginx-service-lab --replicas=3</pre>
+        </div>
+
+        <p>
+          Check the Deployment and Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments
+kubectl get pods -o wide</pre>
+        </div>
+
+        <p>
+          You should see three Pods. Each Pod has its own IP address.
+        </p>
+
+        <h2>Step 2: Look at the Pod labels</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods --show-labels</pre>
+        </div>
+
+        <p>
+          You should see a label like:
+        </p>
+
+        <div class="code-block">
+<pre>app=nginx-service-lab</pre>
+        </div>
+
+        <p>
+          That label is how the Service will know which Pods to route to.
+        </p>
+
+        <h2>Step 3: Create a ClusterIP Service</h2>
+
+        <p>
+          Create a Service for the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment nginx-service-lab --port=80 --target-port=80 --type=ClusterIP</pre>
+        </div>
+
+        <p>
+          This creates a Service named <strong>nginx-service-lab</strong>.
+        </p>
+
+        <h3>What this command does</h3>
+
+        <ul>
+          <li>Creates a Service for the Deployment</li>
+          <li>Uses port <strong>80</strong> on the Service</li>
+          <li>Sends traffic to target port <strong>80</strong> on the Pods</li>
+          <li>Uses the default internal Service type, <strong>ClusterIP</strong></li>
+        </ul>
+
+        <h2>Step 4: Inspect the Service</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services</pre>
+        </div>
+
+        <p>
+          You should see something like:
+        </p>
+
+        <div class="code-block">
+<pre>NAME                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+kubernetes          ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP   20m
+nginx-service-lab   ClusterIP   10.96.xxx.xxx   &lt;none&gt;        80/TCP    30s</pre>
+        </div>
+
+        <h3>What to look for</h3>
+
+        <ul>
+          <li><strong>NAME:</strong> The Service name.</li>
+          <li><strong>TYPE:</strong> The Service type.</li>
+          <li><strong>CLUSTER-IP:</strong> The stable internal IP assigned to the Service.</li>
+          <li><strong>PORT(S):</strong> The port exposed by the Service.</li>
+        </ul>
+
+        <p>
+          The ClusterIP is stable for the life of the Service, but it is only reachable from inside the cluster unless you use a tool like port-forward.
+        </p>
+
+        <h2>Step 5: Describe the Service</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe service nginx-service-lab</pre>
+        </div>
+
+        <p>
+          Look for:
+        </p>
+
+        <ul>
+          <li>Selector</li>
+          <li>IP</li>
+          <li>Port</li>
+          <li>TargetPort</li>
+          <li>Endpoints</li>
+        </ul>
+
+        <p>
+          The endpoints should show one or more Pod IPs and ports. Those are the actual destinations behind the Service.
+        </p>
+
+        <h2>Step 6: Check endpoints directly</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints nginx-service-lab</pre>
+        </div>
+
+        <p>
+          You should see endpoint IPs for the selected Pods.
+        </p>
+
+        <p>
+          If the endpoint list is empty, the Service is not matching any Pods.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A Service with no endpoints is like a load balancer with no healthy backends. The Service exists, but traffic has nowhere useful to go.
+        </div>
+
+        <h2>Step 7: Test the Service with port-forward</h2>
+
+        <p>
+          Use port-forwarding to test the Service from your local machine:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl port-forward service/nginx-service-lab 8080:80</pre>
+        </div>
+
+        <p>
+          Keep that PowerShell window open. Then open a browser and go to:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page.
+        </p>
+
+        <p>
+          Press <strong>Ctrl+C</strong> in PowerShell to stop port-forwarding.
+        </p>
+
+        <h2>Step 8: Delete a Pod and test again</h2>
+
+        <p>
+          Get the Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods</pre>
+        </div>
+
+        <p>
+          Delete one Pod. Replace <strong>&lt;pod-name&gt;</strong> with an actual Pod name:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete pod &lt;pod-name&gt;</pre>
+        </div>
+
+        <p>
+          Check Pods again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -o wide</pre>
+        </div>
+
+        <p>
+          The Deployment should create a replacement Pod.
+        </p>
+
+        <p>
+          Check the Service endpoints again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints nginx-service-lab</pre>
+        </div>
+
+        <p>
+          The endpoint list may change as the replacement Pod comes up.
+        </p>
+
+        <p>
+          This is the point of a Service: the backend Pods can change, but the Service name and Service IP remain stable.
+        </p>
+
+        <h2>Step 9: Create a Service from YAML</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>service-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-yaml-service-lab
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-service-lab
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f service-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check Services:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services</pre>
+        </div>
+
+        <p>
+          You now have another Service selecting the same nginx Pods.
+        </p>
+
+        <h2>Step 10: Understand port vs targetPort</h2>
+
+        <p>
+          In the YAML, this section matters:
+        </p>
+
+        <div class="code-block">
+<pre>ports:
+- port: 80
+  targetPort: 80
+  protocol: TCP</pre>
+        </div>
+
+        <p>
+          The difference is:
+        </p>
+
+        <ul>
+          <li><strong>port:</strong> The port exposed by the Service.</li>
+          <li><strong>targetPort:</strong> The port on the selected Pods where traffic should be sent.</li>
+        </ul>
+
+        <p>
+          In this case, both are 80. They do not always need to match.
+        </p>
+
+        <h2>Step 11: Create a broken Service on purpose</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>broken-service-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Service
+metadata:
+  name: broken-service-lab
+spec:
+  type: ClusterIP
+  selector:
+    app: does-not-match-any-pods
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f broken-service-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Service:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get service broken-service-lab</pre>
+        </div>
+
+        <p>
+          Now check endpoints:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints broken-service-lab</pre>
+        </div>
+
+        <p>
+          You should see no endpoints.
+        </p>
+
+        <h3>Why it is broken</h3>
+
+        <p>
+          The Service selector is:
+        </p>
+
+        <div class="code-block">
+<pre>app: does-not-match-any-pods</pre>
+        </div>
+
+        <p>
+          But the Pods are labeled:
+        </p>
+
+        <div class="code-block">
+<pre>app=nginx-service-lab</pre>
+        </div>
+
+        <p>
+          The selector does not match the labels, so the Service has no backend Pods.
+        </p>
+
+        <h2>Step 12: Fix the broken Service</h2>
+
+        <p>
+          Edit <strong>broken-service-lab.yaml</strong> and change:
+        </p>
+
+        <div class="code-block">
+<pre>selector:
+  app: does-not-match-any-pods</pre>
+        </div>
+
+        <p>
+          to:
+        </p>
+
+        <div class="code-block">
+<pre>selector:
+  app: nginx-service-lab</pre>
+        </div>
+
+        <p>
+          Apply the file again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f broken-service-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check endpoints again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints broken-service-lab</pre>
+        </div>
+
+        <p>
+          You should now see endpoints.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          When troubleshooting Services, always compare the Service selector to the labels on the Pods.
+        </div>
+
+        <h2>Step 13: Try a NodePort Service</h2>
+
+        <p>
+          Create a NodePort Service from the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment nginx-service-lab --name=nginx-nodeport-lab --port=80 --target-port=80 --type=NodePort</pre>
+        </div>
+
+        <p>
+          Check the Service:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get service nginx-nodeport-lab</pre>
+        </div>
+
+        <p>
+          You should see a port mapping that looks something like:
+        </p>
+
+        <div class="code-block">
+<pre>80:30xxx/TCP</pre>
+        </div>
+
+        <p>
+          The high port is the NodePort assigned by Kubernetes.
+        </p>
+
+        <p>
+          In real clusters, NodePort exposes the Service on the nodes. In kind, direct access can depend on how the cluster was created and how Docker networking is mapped, so do not worry if browsing directly to the NodePort does not work in this local lab.
+        </p>
+
+        <p>
+          For this training path, use <strong>port-forward</strong> for reliable local testing until we get into Ingress and cloud load balancers.
+        </p>
+
+        <h2>Step 14: Clean up</h2>
+
+        <p>
+          Delete the Services:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete service nginx-service-lab
+kubectl delete -f service-lab.yaml
+kubectl delete -f broken-service-lab.yaml
+kubectl delete service nginx-nodeport-lab</pre>
+        </div>
+
+        <p>
+          Delete the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete deployment nginx-service-lab</pre>
+        </div>
+
+        <p>
+          Confirm cleanup:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services
+kubectl get deployments
+kubectl get pods
+kubectl get endpoints</pre>
+        </div>
+
+        <p>
+          You should not see the lab Deployment, Pods, or Services anymore.
+        </p>
+
+        <h2>Common Service troubleshooting commands</h2>
+
+        <p>
+          Use this flow when a Service does not work:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services
+kubectl describe service &lt;service-name&gt;
+kubectl get endpoints &lt;service-name&gt;
+kubectl get pods --show-labels
+kubectl get pods -o wide
+kubectl describe pod &lt;pod-name&gt;
+kubectl logs &lt;pod-name&gt;
+kubectl get events --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <p>
+          This usually tells you:
+        </p>
+
+        <ul>
+          <li>Whether the Service exists</li>
+          <li>What selector the Service uses</li>
+          <li>Whether the Service has endpoints</li>
+          <li>Whether the Pod labels match the Service selector</li>
+          <li>Whether the selected Pods are running</li>
+          <li>Whether the application is actually listening on the target port</li>
+        </ul>
+
+        <h2>What you just learned</h2>
+
+        <p>
+          In this lesson, you:
+        </p>
+
+        <ul>
+          <li>Created a Deployment with three Pods</li>
+          <li>Inspected Pod labels</li>
+          <li>Created a ClusterIP Service</li>
+          <li>Inspected Service details</li>
+          <li>Checked endpoints</li>
+          <li>Tested a Service with port-forwarding</li>
+          <li>Deleted a Pod and watched the Service continue to represent the workload</li>
+          <li>Created a Service from YAML</li>
+          <li>Broke a Service with a bad selector</li>
+          <li>Fixed a Service by matching selectors to labels</li>
+          <li>Created a NodePort Service</li>
+          <li>Cleaned up the lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Pods are replaceable. Services give those replaceable Pods a stable network identity. When a Service is not working, check its selector, check the Pod labels, and check the endpoints.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the Service concepts made sense.
+        </p>
+
+        <ol>
+          <li>Why is connecting directly to a Pod IP usually a bad idea?</li>
+          <li>What problem does a Service solve?</li>
+          <li>How does a Service usually find the Pods it should send traffic to?</li>
+          <li>What are endpoints?</li>
+          <li>What does a ClusterIP Service expose?</li>
+          <li>What is the difference between <strong>port</strong> and <strong>targetPort</strong>?</li>
+          <li>What is the first thing to check when a Service has no endpoints?</li>
+          <li>What command shows the labels on Pods?</li>
+          <li>What command shows endpoints for a Service?</li>
+          <li>Why might NodePort behavior be different in a local kind lab than in a real cluster?</li>
+          <li>What tool can you use to test a Service locally without exposing it externally?</li>
+          <li>What are three commands you would run when troubleshooting a Service?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Pod IPs belong to individual Pods and can change when Pods are replaced.</li>
+            <li>A Service provides stable network access to matching Pods.</li>
+            <li>Through labels and selectors.</li>
+            <li>Endpoints are the actual Pod IPs and ports behind a Service.</li>
+            <li>It exposes a stable internal Service IP inside the cluster.</li>
+            <li><strong>port</strong> is the port exposed by the Service. <strong>targetPort</strong> is the port on the selected Pods.</li>
+            <li>Check whether the Service selector matches the Pod labels.</li>
+            <li><strong>kubectl get pods --show-labels</strong>.</li>
+            <li><strong>kubectl get endpoints &lt;service-name&gt;</strong>.</li>
+            <li>kind runs nodes as Docker containers, so node-level port access depends on how the local cluster and Docker networking are configured.</li>
+            <li><strong>kubectl port-forward</strong>.</li>
+            <li>Examples: <strong>kubectl describe service &lt;service-name&gt;</strong>, <strong>kubectl get endpoints &lt;service-name&gt;</strong>, <strong>kubectl get pods --show-labels</strong>, <strong>kubectl get pods -o wide</strong>.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-deployments-and-replicasets.html">← Previous: Deployments and ReplicaSets</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Next lesson coming soon →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
