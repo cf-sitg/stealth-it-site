@@ -1,24 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
   <url>
     <loc>https://stealthitgroup.com/</loc>
   </url>
+
   <url>
     <loc>https://stealthitgroup.com/services.html</loc>
   </url>
+
   <url>
     <loc>https://stealthitgroup.com/tools.html</loc>
   </url>
-  <url>
-    <loc>https://stealthitgroup.com/privacy.html</loc>
-  </url>
+
   <url>
     <loc>https://stealthitgroup.com/training.html</loc>
   </url>
+
   <url>
     <loc>https://stealthitgroup.com/kubernetes-field-notes.html</loc>
   </url>
+
   <url>
     <loc>https://stealthitgroup.com/kubernetes-what-kubernetes-actually-does.html</loc>
   </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-setting-up-a-local-lab.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/privacy.html</loc>
+  </url>
+
 </urlset>
