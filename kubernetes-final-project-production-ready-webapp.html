@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Final Kubernetes capstone project: deploy a production-ready web app using namespaces, deployments, services, ingress, ConfigMaps, Secrets, probes, resources, RBAC, NetworkPolicies, troubleshooting, and production readiness checks.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Final Project: Deploy a Production-Ready Web App | Stealth IT Group">
+  <meta property="og:description" content="A final Kubernetes Field Notes capstone project that applies the full training path by deploying, validating, troubleshooting, and reviewing a production-style web application.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-final-project-production-ready-webapp.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-final-project-production-ready-webapp.html">
+  
+  <title>Final Project: Deploy a Production-Ready Web App | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Final Project</div>
+
+        <h1>Final Project: Deploy a Production-Ready Web App</h1>
+
+        <p class="intro">
+          This capstone project pulls the full Kubernetes training path together. You will deploy a small production-style web application, validate it, break and fix it, and review it against a practical production readiness checklist.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Final Project · Estimated completion time: 60–90 minutes
+        </p>
+
+        <h2>Scenario</h2>
+
+        <p>
+          You have been asked to deploy a small internal web application to Kubernetes. The application must be reachable through Ingress, configured through Kubernetes objects instead of hardcoded image changes, deployed with basic operational guardrails, and validated before it is considered ready.
+        </p>
+
+        <p>
+          This is not meant to be a complex software development project. The application will use nginx and a custom <strong>index.html</strong> file from a ConfigMap so the focus stays on Kubernetes operations.
+        </p>
+
+        <div class="field-note">
+          <strong>Final boss mindset:</strong>
+          The goal is not just to paste YAML. The goal is to prove you understand how the objects work together, how to validate them, and how to recover when something breaks.
+        </div>
+
+        <h2>What you will build</h2>
+
+        <ul>
+          <li>A dedicated Namespace</li>
+          <li>A ConfigMap containing custom web content</li>
+          <li>A Secret containing a fake application token</li>
+          <li>A dedicated ServiceAccount</li>
+          <li>A Deployment with two replicas</li>
+          <li>Resource requests and limits</li>
+          <li>Startup, readiness, and liveness probes</li>
+          <li>A ClusterIP Service</li>
+          <li>An Ingress route</li>
+          <li>Basic NetworkPolicy examples</li>
+          <li>A validation and troubleshooting checklist</li>
+        </ul>
+
+        <h2>Architecture</h2>
+
+        <div class="code-block">
+<pre>Browser or curl
+  sends request to finalboss.localhost
+    Ingress controller receives traffic
+      Ingress routes to Service
+        Service routes to ready Pods
+          Pods run nginx
+            nginx serves index.html from ConfigMap</pre>
+        </div>
+
+        <h2>Project requirements</h2>
+
+        <ul>
+          <li>All application resources must run in a Namespace named <strong>final-boss-lab</strong>.</li>
+          <li>The Deployment must be named <strong>production-webapp</strong>.</li>
+          <li>The Deployment must run two replicas.</li>
+          <li>The web content must come from a ConfigMap.</li>
+          <li>The workload must reference a Secret.</li>
+          <li>The workload must use a dedicated ServiceAccount.</li>
+          <li>The container must define CPU and memory requests and limits.</li>
+          <li>The container must define startup, readiness, and liveness probes.</li>
+          <li>The app must be exposed internally with a ClusterIP Service.</li>
+          <li>The app must be reachable through Ingress using <strong>finalboss.localhost</strong>.</li>
+          <li>You must validate rollout status, endpoints, logs, events, and browser or curl access.</li>
+          <li>You must intentionally break and fix at least one part of the deployment.</li>
+        </ul>
+
+        <h2>Before you start</h2>
+
+        <p>
+          This project assumes Docker Desktop is running, your kind cluster exists, kubectl is installed, your current context is <strong>kind-stealth-k8s-lab</strong>, and the NGINX Ingress Controller is installed from the Ingress lesson.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl get pods -n ingress-nginx
+kubectl get service -n ingress-nginx</pre>
+        </div>
+
+        <p>
+          If the ingress controller is not installed, install it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/kind/deploy.yaml
+
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s</pre>
+        </div>
+
+        <h2>Step 1: Create the Namespace</h2>
+
+        <p>Create <strong>final-boss-namespace.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Namespace
+metadata:
+  name: final-boss-lab
+  labels:
+    app.kubernetes.io/part-of: kubernetes-final-project
+    environment: training</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-namespace.yaml
+kubectl get namespace final-boss-lab --show-labels</pre>
+        </div>
+
+        <h2>Step 2: Create the ConfigMap web content</h2>
+
+        <p>Create <strong>final-boss-configmap.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: production-webapp-content
+  namespace: final-boss-lab
+  labels:
+    app: production-webapp
+data:
+  index.html: |
+    &lt;!DOCTYPE html&gt;
+    &lt;html&gt;
+    &lt;head&gt;
+      &lt;title&gt;Kubernetes Final Boss&lt;/title&gt;
+      &lt;style&gt;
+        body {
+          font-family: Arial, sans-serif;
+          background: #08111f;
+          color: #f8fafc;
+          margin: 0;
+          padding: 4rem;
+        }
+        .card {
+          max-width: 760px;
+          border: 1px solid #334155;
+          border-radius: 18px;
+          padding: 2rem;
+          background: #111827;
+        }
+        h1 { color: #93c5fd; }
+        code { color: #86efac; }
+      &lt;/style&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+      &lt;div class="card"&gt;
+        &lt;h1&gt;Kubernetes Final Boss Complete&lt;/h1&gt;
+        &lt;p&gt;This page is being served by nginx inside Kubernetes.&lt;/p&gt;
+        &lt;p&gt;The web content came from a &lt;code&gt;ConfigMap&lt;/code&gt;.&lt;/p&gt;
+        &lt;p&gt;The workload is running behind a &lt;code&gt;Deployment&lt;/code&gt;, &lt;code&gt;Service&lt;/code&gt;, and &lt;code&gt;Ingress&lt;/code&gt;.&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/body&gt;
+    &lt;/html&gt;</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-configmap.yaml
+kubectl describe configmap production-webapp-content -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 3: Create the Secret</h2>
+
+        <p>Create <strong>final-boss-secret.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Secret
+metadata:
+  name: production-webapp-secret
+  namespace: final-boss-lab
+  labels:
+    app: production-webapp
+type: Opaque
+stringData:
+  APP_TOKEN: fake-final-boss-token
+  APP_MODE: production-style-training</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-secret.yaml
+kubectl describe secret production-webapp-secret -n final-boss-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Security note:</strong>
+          This is a fake Secret for training. Do not commit real passwords, tokens, keys, or certificates into Git in plain text.
+        </div>
+
+        <h2>Step 4: Create the ServiceAccount</h2>
+
+        <p>Create <strong>final-boss-serviceaccount.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: production-webapp-sa
+  namespace: final-boss-lab
+  labels:
+    app: production-webapp</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-serviceaccount.yaml
+kubectl get serviceaccounts -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 5: Create a read-only Role and RoleBinding</h2>
+
+        <p>
+          This simple app does not need Kubernetes API access, but this step shows how you would grant limited permissions to a workload identity when needed.
+        </p>
+
+        <p>Create <strong>final-boss-rbac.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: production-webapp-readonly
+  namespace: final-boss-lab
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: production-webapp-readonly-binding
+  namespace: final-boss-lab
+subjects:
+- kind: ServiceAccount
+  name: production-webapp-sa
+  namespace: final-boss-lab
+roleRef:
+  kind: Role
+  name: production-webapp-readonly
+  apiGroup: rbac.authorization.k8s.io</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-rbac.yaml
+
+kubectl auth can-i list configmaps --as=system:serviceaccount:final-boss-lab:production-webapp-sa -n final-boss-lab
+
+kubectl auth can-i delete pods --as=system:serviceaccount:final-boss-lab:production-webapp-sa -n final-boss-lab
+
+kubectl auth can-i list secrets --as=system:serviceaccount:final-boss-lab:production-webapp-sa -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 6: Create the Deployment</h2>
+
+        <p>Create <strong>final-boss-deployment.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: production-webapp
+  namespace: final-boss-lab
+  labels:
+    app: production-webapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: production-webapp
+  template:
+    metadata:
+      labels:
+        app: production-webapp
+    spec:
+      serviceAccountName: production-webapp-sa
+      containers:
+      - name: nginx
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+        env:
+        - name: APP_MODE
+          valueFrom:
+            secretKeyRef:
+              name: production-webapp-secret
+              key: APP_MODE
+        - name: APP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: production-webapp-secret
+              key: APP_TOKEN
+        volumeMounts:
+        - name: web-content
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+          failureThreshold: 30
+          periodSeconds: 2
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+      volumes:
+      - name: web-content
+        configMap:
+          name: production-webapp-content</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-deployment.yaml
+kubectl rollout status deployment/production-webapp -n final-boss-lab
+kubectl get deployments -n final-boss-lab
+kubectl get pods -n final-boss-lab -o wide</pre>
+        </div>
+
+        <h2>Step 7: Inspect the Deployment and Pods</h2>
+
+        <div class="code-block">
+<pre>kubectl describe deployment production-webapp -n final-boss-lab
+kubectl get pods -n final-boss-lab
+kubectl describe pod &lt;pod-name&gt; -n final-boss-lab</pre>
+        </div>
+
+        <p>
+          Confirm the Pod uses the dedicated ServiceAccount, mounts the ConfigMap, references the Secret, defines requests and limits, and has startup, readiness, and liveness probes.
+        </p>
+
+        <h2>Step 8: Create the Service</h2>
+
+        <p>Create <strong>final-boss-service.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Service
+metadata:
+  name: production-webapp
+  namespace: final-boss-lab
+  labels:
+    app: production-webapp
+spec:
+  type: ClusterIP
+  selector:
+    app: production-webapp
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-service.yaml
+kubectl get service production-webapp -n final-boss-lab
+kubectl describe service production-webapp -n final-boss-lab
+kubectl get endpoints production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 9: Test the Service with port-forward</h2>
+
+        <div class="code-block">
+<pre>kubectl port-forward -n final-boss-lab service/production-webapp 8080:80</pre>
+        </div>
+
+        <p>Open:</p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the custom Kubernetes Final Boss page. Press <strong>Ctrl+C</strong> to stop port-forwarding.
+        </p>
+
+        <h2>Step 10: Create the Ingress</h2>
+
+        <p>Create <strong>final-boss-ingress.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: production-webapp
+  namespace: final-boss-lab
+  labels:
+    app: production-webapp
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: finalboss.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: production-webapp
+            port:
+              number: 80</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-ingress.yaml
+kubectl get ingress -n final-boss-lab
+kubectl describe ingress production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 11: Test the Ingress with curl</h2>
+
+        <p>
+          In one PowerShell window, port-forward to the ingress controller:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80</pre>
+        </div>
+
+        <p>
+          In a second PowerShell window, test with the Host header:
+        </p>
+
+        <div class="code-block">
+<pre>curl.exe -H "Host: finalboss.localhost" http://localhost:8080</pre>
+        </div>
+
+        <h2>Step 12: Test the Ingress in a browser</h2>
+
+        <p>
+          Open Notepad as Administrator and edit:
+        </p>
+
+        <div class="code-block">
+<pre>C:\Windows\System32\drivers\etc\hosts</pre>
+        </div>
+
+        <p>Add:</p>
+
+        <div class="code-block">
+<pre>127.0.0.1 finalboss.localhost</pre>
+        </div>
+
+        <p>
+          With the ingress controller port-forward still running, open:
+        </p>
+
+        <div class="code-block">
+<pre>http://finalboss.localhost:8080</pre>
+        </div>
+
+        <p>
+          When testing is complete, remove the temporary hosts file entry.
+        </p>
+
+        <h2>Step 13: Add NetworkPolicy examples</h2>
+
+        <p>
+          This project includes NetworkPolicy manifests so you practice the production pattern. Enforcement depends on whether your cluster networking plugin supports NetworkPolicy.
+        </p>
+
+        <p>Create <strong>final-boss-networkpolicy.yaml</strong>:</p>
+
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: final-boss-lab
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-webapp-http
+  namespace: final-boss-lab
+spec:
+  podSelector:
+    matchLabels:
+      app: production-webapp
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 80</pre>
+        </div>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-networkpolicy.yaml
+kubectl get networkpolicies -n final-boss-lab
+kubectl describe networkpolicy allow-webapp-http -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 14: Validate the full deployment</h2>
+
+        <div class="code-block">
+<pre>kubectl get all -n final-boss-lab
+kubectl get configmaps -n final-boss-lab
+kubectl get secrets -n final-boss-lab
+kubectl get serviceaccounts -n final-boss-lab
+kubectl get role,rolebinding -n final-boss-lab
+kubectl get ingress -n final-boss-lab
+kubectl get networkpolicies -n final-boss-lab
+kubectl get endpoints production-webapp -n final-boss-lab
+kubectl rollout status deployment/production-webapp -n final-boss-lab
+kubectl get events -n final-boss-lab --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Step 15: Break the Service selector on purpose</h2>
+
+        <p>
+          Edit <strong>final-boss-service.yaml</strong> and change:
+        </p>
+
+        <div class="code-block">
+<pre>selector:
+  app: production-webapp</pre>
+        </div>
+
+        <p>to:</p>
+
+        <div class="code-block">
+<pre>selector:
+  app: does-not-match</pre>
+        </div>
+
+        <p>Apply it and inspect endpoints:</p>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-service.yaml
+kubectl get endpoints production-webapp -n final-boss-lab
+kubectl describe service production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <p>
+          The endpoint list should be empty because the Service selector no longer matches the Pod labels.
+        </p>
+
+        <h2>Step 16: Fix the Service selector</h2>
+
+        <p>
+          Change the selector back to <strong>app: production-webapp</strong>, then run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-service.yaml
+kubectl get endpoints production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 17: Break the readiness probe on purpose</h2>
+
+        <p>
+          Edit <strong>final-boss-deployment.yaml</strong> and change the readiness probe path to <strong>/not-ready</strong>, then apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-deployment.yaml
+kubectl rollout status deployment/production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <p>
+          Troubleshoot readiness failures:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n final-boss-lab
+kubectl describe pod &lt;pod-name&gt; -n final-boss-lab
+kubectl get endpoints production-webapp -n final-boss-lab
+kubectl get events -n final-boss-lab --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Step 18: Fix the readiness probe</h2>
+
+        <p>
+          Change the readiness probe path back to <strong>/</strong>, then run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f final-boss-deployment.yaml
+kubectl rollout status deployment/production-webapp -n final-boss-lab
+kubectl get pods -n final-boss-lab
+kubectl get endpoints production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 19: Simulate a bad image rollout</h2>
+
+        <div class="code-block">
+<pre>kubectl set image deployment/production-webapp nginx=nginx:not-a-real-final-boss-tag -n final-boss-lab
+kubectl rollout status deployment/production-webapp -n final-boss-lab
+kubectl get pods -n final-boss-lab
+kubectl describe pod &lt;bad-pod-name&gt; -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 20: Recover with rollout undo</h2>
+
+        <div class="code-block">
+<pre>kubectl rollout undo deployment/production-webapp -n final-boss-lab
+kubectl rollout status deployment/production-webapp -n final-boss-lab
+kubectl get pods -n final-boss-lab
+kubectl get endpoints production-webapp -n final-boss-lab</pre>
+        </div>
+
+        <h2>Step 21: Run the production readiness review</h2>
+
+        <h3>Workload design</h3>
+        <ul>
+          <li>Is the app managed by a Deployment?</li>
+          <li>Are there at least two replicas?</li>
+          <li>Are labels and selectors consistent?</li>
+          <li>Is the image pinned to a specific version?</li>
+        </ul>
+
+        <h3>Configuration</h3>
+        <ul>
+          <li>Does web content come from a ConfigMap?</li>
+          <li>Is sensitive-style configuration stored in a Secret?</li>
+          <li>Are real secrets excluded from Git?</li>
+        </ul>
+
+        <h3>Identity and access</h3>
+        <ul>
+          <li>Does the workload use a dedicated ServiceAccount?</li>
+          <li>Are RBAC permissions limited?</li>
+          <li>Can you prove permissions with <strong>kubectl auth can-i</strong>?</li>
+        </ul>
+
+        <h3>Resources and health</h3>
+        <ul>
+          <li>Are CPU and memory requests set?</li>
+          <li>Are CPU and memory limits set?</li>
+          <li>Are startup, readiness, and liveness probes configured?</li>
+          <li>Do the Pods become Ready?</li>
+        </ul>
+
+        <h3>Networking</h3>
+        <ul>
+          <li>Does the Service have endpoints?</li>
+          <li>Does port-forward to the Service work?</li>
+          <li>Does Ingress route to the Service?</li>
+          <li>Does curl or browser access work with the expected hostname?</li>
+        </ul>
+
+        <h3>Security and policy</h3>
+        <ul>
+          <li>Are NetworkPolicy manifests present?</li>
+          <li>Do you understand whether your local CNI enforces them?</li>
+          <li>Are Secrets protected from casual display in logs?</li>
+        </ul>
+
+        <h3>Operations</h3>
+        <ul>
+          <li>Can you check rollout status?</li>
+          <li>Can you read logs?</li>
+          <li>Can you read events?</li>
+          <li>Can you troubleshoot missing endpoints?</li>
+          <li>Can you recover from a bad image rollout?</li>
+        </ul>
+
+        <h2>Final scoring rubric</h2>
+
+        <ul>
+          <li><strong>Pass:</strong> The app deploys, Service endpoints exist, and Service port-forward works.</li>
+          <li><strong>Strong pass:</strong> Ingress works, probes are healthy, resources are set, and rollback works.</li>
+          <li><strong>Final boss complete:</strong> You can explain every object, intentionally break and fix Service selectors and readiness, recover from a bad rollout, and walk through the production readiness checklist without guessing.</li>
+        </ul>
+
+        <h2>Step 22: Clean up</h2>
+
+        <p>
+          Stop any active port-forward sessions with <strong>Ctrl+C</strong>. Then delete the Namespace and everything inside it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete namespace final-boss-lab</pre>
+        </div>
+
+        <p>
+          Confirm cleanup:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces
+kubectl get pods -A</pre>
+        </div>
+
+        <p>
+          Remove the temporary hosts file entry if you added one:
+        </p>
+
+        <div class="code-block">
+<pre>127.0.0.1 finalboss.localhost</pre>
+        </div>
+
+        <h2>What you just proved</h2>
+
+        <ul>
+          <li>You can create organized resources in a Namespace.</li>
+          <li>You can deploy a replicated workload.</li>
+          <li>You can use ConfigMaps and Secrets.</li>
+          <li>You can use a dedicated ServiceAccount and limited RBAC.</li>
+          <li>You can set resource requests and limits.</li>
+          <li>You can configure health probes.</li>
+          <li>You can expose the app with a Service and route traffic through Ingress.</li>
+          <li>You can apply NetworkPolicy patterns.</li>
+          <li>You can validate rollout, logs, events, and endpoints.</li>
+          <li>You can troubleshoot broken selectors, probes, and rollouts.</li>
+          <li>You can review production readiness before calling the workload done.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Kubernetes is not just a collection of objects. It is an operating model. This final project proves you can connect workload design, configuration, networking, security, health, troubleshooting, and production readiness into one complete deployment.
+        </div>
+
+        <h2>Final reflection questions</h2>
+
+        <ol>
+          <li>Which object actually ran the application containers?</li>
+          <li>Which object kept two replicas running?</li>
+          <li>Which object gave the Pods stable internal access?</li>
+          <li>Which object routed HTTP traffic into the cluster?</li>
+          <li>Which object provided the custom web page?</li>
+          <li>Which object stored fake sensitive configuration?</li>
+          <li>Which identity did the workload run as?</li>
+          <li>What happened when the Service selector was wrong?</li>
+          <li>What happened when the readiness probe was wrong?</li>
+          <li>How did you recover from a bad image rollout?</li>
+          <li>What would you change before deploying a real internet-facing app?</li>
+          <li>Which part of the production readiness checklist would be hardest in your own environment?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>The Pods ran the application containers.</li>
+            <li>The Deployment, through a ReplicaSet, kept two replicas running.</li>
+            <li>The Service gave the Pods stable internal access.</li>
+            <li>The Ingress routed HTTP traffic into the cluster through the ingress controller.</li>
+            <li>The ConfigMap provided the custom web page.</li>
+            <li>The Secret stored fake sensitive configuration.</li>
+            <li>The workload used the <strong>production-webapp-sa</strong> ServiceAccount.</li>
+            <li>The Service had no endpoints because it did not match the Pod labels.</li>
+            <li>The Pods could be Running but not Ready, and Service endpoints could disappear or rollout could stall.</li>
+            <li>By using <strong>kubectl rollout undo deployment/production-webapp -n final-boss-lab</strong>.</li>
+            <li>Examples: real TLS, real DNS, external secret manager, image scanning, monitoring, alerting, backup/restore if state exists, stronger policies, and production ingress/load balancer configuration.</li>
+            <li>Answers will vary. The important part is identifying the operational gap honestly.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-production-readiness-checklist.html">← Previous: Production Readiness Checklist</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Training path complete →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
