@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes health checks, including readiness probes, liveness probes, startup probes, and how they affect traffic and restarts.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Health Checks: Readiness, Liveness, and Startup Probes | Stealth IT Group">
+  <meta property="og:description" content="Learn Kubernetes health checks, including readiness probes, liveness probes, startup probes, and how they affect traffic and restarts.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-health-checks-readiness-liveness-startup-probes.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-health-checks-readiness-liveness-startup-probes.html">
+
+  <title>Health Checks: Readiness, Liveness, and Startup Probes | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Operations</div>
+
+        <h1>Health Checks: Readiness, Liveness, and Startup Probes</h1>
+
+        <p class="intro">
+          Kubernetes probes help the platform decide when a workload is started, when it is ready for traffic, and when a container should be restarted.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Operations Level · Estimated reading time: 26 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          Kubernetes can restart containers, remove unhealthy Pods from Service traffic, and delay traffic until an application is actually ready. It does this through probes.
+        </p>
+
+        <p>
+          By the end of this lesson, you should understand:
+        </p>
+
+        <ul>
+          <li>What liveness probes are</li>
+          <li>What readiness probes are</li>
+          <li>What startup probes are</li>
+          <li>Why readiness is different from liveness</li>
+          <li>How probes affect Services and traffic routing</li>
+          <li>How to create HTTP-based probes</li>
+          <li>How to intentionally break a probe</li>
+          <li>How to troubleshoot probe failures</li>
+          <li>How probes fit into production workload design</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A running container is not always a healthy application. Probes let Kubernetes ask better questions than “is the process still alive?”
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          Kubernetes probes are health checks performed by the kubelet on the node running the Pod.
+        </p>
+
+        <div class="code-block">
+<pre>startupProbe:
+  Has the application finished starting?
+
+readinessProbe:
+  Is the application ready to receive traffic?
+
+livenessProbe:
+  Is the application healthy enough to keep running?</pre>
+        </div>
+
+        <p>
+          These checks help Kubernetes make safer decisions about restarts and traffic routing.
+        </p>
+
+        <h2>Readiness vs liveness</h2>
+
+        <p>
+          Readiness and liveness are often confused, but they answer different questions.
+        </p>
+
+        <h3>Readiness probe</h3>
+
+        <p>
+          A readiness probe tells Kubernetes whether the Pod should receive traffic from a Service.
+        </p>
+
+        <p>
+          If readiness fails, the Pod can keep running, but Kubernetes removes it from Service endpoints until it becomes ready again.
+        </p>
+
+        <h3>Liveness probe</h3>
+
+        <p>
+          A liveness probe tells Kubernetes whether the container should be restarted.
+        </p>
+
+        <p>
+          If liveness fails repeatedly, Kubernetes restarts the container.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not use liveness as a substitute for readiness. If an app is temporarily unable to serve traffic, readiness should usually fail. Liveness should fail only when restarting the container is the right recovery action.
+        </div>
+
+        <h2>What startup probes solve</h2>
+
+        <p>
+          Some applications take longer to start than others. If a liveness probe starts too early, Kubernetes may restart a slow-starting application before it has a fair chance to finish initializing.
+        </p>
+
+        <p>
+          A startup probe gives the application a separate startup window. While the startup probe is running, liveness and readiness checks are delayed.
+        </p>
+
+        <p>
+          Startup probes are useful for:
+        </p>
+
+        <ul>
+          <li>Legacy applications with long boot times</li>
+          <li>Applications that warm caches</li>
+          <li>Applications that run startup migrations</li>
+          <li>Containers that need time to initialize dependencies</li>
+        </ul>
+
+        <h2>Common probe types</h2>
+
+        <p>
+          Kubernetes supports several probe methods:
+        </p>
+
+        <ul>
+          <li><strong>HTTP GET:</strong> Kubernetes requests an HTTP endpoint.</li>
+          <li><strong>TCP socket:</strong> Kubernetes checks whether a port is accepting connections.</li>
+          <li><strong>Exec:</strong> Kubernetes runs a command inside the container.</li>
+          <li><strong>gRPC:</strong> Kubernetes can check a gRPC health endpoint when configured.</li>
+        </ul>
+
+        <p>
+          This lab uses HTTP GET probes because they are easy to understand and common for web applications.
+        </p>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes Docker Desktop is running, your kind cluster exists, kubectl is installed, and your current context is <strong>kind-stealth-k8s-lab</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a Namespace for the lab</h2>
+
+        <div class="code-block">
+<pre>kubectl create namespace probes-lab</pre>
+        </div>
+
+        <h2>Step 2: Create a Deployment with readiness and liveness probes</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>probes-deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probes-web-lab
+  namespace: probes-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: probes-web-lab
+  template:
+    metadata:
+      labels:
+        app: probes-web-lab
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f probes-deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Deployment and Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments -n probes-lab
+kubectl get pods -n probes-lab</pre>
+        </div>
+
+        <h2>Step 3: Describe a Pod and inspect the probes</h2>
+
+        <p>
+          Get a Pod name:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n probes-lab</pre>
+        </div>
+
+        <p>
+          Describe one Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod &lt;pod-name&gt; -n probes-lab</pre>
+        </div>
+
+        <p>
+          Look for the <strong>Liveness</strong> and <strong>Readiness</strong> lines. You should see the HTTP path, port, initial delay, timeout, period, success threshold, and failure threshold.
+        </p>
+
+        <h2>Step 4: Create a Service</h2>
+
+        <p>
+          Create a Service for the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment probes-web-lab --port=80 --target-port=80 --type=ClusterIP -n probes-lab</pre>
+        </div>
+
+        <p>
+          Check endpoints:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints probes-web-lab -n probes-lab</pre>
+        </div>
+
+        <p>
+          Ready Pods should appear as endpoints behind the Service.
+        </p>
+
+        <h2>Step 5: Test the Service</h2>
+
+        <p>
+          Port-forward to the Service:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl port-forward -n probes-lab service/probes-web-lab 8080:80</pre>
+        </div>
+
+        <p>
+          Open:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page. Press <strong>Ctrl+C</strong> when done.
+        </p>
+
+        <h2>Step 6: Break readiness on purpose</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>broken-readiness-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-readiness-lab
+  namespace: probes-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broken-readiness-lab
+  template:
+    metadata:
+      labels:
+        app: broken-readiness-lab
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /does-not-exist
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 2</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f broken-readiness-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n probes-lab</pre>
+        </div>
+
+        <p>
+          The Pod may be Running but not Ready.
+        </p>
+
+        <h2>Step 7: Troubleshoot the readiness failure</h2>
+
+        <p>
+          Describe the broken Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod &lt;broken-pod-name&gt; -n probes-lab</pre>
+        </div>
+
+        <p>
+          Look at the events. You should see readiness probe failures because the probe checks a path that returns an error.
+        </p>
+
+        <p>
+          This demonstrates that readiness affects traffic routing without necessarily restarting the container.
+        </p>
+
+        <h2>Step 8: Check endpoints for the broken workload</h2>
+
+        <p>
+          Create a Service for the broken Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment broken-readiness-lab --port=80 --target-port=80 --type=ClusterIP -n probes-lab</pre>
+        </div>
+
+        <p>
+          Check endpoints:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints broken-readiness-lab -n probes-lab</pre>
+        </div>
+
+        <p>
+          Because the Pod is not Ready, the Service should not have ready endpoints for it.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Readiness controls whether a Pod is placed behind a Service. A Pod can be Running but still not Ready.
+        </div>
+
+        <h2>Step 9: Break liveness on purpose</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>broken-liveness-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-liveness-lab
+  namespace: probes-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broken-liveness-lab
+  template:
+    metadata:
+      labels:
+        app: broken-liveness-lab
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /does-not-exist
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 2</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f broken-liveness-lab.yaml</pre>
+        </div>
+
+        <p>
+          Watch the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n probes-lab -w</pre>
+        </div>
+
+        <p>
+          Press <strong>Ctrl+C</strong> after you see restarts increase.
+        </p>
+
+        <h2>Step 10: Troubleshoot the liveness failure</h2>
+
+        <p>
+          Describe the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod &lt;broken-liveness-pod-name&gt; -n probes-lab</pre>
+        </div>
+
+        <p>
+          Look for liveness probe failure events and restart count. Kubernetes restarts the container because the liveness probe keeps failing.
+        </p>
+
+        <h2>Step 11: Add a startup probe example</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>startup-probe-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: startup-probe-lab
+  namespace: probes-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: startup-probe-lab
+  template:
+    metadata:
+      labels:
+        app: startup-probe-lab
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+          failureThreshold: 30
+          periodSeconds: 2
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          periodSeconds: 10</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f startup-probe-lab.yaml</pre>
+        </div>
+
+        <p>
+          Describe the Pod and look for the startup, readiness, and liveness probe sections:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n probes-lab
+kubectl describe pod &lt;startup-pod-name&gt; -n probes-lab</pre>
+        </div>
+
+        <h2>Step 12: Clean up</h2>
+
+        <p>
+          Delete the lab Namespace and everything inside it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete namespace probes-lab</pre>
+        </div>
+
+        <p>
+          Confirm cleanup:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces
+kubectl get pods -A</pre>
+        </div>
+
+        <h2>Common probe troubleshooting commands</h2>
+
+        <div class="code-block">
+<pre>kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp
+kubectl rollout status deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;</pre>
+        </div>
+
+        <h2>Common probe mistakes</h2>
+
+        <h3>Using liveness for dependency failures</h3>
+
+        <p>
+          If a database or downstream API is temporarily unavailable, restarting the app may make the outage worse. Use readiness to stop traffic when dependencies are unavailable.
+        </p>
+
+        <h3>Setting delays too aggressively</h3>
+
+        <p>
+          Probes that start too soon can cause unnecessary failures during startup.
+        </p>
+
+        <h3>Checking the wrong endpoint</h3>
+
+        <p>
+          A probe endpoint should reflect the health question being asked. A shallow “server is up” endpoint is different from a deep dependency check.
+        </p>
+
+        <h3>Making probes expensive</h3>
+
+        <p>
+          Health endpoints should be cheap. If every probe performs heavy database queries, the health check itself can become load.
+        </p>
+
+        <h2>Where this fits in real clusters</h2>
+
+        <p>
+          Probes are part of workload reliability. In production, teams usually define dedicated endpoints such as:
+        </p>
+
+        <ul>
+          <li><strong>/startupz:</strong> startup complete</li>
+          <li><strong>/readyz:</strong> ready to receive traffic</li>
+          <li><strong>/healthz:</strong> process is healthy enough to keep running</li>
+        </ul>
+
+        <p>
+          The exact names do not matter as much as the behavior. Each endpoint should answer a clear operational question.
+        </p>
+
+        <h2>What you just learned</h2>
+
+        <ul>
+          <li>Created Deployments with readiness and liveness probes</li>
+          <li>Verified that ready Pods appear behind Services</li>
+          <li>Broke readiness and saw that traffic routing is affected</li>
+          <li>Broke liveness and saw container restarts</li>
+          <li>Created a startup probe example</li>
+          <li>Used describe output and events to troubleshoot probe failures</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Startup probes protect slow-starting applications. Readiness probes control traffic. Liveness probes restart unhealthy containers. Use each probe for the right job.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <ol>
+          <li>What does a readiness probe control?</li>
+          <li>What happens when a liveness probe repeatedly fails?</li>
+          <li>What problem does a startup probe solve?</li>
+          <li>Can a Pod be Running but not Ready?</li>
+          <li>Why should liveness not be used for every dependency failure?</li>
+          <li>What command shows probe failure events?</li>
+          <li>What command shows whether a Service has ready endpoints?</li>
+          <li>What is one common HTTP path used for health checks?</li>
+          <li>Why should health endpoints be cheap?</li>
+          <li>Which probe should usually fail when an app should temporarily stop receiving traffic?</li>
+          <li>Which probe should usually fail when restarting the container is the right action?</li>
+          <li>What is the main difference between readiness and liveness?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Whether the Pod should receive Service traffic.</li>
+            <li>Kubernetes restarts the container.</li>
+            <li>It gives slow-starting applications enough time to initialize before liveness checks can restart them.</li>
+            <li>Yes.</li>
+            <li>Restarting the app may not fix the dependency and can amplify the problem.</li>
+            <li><strong>kubectl describe pod &lt;pod-name&gt;</strong>.</li>
+            <li><strong>kubectl get endpoints &lt;service-name&gt;</strong>.</li>
+            <li>Examples: <strong>/healthz</strong>, <strong>/readyz</strong>, or <strong>/startupz</strong>.</li>
+            <li>Because probes run repeatedly and should not create significant load.</li>
+            <li>Readiness.</li>
+            <li>Liveness.</li>
+            <li>Readiness controls traffic; liveness controls restarts.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-resource-requests-and-limits.html">← Previous: Resource Requests and Limits</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-persistent-storage-volumes-and-claims.html">Next: Persistent Storage →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

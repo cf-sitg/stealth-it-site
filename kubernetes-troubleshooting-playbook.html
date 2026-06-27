@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="A practical Kubernetes troubleshooting playbook covering Pods, Deployments, Services, Ingress, ConfigMaps, Secrets, storage, scheduling, probes, and safe incident habits.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Kubernetes Troubleshooting Playbook | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes troubleshooting playbook covering Pods, Deployments, Services, Ingress, ConfigMaps, Secrets, storage, scheduling, probes, and safe incident habits.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-troubleshooting-playbook.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-troubleshooting-playbook.html">
+
+  <title>Kubernetes Troubleshooting Playbook | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Troubleshooting</div>
+
+        <h1>Kubernetes Troubleshooting Playbook</h1>
+
+        <p class="intro">
+          Kubernetes troubleshooting becomes easier when you follow a repeatable flow instead of guessing. This playbook ties the previous lessons together.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Troubleshooting Level · Estimated reading time: 24 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          This lesson pulls the previous lessons into a practical troubleshooting playbook. Instead of memorizing random commands, you will follow a repeatable flow.
+        </p>
+        <ul>
+          <li>How to start with context and Namespace</li>
+          <li>How to troubleshoot Pods</li>
+          <li>How to troubleshoot Deployments</li>
+          <li>How to troubleshoot Services and Ingress</li>
+          <li>How to troubleshoot configuration, storage, and scheduling</li>
+          <li>How to avoid making things worse during an incident</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          The goal is not to run every command. The goal is to move from broad symptoms to specific evidence.
+        </div>
+
+        <h2>The universal first checks</h2>
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl config view --minify --output 'jsonpath={..namespace}'
+kubectl get namespaces
+kubectl get pods -A
+kubectl get events -A --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Pod troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n &lt;namespace&gt;
+kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o wide
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt; --previous
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Deployment troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get deployments -n &lt;namespace&gt;
+kubectl describe deployment &lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl rollout status deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl rollout history deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl get replicasets -n &lt;namespace&gt;
+kubectl get pods -n &lt;namespace&gt;</pre>
+        </div>
+
+        <h2>Service troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get services -n &lt;namespace&gt;
+kubectl describe service &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get pods --show-labels -n &lt;namespace&gt;
+kubectl port-forward -n &lt;namespace&gt; service/&lt;service-name&gt; 8080:&lt;service-port&gt;</pre>
+        </div>
+
+        <h2>Ingress troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get ingress -n &lt;namespace&gt;
+kubectl describe ingress &lt;ingress-name&gt; -n &lt;namespace&gt;
+kubectl get ingressclass
+kubectl get services -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get pods -n ingress-nginx
+kubectl logs -n ingress-nginx &lt;controller-pod-name&gt;</pre>
+        </div>
+
+        <h2>ConfigMap and Secret troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get configmaps -n &lt;namespace&gt;
+kubectl get secrets -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o yaml
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Storage troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get pvc -n &lt;namespace&gt;
+kubectl describe pvc &lt;pvc-name&gt; -n &lt;namespace&gt;
+kubectl get pv
+kubectl get storageclass
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</pre>
+        </div>
+
+        <h2>Scheduling troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get nodes --show-labels
+kubectl describe node &lt;node-name&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Probe troubleshooting flow</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;</pre>
+        </div>
+
+        <h2>Decision table</h2>
+        <ul>
+          <li><strong>Pending:</strong> Check scheduling, resources, PVCs, node selectors, taints, and events.</li>
+          <li><strong>ImagePullBackOff:</strong> Check image name, tag, registry access, and pull secrets.</li>
+          <li><strong>CrashLoopBackOff:</strong> Check logs, previous logs, command, args, config, and dependencies.</li>
+          <li><strong>Running but not Ready:</strong> Check readiness probes and endpoints.</li>
+          <li><strong>Service not working:</strong> Check selector, labels, endpoints, and targetPort.</li>
+          <li><strong>Ingress not working:</strong> Check controller, ingress class, host/path, Service, and endpoints.</li>
+          <li><strong>OOMKilled:</strong> Check memory limits and application memory behavior.</li>
+          <li><strong>Rollout stuck:</strong> Check new ReplicaSet Pods, readiness, image pulls, and rollout status.</li>
+        </ul>
+
+        <h2>Safe incident habits</h2>
+        <ul>
+          <li>Confirm cluster context before changing anything.</li>
+          <li>Confirm Namespace before changing anything.</li>
+          <li>Capture current state before deleting or restarting.</li>
+          <li>Prefer reversible changes.</li>
+          <li>Do not hide evidence by deleting failing Pods too early.</li>
+          <li>Use rollout history before and after deployment changes.</li>
+          <li>Document what you changed and when.</li>
+        </ul>
+
+        <h2>Practice lab: create and diagnose a bad rollout</h2>
+        <div class="code-block">
+<pre>kubectl create namespace troubleshoot-lab
+kubectl create deployment troubleshoot-web --image=nginx:latest -n troubleshoot-lab
+kubectl expose deployment troubleshoot-web --port=80 --target-port=80 --type=ClusterIP -n troubleshoot-lab
+kubectl set image deployment/troubleshoot-web nginx=nginx:badtag-lab -n troubleshoot-lab
+kubectl rollout status deployment/troubleshoot-web -n troubleshoot-lab</pre>
+        </div>
+
+        <p>
+          Diagnose it:
+        </p>
+        <div class="code-block">
+<pre>kubectl get pods -n troubleshoot-lab
+kubectl describe deployment troubleshoot-web -n troubleshoot-lab
+kubectl describe pod &lt;bad-pod-name&gt; -n troubleshoot-lab
+kubectl get events -n troubleshoot-lab --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <p>
+          Recover:
+        </p>
+        <div class="code-block">
+<pre>kubectl rollout undo deployment/troubleshoot-web -n troubleshoot-lab
+kubectl rollout status deployment/troubleshoot-web -n troubleshoot-lab
+kubectl get pods -n troubleshoot-lab</pre>
+        </div>
+
+        <h2>Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete namespace troubleshoot-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Troubleshooting Kubernetes is a repeatable evidence workflow. Start with context and Namespace, inspect resource state, follow ownership, read events, read logs, and make the smallest safe change.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What should you check before changing a cluster?</li>
+          <li>What should you check before changing namespace-scoped resources?</li>
+          <li>What command shows rollout status?</li>
+          <li>What command shows previous container logs?</li>
+          <li>What usually explains Pending Pods?</li>
+          <li>What usually explains Service failures?</li>
+          <li>What usually explains Ingress failures?</li>
+          <li>Why should you avoid deleting failing Pods too quickly?</li>
+          <li>What is the recovery command for a bad Deployment rollout?</li>
+          <li>What are five commands in your standard first-response flow?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Current context.</li>
+            <li>Namespace.</li>
+            <li><strong>kubectl rollout status deployment/&lt;name&gt;</strong>.</li>
+            <li><strong>kubectl logs &lt;pod&gt; --previous</strong>.</li>
+            <li>Scheduling, resources, storage, taints, selectors, or admission issues.</li>
+            <li>Selectors, labels, endpoints, ports, or Pod readiness.</li>
+            <li>Controller, class, hostname, path, Service, or endpoints.</li>
+            <li>They may contain evidence in status, events, and logs.</li>
+            <li><strong>kubectl rollout undo deployment/&lt;name&gt;</strong>.</li>
+            <li>Examples: current-context, get pods, describe pod, logs, get events, rollout status.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-observability-logs-events-and-metrics.html">← Previous: Observability Signals</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-production-readiness-checklist.html">Next: Production Readiness →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

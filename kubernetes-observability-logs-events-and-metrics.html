@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn the basic Kubernetes observability signals used for troubleshooting, including status, describe output, events, logs, previous logs, and metrics.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Observability: Logs, Events, and Metrics | Stealth IT Group">
+  <meta property="og:description" content="Learn the basic Kubernetes observability signals used for troubleshooting, including status, describe output, events, logs, previous logs, and metrics.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-observability-logs-events-and-metrics.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-observability-logs-events-and-metrics.html">
+
+  <title>Observability: Logs, Events, and Metrics | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Troubleshooting</div>
+
+        <h1>Observability: Logs, Events, and Metrics</h1>
+
+        <p class="intro">
+          Troubleshooting Kubernetes starts with reading the signals the platform and application already provide: status, events, logs, metrics, and resource descriptions.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Troubleshooting Level · Estimated reading time: 22 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          Troubleshooting Kubernetes requires reading signals from the cluster and the workload. The first signals to learn are status, events, logs, metrics, and resource descriptions.
+        </p>
+        <ul>
+          <li>What Kubernetes events tell you</li>
+          <li>How logs fit into troubleshooting</li>
+          <li>What describe output shows</li>
+          <li>Why metrics may require extra components</li>
+          <li>How to build a basic troubleshooting picture</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Good troubleshooting is evidence collection. Look at status, describe output, events, logs, and metrics before guessing.
+        </div>
+
+        <h2>The short version</h2>
+        <div class="code-block">
+<pre>get:
+  What exists and what state is it in?
+
+describe:
+  What details and events explain the state?
+
+logs:
+  What did the application or container print?
+
+events:
+  What did Kubernetes try to do?
+
+metrics:
+  What resources are being used?</pre>
+        </div>
+
+        <h2>Before you start</h2>
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl create namespace signals-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a normal Deployment</h2>
+        <div class="code-block">
+<pre>kubectl create deployment signals-web --image=nginx:latest -n signals-lab
+kubectl expose deployment signals-web --port=80 --target-port=80 --type=ClusterIP -n signals-lab
+kubectl get all -n signals-lab</pre>
+        </div>
+
+        <h2>Step 2: Review status quickly</h2>
+        <div class="code-block">
+<pre>kubectl get deployments -n signals-lab
+kubectl get replicasets -n signals-lab
+kubectl get pods -n signals-lab
+kubectl get services -n signals-lab
+kubectl get endpoints -n signals-lab</pre>
+        </div>
+
+        <h2>Step 3: Describe the Deployment and Pod</h2>
+        <div class="code-block">
+<pre>kubectl describe deployment signals-web -n signals-lab
+kubectl get pods -n signals-lab
+kubectl describe pod &lt;pod-name&gt; -n signals-lab</pre>
+        </div>
+
+        <h2>Step 4: Generate application logs</h2>
+        <div class="code-block">
+<pre>kubectl port-forward -n signals-lab service/signals-web 8080:80</pre>
+        </div>
+        <p>
+          Open <strong>http://localhost:8080</strong> a few times, then press <strong>Ctrl+C</strong>.
+        </p>
+        <div class="code-block">
+<pre>kubectl get pods -n signals-lab
+kubectl logs &lt;pod-name&gt; -n signals-lab</pre>
+        </div>
+
+        <h2>Step 5: Follow logs live</h2>
+        <div class="code-block">
+<pre>kubectl logs -f &lt;pod-name&gt; -n signals-lab</pre>
+        </div>
+        <p>
+          Press <strong>Ctrl+C</strong> to stop following logs.
+        </p>
+
+        <h2>Step 6: Create an image pull failure</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>bad-image-signals.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-image-signals
+  namespace: signals-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-image-signals
+  template:
+    metadata:
+      labels:
+        app: bad-image-signals
+    spec:
+      containers:
+      - name: app
+        image: nginx:not-a-real-tag-for-lab</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f bad-image-signals.yaml
+kubectl get pods -n signals-lab
+kubectl describe pod &lt;bad-image-pod-name&gt; -n signals-lab</pre>
+        </div>
+        <p>
+          Events should show image pull errors.
+        </p>
+
+        <h2>Step 7: View events directly</h2>
+        <div class="code-block">
+<pre>kubectl get events -n signals-lab --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Step 8: Create a crash loop</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>crashloop-signals.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crashloop-signals
+  namespace: signals-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crashloop-signals
+  template:
+    metadata:
+      labels:
+        app: crashloop-signals
+    spec:
+      containers:
+      - name: app
+        image: busybox:latest
+        command: ["sh", "-c", "echo Starting; echo Failing now; exit 1"]</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f crashloop-signals.yaml
+kubectl get pods -n signals-lab
+kubectl logs &lt;crashloop-pod-name&gt; -n signals-lab
+kubectl logs &lt;crashloop-pod-name&gt; -n signals-lab --previous
+kubectl describe pod &lt;crashloop-pod-name&gt; -n signals-lab</pre>
+        </div>
+        <p>
+          <strong>--previous</strong> is useful when a container has already restarted and you need logs from the prior failed instance.
+        </p>
+
+        <h2>Step 9: Metrics note</h2>
+        <p>
+          Metrics commands may not work in a basic kind cluster unless metrics-server is installed:
+        </p>
+        <div class="code-block">
+<pre>kubectl top nodes
+kubectl top pods -n signals-lab</pre>
+        </div>
+        <p>
+          In production, metrics usually come from a monitoring stack such as metrics-server, Prometheus, a cloud monitoring agent, or another telemetry pipeline.
+        </p>
+
+        <h2>Step 10: Build a basic troubleshooting picture</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n signals-lab
+kubectl describe pod &lt;pod-name&gt; -n signals-lab
+kubectl logs &lt;pod-name&gt; -n signals-lab
+kubectl logs &lt;pod-name&gt; -n signals-lab --previous
+kubectl get events -n signals-lab --sort-by=.metadata.creationTimestamp
+kubectl get deployment &lt;deployment-name&gt; -n signals-lab -o yaml</pre>
+        </div>
+
+        <h2>Common signals and what they suggest</h2>
+        <ul>
+          <li><strong>Pending:</strong> Scheduling, storage, or admission issue.</li>
+          <li><strong>ImagePullBackOff:</strong> Image name, tag, registry, or credentials issue.</li>
+          <li><strong>CrashLoopBackOff:</strong> Application starts and exits repeatedly.</li>
+          <li><strong>OOMKilled:</strong> Container exceeded memory limit.</li>
+          <li><strong>No endpoints:</strong> Service selector, Pod readiness, or label issue.</li>
+          <li><strong>Rollout stuck:</strong> New Pods are not becoming available.</li>
+        </ul>
+
+        <h2>Step 11: Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete namespace signals-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Kubernetes gives you multiple signals. Use them together: status tells you what, events tell you what Kubernetes tried, logs tell you what the app said, and metrics tell you how resources behave.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What does kubectl get show?</li>
+          <li>What does describe add?</li>
+          <li>What do events usually explain?</li>
+          <li>What do logs come from?</li>
+          <li>When is --previous useful?</li>
+          <li>Why might kubectl top not work?</li>
+          <li>What status suggests image pull trouble?</li>
+          <li>What status suggests repeated process failure?</li>
+          <li>What does no endpoints suggest?</li>
+          <li>Name five commands in a basic troubleshooting flow.</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Resources and their current state.</li>
+            <li>Detailed resource information and events.</li>
+            <li>What Kubernetes tried to do and what failed.</li>
+            <li>The container/application output.</li>
+            <li>When a container restarted and you need logs from the previous instance.</li>
+            <li>Metrics-server or a metrics pipeline may not be installed.</li>
+            <li>ImagePullBackOff or ErrImagePull.</li>
+            <li>CrashLoopBackOff.</li>
+            <li>Service selector, readiness, or Pod label problems.</li>
+            <li>Examples: get pods, describe pod, logs, logs --previous, get events, get yaml.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-helm-basics-for-application-packaging.html">← Previous: Helm Basics</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-troubleshooting-playbook.html">Next: Troubleshooting Playbook →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

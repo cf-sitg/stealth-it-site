@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn how Kubernetes Jobs and CronJobs run batch work, one-time tasks, retries, scheduled jobs, and completion-based workloads.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Jobs and CronJobs | Stealth IT Group">
+  <meta property="og:description" content="Learn how Kubernetes Jobs and CronJobs run batch work, one-time tasks, retries, scheduled jobs, and completion-based workloads.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-jobs-and-cronjobs.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-jobs-and-cronjobs.html">
+
+  <title>Jobs and CronJobs | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Operations</div>
+
+        <h1>Jobs and CronJobs</h1>
+
+        <p class="intro">
+          Not every workload should run forever. Jobs run work to completion, and CronJobs run Jobs on a schedule.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Operations Level · Estimated reading time: 20 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          Deployments are for long-running services. Jobs and CronJobs are for work that runs to completion, either once or on a schedule.
+        </p>
+        <ul>
+          <li>What a Job is</li>
+          <li>What a CronJob is</li>
+          <li>How Jobs differ from Deployments</li>
+          <li>How to inspect completion status</li>
+          <li>How to view logs from completed Pods</li>
+          <li>How to run scheduled work safely</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Use Deployments for services that should keep running. Use Jobs for tasks that should finish.
+        </div>
+
+        <h2>Deployment vs Job</h2>
+        <div class="code-block">
+<pre>Deployment:
+  Keep this application running.
+
+Job:
+  Run this task until it completes successfully.
+
+CronJob:
+  Run this task on a schedule.</pre>
+        </div>
+
+        <h2>Before you start</h2>
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl create namespace jobs-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a simple Job</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>simple-job-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: simple-job-lab
+  namespace: jobs-lab
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: busybox:latest
+        command: ["sh", "-c", "echo Starting job; sleep 5; echo Job complete"]</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f simple-job-lab.yaml
+kubectl get jobs -n jobs-lab
+kubectl get pods -n jobs-lab</pre>
+        </div>
+
+        <h2>Step 2: Watch the Job complete</h2>
+        <div class="code-block">
+<pre>kubectl get jobs -n jobs-lab -w</pre>
+        </div>
+        <p>
+          Press <strong>Ctrl+C</strong> after the Job shows completion.
+        </p>
+
+        <h2>Step 3: View logs from the Job Pod</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n jobs-lab
+kubectl logs &lt;job-pod-name&gt; -n jobs-lab</pre>
+        </div>
+
+        <h2>Step 4: Create a Job with completions</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>completions-job-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: completions-job-lab
+  namespace: jobs-lab
+spec:
+  completions: 3
+  parallelism: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: busybox:latest
+        command: ["sh", "-c", "echo Running one unit of work; sleep 3; echo Done"]</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f completions-job-lab.yaml
+kubectl get jobs -n jobs-lab -w</pre>
+        </div>
+        <p>
+          This Job needs three successful completions.
+        </p>
+
+        <h2>Step 5: Create a parallel Job</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>parallel-job-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-job-lab
+  namespace: jobs-lab
+spec:
+  completions: 4
+  parallelism: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: busybox:latest
+        command: ["sh", "-c", "echo Parallel work on $(hostname); sleep 5; echo Done"]</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f parallel-job-lab.yaml
+kubectl get pods -n jobs-lab
+kubectl get jobs -n jobs-lab</pre>
+        </div>
+
+        <h2>Step 6: Create a failing Job</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>failing-job-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: batch/v1
+kind: Job
+metadata:
+  name: failing-job-lab
+  namespace: jobs-lab
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: busybox:latest
+        command: ["sh", "-c", "echo This job will fail; exit 1"]</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f failing-job-lab.yaml
+kubectl get jobs -n jobs-lab
+kubectl get pods -n jobs-lab
+kubectl describe job failing-job-lab -n jobs-lab</pre>
+        </div>
+        <p>
+          The <strong>backoffLimit</strong> controls how many retries Kubernetes attempts before considering the Job failed.
+        </p>
+
+        <h2>Step 7: Create a CronJob</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>cronjob-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-lab
+  namespace: jobs-lab
+spec:
+  schedule: "*/1 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: scheduled-worker
+            image: busybox:latest
+            command: ["sh", "-c", "date; echo Scheduled job ran"]</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f cronjob-lab.yaml
+kubectl get cronjobs -n jobs-lab</pre>
+        </div>
+
+        <h2>Step 8: Wait for scheduled Jobs</h2>
+        <div class="code-block">
+<pre>kubectl get jobs -n jobs-lab -w</pre>
+        </div>
+        <p>
+          Wait until the CronJob creates a Job, then press <strong>Ctrl+C</strong>.
+        </p>
+
+        <h2>Step 9: View CronJob-created logs</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n jobs-lab
+kubectl logs &lt;cronjob-pod-name&gt; -n jobs-lab</pre>
+        </div>
+
+        <h2>Common Job and CronJob commands</h2>
+        <div class="code-block">
+<pre>kubectl get jobs -n &lt;namespace&gt;
+kubectl describe job &lt;job-name&gt; -n &lt;namespace&gt;
+kubectl get cronjobs -n &lt;namespace&gt;
+kubectl describe cronjob &lt;cronjob-name&gt; -n &lt;namespace&gt;
+kubectl get pods -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Common mistakes</h2>
+        <ul>
+          <li>Using a Deployment for one-time work.</li>
+          <li>Forgetting that CronJob schedules use cron syntax.</li>
+          <li>Leaving too much Job history behind.</li>
+          <li>Setting retries too high for tasks that fail fast.</li>
+          <li>Not making scheduled jobs idempotent.</li>
+        </ul>
+
+        <h2>Step 10: Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete namespace jobs-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Jobs run work to completion. CronJobs create Jobs on a schedule. They are the Kubernetes pattern for batch work, maintenance tasks, and recurring jobs.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>When should you use a Job instead of a Deployment?</li>
+          <li>What does a CronJob create?</li>
+          <li>What does backoffLimit control?</li>
+          <li>What does completions mean?</li>
+          <li>What does parallelism control?</li>
+          <li>What command lists CronJobs?</li>
+          <li>Why should CronJob tasks often be idempotent?</li>
+          <li>Where do you view logs from completed Job work?</li>
+          <li>What Namespace command cleaned up the lab?</li>
+          <li>Name three troubleshooting commands for Jobs.</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>When the work should run to completion instead of staying online.</li>
+            <li>Jobs.</li>
+            <li>How many retries are attempted before the Job is considered failed.</li>
+            <li>How many successful Pod completions are needed.</li>
+            <li>How many Pods can run at the same time.</li>
+            <li><strong>kubectl get cronjobs -n &lt;namespace&gt;</strong>.</li>
+            <li>Because retries or overlapping schedules can run the same work more than once.</li>
+            <li>In the Job-created Pod logs.</li>
+            <li><strong>kubectl delete namespace jobs-lab</strong>.</li>
+            <li>Examples: get jobs, describe job, get pods, logs, get events.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-persistent-storage-volumes-and-claims.html">← Previous: Persistent Storage</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-serviceaccounts-and-rbac.html">Next: ServiceAccounts and RBAC →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

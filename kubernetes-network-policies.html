@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes NetworkPolicy basics, including default deny, ingress rules, egress rules, labels, selectors, and policy troubleshooting.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="NetworkPolicies: Controlling Pod Traffic | Stealth IT Group">
+  <meta property="og:description" content="Learn Kubernetes NetworkPolicy basics, including default deny, ingress rules, egress rules, labels, selectors, and policy troubleshooting.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-network-policies.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-network-policies.html">
+
+  <title>NetworkPolicies: Controlling Pod Traffic | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Security</div>
+
+        <h1>NetworkPolicies: Controlling Pod Traffic</h1>
+
+        <p class="intro">
+          NetworkPolicies define which traffic is allowed between Pods and Namespaces when supported by the cluster networking layer.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Security Level · Estimated reading time: 22 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          By default, many Kubernetes clusters allow broad Pod-to-Pod communication. NetworkPolicies let you define which traffic should be allowed between Pods and Namespaces, when supported by the cluster networking plugin.
+        </p>
+        <ul>
+          <li>What NetworkPolicies do</li>
+          <li>Why default allow is risky</li>
+          <li>How labels select Pods</li>
+          <li>How ingress and egress rules work</li>
+          <li>How to deny traffic by default</li>
+          <li>How to allow only specific traffic</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          NetworkPolicies are only enforced when the cluster network plugin supports them. In production, confirm your CNI behavior before assuming policy is active.
+        </div>
+
+        <h2>The short version</h2>
+        <div class="code-block">
+<pre>NetworkPolicy:
+  Selects Pods
+  Defines allowed ingress and/or egress traffic
+  Denies traffic that is not explicitly allowed for selected Pods</pre>
+        </div>
+
+        <h2>Important local lab note</h2>
+        <p>
+          A basic kind cluster may not enforce NetworkPolicies depending on the networking implementation. This lesson teaches the manifests and troubleshooting model. In a future security lab, you can use a policy-capable CNI such as Calico or Cilium to enforce and test behavior end to end.
+        </p>
+
+        <h2>Before you start</h2>
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl create namespace network-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a web Deployment and Service</h2>
+        <div class="code-block">
+<pre>kubectl create deployment web --image=nginx:latest -n network-lab
+kubectl expose deployment web --port=80 --target-port=80 --type=ClusterIP -n network-lab
+kubectl get pods --show-labels -n network-lab
+kubectl get service web -n network-lab</pre>
+        </div>
+
+        <h2>Step 2: Create a client Pod</h2>
+        <div class="code-block">
+<pre>kubectl run client --image=busybox:latest -n network-lab --restart=Never --command -- sleep 3600
+kubectl get pods -n network-lab</pre>
+        </div>
+
+        <h2>Step 3: Test access from client to web</h2>
+        <div class="code-block">
+<pre>kubectl exec -it client -n network-lab -- wget -qO- http://web</pre>
+        </div>
+        <p>
+          Without enforced NetworkPolicy restrictions, this should usually work.
+        </p>
+
+        <h2>Step 4: Create a default-deny ingress policy</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>default-deny-ingress.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: network-lab
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f default-deny-ingress.yaml
+kubectl get networkpolicies -n network-lab</pre>
+        </div>
+        <p>
+          This selects all Pods in the Namespace and denies ingress unless another policy allows it.
+        </p>
+
+        <h2>Step 5: Allow client traffic to web</h2>
+        <p>
+          Label the client Pod:
+        </p>
+        <div class="code-block">
+<pre>kubectl label pod client role=client -n network-lab</pre>
+        </div>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>allow-client-to-web.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-client-to-web
+  namespace: network-lab
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: client
+    ports:
+    - protocol: TCP
+      port: 80</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f allow-client-to-web.yaml
+kubectl describe networkpolicy allow-client-to-web -n network-lab</pre>
+        </div>
+
+        <h2>Step 6: Add a second Pod that should not be allowed</h2>
+        <div class="code-block">
+<pre>kubectl run random-client --image=busybox:latest -n network-lab --restart=Never --command -- sleep 3600
+kubectl get pods --show-labels -n network-lab</pre>
+        </div>
+        <p>
+          The random-client Pod lacks the <strong>role=client</strong> label, so the policy does not allow it.
+        </p>
+
+        <h2>Step 7: Understand egress policies</h2>
+        <p>
+          Ingress controls traffic coming into selected Pods. Egress controls traffic leaving selected Pods.
+        </p>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>default-deny-egress.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: network-lab
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f default-deny-egress.yaml</pre>
+        </div>
+        <p>
+          In a policy-enforcing cluster, this denies outbound traffic unless explicit egress policies allow it.
+        </p>
+
+        <h2>Step 8: Allow DNS egress conceptually</h2>
+        <p>
+          Egress policies can easily break DNS if you deny everything. In real clusters, allow DNS to the cluster DNS service when workloads need service discovery.
+        </p>
+        <p>
+          DNS policy details vary by cluster, Namespace, labels, and DNS service implementation, so this training path saves a full enforced DNS lab for a later security module.
+        </p>
+
+        <h2>Common NetworkPolicy commands</h2>
+        <div class="code-block">
+<pre>kubectl get networkpolicies -n &lt;namespace&gt;
+kubectl describe networkpolicy &lt;policy-name&gt; -n &lt;namespace&gt;
+kubectl get pods --show-labels -n &lt;namespace&gt;
+kubectl get namespaces --show-labels
+kubectl exec -it &lt;pod-name&gt; -n &lt;namespace&gt; -- wget -qO- http://&lt;service-name&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Common mistakes</h2>
+        <ul>
+          <li>Assuming policies are enforced without confirming CNI support.</li>
+          <li>Using selectors that do not match the intended Pods.</li>
+          <li>Denying egress and accidentally breaking DNS.</li>
+          <li>Forgetting that policies are additive; allowed traffic can come from multiple policies.</li>
+          <li>Not labeling Namespaces and Pods intentionally.</li>
+        </ul>
+
+        <h2>Step 9: Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete namespace network-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          NetworkPolicies define allowed network paths for selected Pods. They are powerful, but only when enforced by the cluster networking layer and backed by clean labeling.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What does a NetworkPolicy select?</li>
+          <li>What is ingress traffic?</li>
+          <li>What is egress traffic?</li>
+          <li>Why can a default-deny policy be useful?</li>
+          <li>Why can default-deny egress break applications?</li>
+          <li>What must the CNI support for NetworkPolicies to work?</li>
+          <li>What command shows Pod labels?</li>
+          <li>Are NetworkPolicies additive?</li>
+          <li>What are three common NetworkPolicy troubleshooting commands?</li>
+          <li>Why are labels important for network security?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Pods.</li>
+            <li>Traffic coming into selected Pods.</li>
+            <li>Traffic leaving selected Pods.</li>
+            <li>It blocks traffic unless explicitly allowed.</li>
+            <li>Pods may need DNS and external services.</li>
+            <li>NetworkPolicy enforcement.</li>
+            <li><strong>kubectl get pods --show-labels</strong>.</li>
+            <li>Yes.</li>
+            <li>Examples: get networkpolicies, describe networkpolicy, get pods --show-labels, exec connectivity test.</li>
+            <li>Policies use labels and selectors to decide which Pods rules apply to.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-serviceaccounts-and-rbac.html">← Previous: ServiceAccounts and RBAC</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-scheduling-node-selectors-taints-and-tolerations.html">Next: Scheduling Controls →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="A practical Kubernetes production readiness checklist for workloads, resources, configuration, networking, security, storage, observability, release, and failure planning.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Production Readiness Checklist | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes production readiness checklist for workloads, resources, configuration, networking, security, storage, observability, release, and failure planning.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-production-readiness-checklist.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-production-readiness-checklist.html">
+
+  <title>Production Readiness Checklist | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Production Readiness</div>
+
+        <h1>Production Readiness Checklist</h1>
+
+        <p class="intro">
+          A Kubernetes workload is production-ready only when it can be operated, secured, observed, updated, recovered, and explained under pressure.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Production Readiness · Estimated reading time: 20 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          This lesson turns the training path into a practical production readiness checklist. It is not a replacement for architecture review, but it gives you a concrete set of questions before calling a Kubernetes workload production-ready.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          “It runs in Kubernetes” is not the same as “it is ready for production.”
+        </div>
+
+        <h2>Workload design checklist</h2>
+        <ul>
+          <li>Does the workload run through a Deployment, StatefulSet, DaemonSet, Job, or CronJob instead of unmanaged Pods?</li>
+          <li>Are replicas appropriate for availability and load?</li>
+          <li>Are labels consistent and meaningful?</li>
+          <li>Are selectors correct and stable?</li>
+          <li>Are container images pinned to intentional versions rather than loose tags?</li>
+          <li>Are startup, readiness, and liveness probes configured correctly?</li>
+        </ul>
+
+        <h2>Resource checklist</h2>
+        <ul>
+          <li>Are CPU and memory requests set?</li>
+          <li>Are memory limits reasonable?</li>
+          <li>Are CPU limits intentional?</li>
+          <li>Have actual metrics been compared to requested resources?</li>
+          <li>Are Namespace ResourceQuotas or LimitRanges needed?</li>
+          <li>Is there enough cluster capacity for failures, rollouts, and scaling?</li>
+        </ul>
+
+        <h2>Configuration checklist</h2>
+        <ul>
+          <li>Are non-sensitive settings stored in ConfigMaps?</li>
+          <li>Are sensitive values stored in Secrets or an external secret manager?</li>
+          <li>Are secrets excluded from Git?</li>
+          <li>Are configuration updates handled through rollout or reload behavior?</li>
+          <li>Are environment-specific settings clearly separated from the image?</li>
+        </ul>
+
+        <h2>Networking checklist</h2>
+        <ul>
+          <li>Does each workload that needs stable access have a Service?</li>
+          <li>Do Service selectors match Pod labels?</li>
+          <li>Do Services have ready endpoints?</li>
+          <li>Are ports and targetPorts correct?</li>
+          <li>Is Ingress configured with the correct hostnames and paths?</li>
+          <li>Is DNS pointed at the correct ingress/load balancer entry point?</li>
+          <li>Is TLS configured correctly for production HTTP traffic?</li>
+        </ul>
+
+        <h2>Security checklist</h2>
+        <ul>
+          <li>Does the workload use a dedicated ServiceAccount?</li>
+          <li>Are RBAC permissions least privilege?</li>
+          <li>Can the workload read only the Kubernetes resources it actually needs?</li>
+          <li>Are Secrets protected by RBAC and operational process?</li>
+          <li>Are risky Pod settings restricted by policy?</li>
+          <li>Are images scanned through the organization’s normal process?</li>
+          <li>Are NetworkPolicies needed for workload isolation?</li>
+        </ul>
+
+        <h2>Storage checklist</h2>
+        <ul>
+          <li>Does the workload need persistent storage?</li>
+          <li>Are PVCs sized appropriately?</li>
+          <li>Is the StorageClass suitable for the workload?</li>
+          <li>Are backup and restore processes defined?</li>
+          <li>Has restore actually been tested?</li>
+          <li>Are stateful workloads using the right controller pattern?</li>
+        </ul>
+
+        <h2>Observability checklist</h2>
+        <ul>
+          <li>Are application logs useful and structured enough to troubleshoot?</li>
+          <li>Are secrets excluded from logs?</li>
+          <li>Are metrics collected?</li>
+          <li>Are restart counts, readiness failures, and resource saturation monitored?</li>
+          <li>Are alerts tied to user impact and operational symptoms?</li>
+          <li>Is there a dashboard for the workload?</li>
+        </ul>
+
+        <h2>Release checklist</h2>
+        <ul>
+          <li>Is the deployment process repeatable?</li>
+          <li>Is rollout status checked after deployment?</li>
+          <li>Is rollback tested?</li>
+          <li>Are Helm values or manifests reviewed?</li>
+          <li>Are changes traceable to commits, tickets, or approvals?</li>
+          <li>Are migrations handled safely?</li>
+        </ul>
+
+        <h2>Failure checklist</h2>
+        <ul>
+          <li>What happens if a Pod is deleted?</li>
+          <li>What happens if a node is unavailable?</li>
+          <li>What happens if a dependency is down?</li>
+          <li>What happens if an image pull fails?</li>
+          <li>What happens if the app exceeds memory limits?</li>
+          <li>What happens during a rolling update?</li>
+          <li>What happens if storage is unavailable?</li>
+        </ul>
+
+        <h2>Operational runbook starter</h2>
+        <p>
+          Every production workload should have at least a basic runbook:
+        </p>
+        <div class="code-block">
+<pre>Workload name:
+Namespace:
+Owner/team:
+Criticality:
+Public or internal:
+Primary URL:
+Primary Service:
+Ingress:
+ConfigMaps:
+Secrets:
+Storage:
+Normal replica count:
+Resource requests:
+Resource limits:
+Health endpoints:
+Dashboard:
+Alerts:
+Rollback command:
+Common failure modes:
+Escalation path:</pre>
+        </div>
+
+        <h2>Minimum kubectl checks before signoff</h2>
+        <div class="code-block">
+<pre>kubectl get all -n &lt;namespace&gt;
+kubectl get ingress -n &lt;namespace&gt;
+kubectl get configmaps -n &lt;namespace&gt;
+kubectl get secrets -n &lt;namespace&gt;
+kubectl get pvc -n &lt;namespace&gt;
+kubectl describe deployment &lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl rollout status deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl get endpoints -n &lt;namespace&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Go/no-go questions</h2>
+        <ul>
+          <li>Can the workload be rebuilt from source and redeployed?</li>
+          <li>Can the workload be rolled back?</li>
+          <li>Can the team explain how traffic reaches the Pods?</li>
+          <li>Can the team explain what happens when a Pod dies?</li>
+          <li>Can the team explain where configuration and secrets come from?</li>
+          <li>Can the team explain how to troubleshoot the top three failure modes?</li>
+          <li>Can the team prove backups and restores where state exists?</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Production readiness is not one setting. It is workload design, resource governance, configuration management, networking, security, storage, observability, and operational discipline working together.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>Why is “it runs” not enough for production readiness?</li>
+          <li>Why should workloads avoid unmanaged Pods?</li>
+          <li>Why do probes matter in production?</li>
+          <li>Why are requests and limits part of readiness?</li>
+          <li>Why should rollback be tested?</li>
+          <li>Why should Secrets be part of the checklist?</li>
+          <li>What should a runbook identify?</li>
+          <li>Why do endpoints matter for Services?</li>
+          <li>Why does restore testing matter for stateful systems?</li>
+          <li>Name five categories in the production readiness checklist.</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Production requires reliability, security, observability, recovery, and operational ownership.</li>
+            <li>Controllers recreate and manage Pods when failures or rollouts happen.</li>
+            <li>They control startup, traffic readiness, and restart behavior.</li>
+            <li>They affect scheduling, stability, and shared resource protection.</li>
+            <li>An untested rollback may fail when needed most.</li>
+            <li>Secrets are sensitive and can expose systems if handled poorly.</li>
+            <li>Ownership, resources, traffic, configuration, alerts, rollback, failure modes, and escalation.</li>
+            <li>A Service without endpoints has no ready backend Pods.</li>
+            <li>Backups only matter if the organization can restore from them.</li>
+            <li>Examples: workload design, resources, configuration, networking, security, storage, observability, release, failure planning.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-troubleshooting-playbook.html">← Previous: Troubleshooting Playbook</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Next lesson coming soon →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

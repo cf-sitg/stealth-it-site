@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Helm basics for Kubernetes application packaging, including charts, values, releases, installs, upgrades, rollbacks, and rendered manifests.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Helm Basics for Application Packaging | Stealth IT Group">
+  <meta property="og:description" content="Learn Helm basics for Kubernetes application packaging, including charts, values, releases, installs, upgrades, rollbacks, and rendered manifests.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-helm-basics-for-application-packaging.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-helm-basics-for-application-packaging.html">
+
+  <title>Helm Basics for Application Packaging | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Application Delivery</div>
+
+        <h1>Helm Basics for Application Packaging</h1>
+
+        <p class="intro">
+          Helm packages Kubernetes resources so applications can be installed, configured, upgraded, and rolled back more consistently.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Application Delivery · Estimated reading time: 22 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          Helm is a package manager for Kubernetes. It helps install, upgrade, configure, and uninstall applications using charts.
+        </p>
+        <ul>
+          <li>What Helm is</li>
+          <li>What a chart is</li>
+          <li>What values are</li>
+          <li>How Helm releases work</li>
+          <li>How to install a chart</li>
+          <li>How to upgrade and uninstall a release</li>
+          <li>How to inspect generated manifests</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Helm does not replace understanding Kubernetes YAML. It packages and templates Kubernetes YAML.
+        </div>
+
+        <h2>The short version</h2>
+        <div class="code-block">
+<pre>Chart:
+  A packaged Kubernetes application.
+
+Values:
+  Configuration inputs for the chart.
+
+Release:
+  An installed instance of a chart in a cluster.</pre>
+        </div>
+
+        <h2>Before you start</h2>
+        <p>
+          This lab assumes Helm is installed. If it is not, install it using your normal package manager, then verify:
+        </p>
+        <div class="code-block">
+<pre>helm version
+kubectl config current-context
+kubectl get nodes
+kubectl create namespace helm-lab</pre>
+        </div>
+
+        <h2>Step 1: Add a chart repository</h2>
+        <div class="code-block">
+<pre>helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update</pre>
+        </div>
+
+        <h2>Step 2: Search for a chart</h2>
+        <div class="code-block">
+<pre>helm search repo bitnami/nginx</pre>
+        </div>
+
+        <h2>Step 3: Inspect chart default values</h2>
+        <div class="code-block">
+<pre>helm show values bitnami/nginx</pre>
+        </div>
+        <p>
+          Values control how the chart renders Kubernetes manifests.
+        </p>
+
+        <h2>Step 4: Install a chart</h2>
+        <div class="code-block">
+<pre>helm install nginx-helm-lab bitnami/nginx -n helm-lab</pre>
+        </div>
+        <div class="code-block">
+<pre>helm list -n helm-lab
+kubectl get all -n helm-lab</pre>
+        </div>
+
+        <h2>Step 5: Inspect the release</h2>
+        <div class="code-block">
+<pre>helm status nginx-helm-lab -n helm-lab
+helm get values nginx-helm-lab -n helm-lab
+helm get manifest nginx-helm-lab -n helm-lab</pre>
+        </div>
+        <p>
+          <strong>helm get manifest</strong> is important because it shows the Kubernetes YAML Helm sent to the cluster.
+        </p>
+
+        <h2>Step 6: Create a custom values file</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>nginx-values-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>replicaCount: 2
+service:
+  type: ClusterIP
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi</pre>
+        </div>
+
+        <h2>Step 7: Upgrade the release</h2>
+        <div class="code-block">
+<pre>helm upgrade nginx-helm-lab bitnami/nginx -n helm-lab -f nginx-values-lab.yaml</pre>
+        </div>
+        <div class="code-block">
+<pre>helm status nginx-helm-lab -n helm-lab
+kubectl get pods -n helm-lab</pre>
+        </div>
+
+        <h2>Step 8: View release history</h2>
+        <div class="code-block">
+<pre>helm history nginx-helm-lab -n helm-lab</pre>
+        </div>
+
+        <h2>Step 9: Roll back a release</h2>
+        <div class="code-block">
+<pre>helm rollback nginx-helm-lab 1 -n helm-lab
+helm history nginx-helm-lab -n helm-lab</pre>
+        </div>
+
+        <h2>Step 10: Render templates locally</h2>
+        <div class="code-block">
+<pre>helm template nginx-helm-lab bitnami/nginx -n helm-lab -f nginx-values-lab.yaml</pre>
+        </div>
+        <p>
+          This lets you preview the generated Kubernetes YAML before applying it.
+        </p>
+
+        <h2>Step 11: Uninstall the release</h2>
+        <div class="code-block">
+<pre>helm uninstall nginx-helm-lab -n helm-lab
+helm list -n helm-lab
+kubectl get all -n helm-lab</pre>
+        </div>
+
+        <h2>Common Helm commands</h2>
+        <div class="code-block">
+<pre>helm repo list
+helm repo update
+helm search repo &lt;name&gt;
+helm show values &lt;chart&gt;
+helm install &lt;release&gt; &lt;chart&gt; -n &lt;namespace&gt;
+helm upgrade &lt;release&gt; &lt;chart&gt; -n &lt;namespace&gt; -f values.yaml
+helm list -n &lt;namespace&gt;
+helm status &lt;release&gt; -n &lt;namespace&gt;
+helm history &lt;release&gt; -n &lt;namespace&gt;
+helm rollback &lt;release&gt; &lt;revision&gt; -n &lt;namespace&gt;
+helm uninstall &lt;release&gt; -n &lt;namespace&gt;</pre>
+        </div>
+
+        <h2>Common mistakes</h2>
+        <ul>
+          <li>Installing charts without reviewing values.</li>
+          <li>Assuming Helm values are security-reviewed by default.</li>
+          <li>Not pinning chart versions in real environments.</li>
+          <li>Forgetting that Helm creates normal Kubernetes resources.</li>
+          <li>Using Helm without understanding the rendered manifests.</li>
+        </ul>
+
+        <h2>Step 12: Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete namespace helm-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Helm packages Kubernetes applications. Use it to install and manage releases, but always inspect values and rendered manifests before trusting a chart.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What is a Helm chart?</li>
+          <li>What is a Helm release?</li>
+          <li>What do values control?</li>
+          <li>What command installs a chart?</li>
+          <li>What command upgrades a release?</li>
+          <li>What command shows rendered Kubernetes YAML from an installed release?</li>
+          <li>What command previews rendered manifests without installing?</li>
+          <li>Why should chart values be reviewed?</li>
+          <li>What command rolls back a release?</li>
+          <li>Does Helm replace Kubernetes knowledge?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>A packaged Kubernetes application.</li>
+            <li>An installed instance of a chart.</li>
+            <li>How chart templates render Kubernetes resources.</li>
+            <li><strong>helm install</strong>.</li>
+            <li><strong>helm upgrade</strong>.</li>
+            <li><strong>helm get manifest</strong>.</li>
+            <li><strong>helm template</strong>.</li>
+            <li>They affect exposed services, credentials, resource use, security options, and behavior.</li>
+            <li><strong>helm rollback</strong>.</li>
+            <li>No. It packages Kubernetes YAML.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-scheduling-node-selectors-taints-and-tolerations.html">← Previous: Scheduling Controls</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-observability-logs-events-and-metrics.html">Next: Observability Signals →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

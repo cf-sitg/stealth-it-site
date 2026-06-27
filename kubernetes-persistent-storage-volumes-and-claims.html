@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes persistent storage concepts including volumes, PersistentVolumes, PersistentVolumeClaims, StorageClasses, and data that survives Pod replacement.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Persistent Storage: Volumes and Claims | Stealth IT Group">
+  <meta property="og:description" content="Learn Kubernetes persistent storage concepts including volumes, PersistentVolumes, PersistentVolumeClaims, StorageClasses, and data that survives Pod replacement.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-persistent-storage-volumes-and-claims.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-persistent-storage-volumes-and-claims.html">
+
+  <title>Persistent Storage: Volumes and Claims | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Operations</div>
+
+        <h1>Persistent Storage: Volumes and Claims</h1>
+
+        <p class="intro">
+          Pods are disposable, but some data needs to survive. Persistent storage separates the lifecycle of application data from the lifecycle of any one Pod.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Operations Level · Estimated reading time: 22 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          Containers are disposable, but some applications need data that survives Pod replacement. Kubernetes supports storage through volumes, PersistentVolumes, PersistentVolumeClaims, and StorageClasses.
+        </p>
+        <ul>
+          <li>Why container filesystems are temporary</li>
+          <li>What a volume is</li>
+          <li>What PersistentVolumes and PersistentVolumeClaims are</li>
+          <li>How a StorageClass helps dynamically provision storage</li>
+          <li>How to mount persistent storage into a Pod</li>
+          <li>How to prove data survives Pod recreation</li>
+          <li>How to clean up storage safely</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Pods come and go. Application data needs a lifecycle that is not tied to one disposable Pod.
+        </div>
+
+        <h2>The short version</h2>
+        <div class="code-block">
+<pre>Volume:
+  Storage mounted into a Pod.
+
+PersistentVolume:
+  A piece of storage available to the cluster.
+
+PersistentVolumeClaim:
+  A request for storage by a workload.
+
+StorageClass:
+  Defines how storage should be provisioned.</pre>
+        </div>
+
+        <h2>Why Pod storage is not enough</h2>
+        <p>
+          A container can write files to its own filesystem, but that filesystem belongs to the container lifecycle. When the container is replaced, those files can disappear.
+        </p>
+        <p>
+          That is fine for stateless web servers. It is not fine for databases, uploads, queues, or applications that must keep durable state.
+        </p>
+
+        <h2>Before you start the lab</h2>
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl get storageclass</pre>
+        </div>
+        <p>
+          In kind, you will commonly see a local storage class such as <strong>standard</strong> or <strong>local-path</strong>, depending on cluster configuration.
+        </p>
+
+        <h2>Step 1: Create a Namespace</h2>
+        <div class="code-block">
+<pre>kubectl create namespace storage-lab</pre>
+        </div>
+
+        <h2>Step 2: Create a PersistentVolumeClaim</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>pvc-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pvc-lab
+  namespace: storage-lab
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f pvc-lab.yaml
+kubectl get pvc -n storage-lab</pre>
+        </div>
+
+        <h2>Step 3: Create a Pod that writes to the PVC</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>pvc-writer-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-writer-pod
+  namespace: storage-lab
+spec:
+  containers:
+  - name: writer
+    image: busybox:latest
+    command: ["sh", "-c", "echo persistent-data-from-first-pod > /data/message.txt; sleep 3600"]
+    volumeMounts:
+    - name: data-volume
+      mountPath: /data
+  volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: data-pvc-lab</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f pvc-writer-pod.yaml
+kubectl get pods -n storage-lab
+kubectl logs pvc-writer-pod -n storage-lab</pre>
+        </div>
+
+        <h2>Step 4: Inspect the file</h2>
+        <div class="code-block">
+<pre>kubectl exec -it pvc-writer-pod -n storage-lab -- /bin/sh
+cat /data/message.txt
+exit</pre>
+        </div>
+
+        <h2>Step 5: Delete the first Pod</h2>
+        <div class="code-block">
+<pre>kubectl delete pod pvc-writer-pod -n storage-lab
+kubectl get pods -n storage-lab
+kubectl get pvc -n storage-lab</pre>
+        </div>
+        <p>
+          The Pod is gone, but the claim remains.
+        </p>
+
+        <h2>Step 6: Create a second Pod that reads the same PVC</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>pvc-reader-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-reader-pod
+  namespace: storage-lab
+spec:
+  containers:
+  - name: reader
+    image: busybox:latest
+    command: ["sh", "-c", "cat /data/message.txt; sleep 3600"]
+    volumeMounts:
+    - name: data-volume
+      mountPath: /data
+  volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: data-pvc-lab</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f pvc-reader-pod.yaml
+kubectl logs pvc-reader-pod -n storage-lab</pre>
+        </div>
+        <p>
+          You should see the message written by the first Pod.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          The data survived because it belonged to the persistent volume claim, not to the deleted Pod.
+        </div>
+
+        <h2>Step 7: Inspect the bound volume</h2>
+        <div class="code-block">
+<pre>kubectl get pvc -n storage-lab
+kubectl describe pvc data-pvc-lab -n storage-lab
+kubectl get pv</pre>
+        </div>
+
+        <h2>Step 8: Create a Deployment using a PVC</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>pvc-deployment-lab.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvc-deployment-lab
+  namespace: storage-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pvc-deployment-lab
+  template:
+    metadata:
+      labels:
+        app: pvc-deployment-lab
+    spec:
+      containers:
+      - name: app
+        image: busybox:latest
+        command: ["sh", "-c", "while true; do date >> /data/timestamps.txt; sleep 10; done"]
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: data-pvc-lab</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f pvc-deployment-lab.yaml
+kubectl get pods -n storage-lab</pre>
+        </div>
+
+        <h2>Step 9: Restart the Deployment Pod</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n storage-lab
+kubectl delete pod &lt;deployment-pod-name&gt; -n storage-lab
+kubectl get pods -n storage-lab</pre>
+        </div>
+        <p>
+          The Deployment creates a replacement Pod. The replacement Pod mounts the same claim.
+        </p>
+
+        <h2>Step 10: Inspect data after replacement</h2>
+        <div class="code-block">
+<pre>kubectl exec -it &lt;new-deployment-pod-name&gt; -n storage-lab -- /bin/sh
+tail /data/timestamps.txt
+cat /data/message.txt
+exit</pre>
+        </div>
+
+        <h2>Access modes</h2>
+        <p>
+          Access modes describe how storage can be mounted:
+        </p>
+        <ul>
+          <li><strong>ReadWriteOnce:</strong> Mounted read-write by one node.</li>
+          <li><strong>ReadOnlyMany:</strong> Mounted read-only by many nodes.</li>
+          <li><strong>ReadWriteMany:</strong> Mounted read-write by many nodes, if the storage provider supports it.</li>
+          <li><strong>ReadWriteOncePod:</strong> Mounted read-write by a single Pod where supported.</li>
+        </ul>
+
+        <h2>Common storage troubleshooting commands</h2>
+        <div class="code-block">
+<pre>kubectl get pvc -n &lt;namespace&gt;
+kubectl describe pvc &lt;pvc-name&gt; -n &lt;namespace&gt;
+kubectl get pv
+kubectl describe pv &lt;pv-name&gt;
+kubectl get storageclass
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Step 11: Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete -f pvc-deployment-lab.yaml
+kubectl delete -f pvc-reader-pod.yaml
+kubectl delete -f pvc-lab.yaml
+kubectl delete namespace storage-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Persistent storage separates data lifecycle from Pod lifecycle. Use claims to request storage and mount that storage into Pods that need durable data.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>Why is container filesystem storage not enough for durable data?</li>
+          <li>What does a PVC request?</li>
+          <li>What is a PersistentVolume?</li>
+          <li>What does a StorageClass define?</li>
+          <li>What does ReadWriteOnce mean?</li>
+          <li>What happens to a PVC when a Pod using it is deleted?</li>
+          <li>What command lists PVCs in a Namespace?</li>
+          <li>What command lists PersistentVolumes?</li>
+          <li>Why do StatefulSets matter later for stateful applications?</li>
+          <li>What are three storage troubleshooting commands?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It is tied to the container or Pod lifecycle and can disappear when workloads are replaced.</li>
+            <li>Storage from the cluster.</li>
+            <li>A storage resource available to the cluster.</li>
+            <li>How storage should be provisioned.</li>
+            <li>The volume can be mounted read-write by one node.</li>
+            <li>The PVC remains unless it is deleted.</li>
+            <li><strong>kubectl get pvc -n &lt;namespace&gt;</strong>.</li>
+            <li><strong>kubectl get pv</strong>.</li>
+            <li>They provide stable identity and storage patterns for stateful workloads.</li>
+            <li>Examples: get pvc, describe pvc, get pv, describe pod, get events.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-health-checks-readiness-liveness-startup-probes.html">← Previous: Health Checks</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-jobs-and-cronjobs.html">Next: Jobs and CronJobs →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

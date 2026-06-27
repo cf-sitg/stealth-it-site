@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes scheduling controls including node labels, nodeSelector, node affinity, taints, tolerations, and Pending Pod troubleshooting.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Scheduling Controls: Node Selectors, Affinity, Taints, and Tolerations | Stealth IT Group">
+  <meta property="og:description" content="Learn Kubernetes scheduling controls including node labels, nodeSelector, node affinity, taints, tolerations, and Pending Pod troubleshooting.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-scheduling-node-selectors-taints-and-tolerations.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-scheduling-node-selectors-taints-and-tolerations.html">
+
+  <title>Scheduling Controls: Node Selectors, Affinity, Taints, and Tolerations | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Operations</div>
+
+        <h1>Scheduling Controls: Node Selectors, Affinity, Taints, and Tolerations</h1>
+
+        <p class="intro">
+          The scheduler decides where Pods run. Scheduling controls let you influence placement without hardcoding infrastructure assumptions into application behavior.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Operations Level · Estimated reading time: 22 minutes
+        </p>
+
+
+        <h2>What this lesson covers</h2>
+        <p>
+          The Kubernetes scheduler decides where Pods run. Scheduling controls let you influence that placement using node selectors, affinity, taints, tolerations, and topology spread.
+        </p>
+        <ul>
+          <li>How scheduling works at a high level</li>
+          <li>How node labels affect placement</li>
+          <li>How nodeSelector works</li>
+          <li>What node affinity adds</li>
+          <li>What taints and tolerations do</li>
+          <li>How to troubleshoot Pending Pods</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Scheduling controls should express real placement needs, not random preference. Over-constraining Pods can make them impossible to schedule.
+        </div>
+
+        <h2>The short version</h2>
+        <div class="code-block">
+<pre>nodeSelector:
+  Place Pods only on nodes with matching labels.
+
+node affinity:
+  More expressive node selection rules.
+
+taints:
+  Repel Pods from nodes.
+
+tolerations:
+  Allow Pods to tolerate matching taints.
+
+topology spread:
+  Distribute Pods across failure domains.</pre>
+        </div>
+
+        <h2>Before you start</h2>
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl create namespace scheduling-lab</pre>
+        </div>
+
+        <h2>Step 1: Inspect node labels</h2>
+        <div class="code-block">
+<pre>kubectl get nodes --show-labels</pre>
+        </div>
+        <p>
+          Nodes have labels such as operating system, architecture, hostname, and Kubernetes role. These labels can be used for scheduling.
+        </p>
+
+        <h2>Step 2: Add a training label to your kind node</h2>
+        <div class="code-block">
+<pre>kubectl label node stealth-k8s-lab-control-plane workload-type=training</pre>
+        </div>
+        <p>
+          Confirm:
+        </p>
+        <div class="code-block">
+<pre>kubectl get nodes --show-labels</pre>
+        </div>
+
+        <h2>Step 3: Create a Pod with nodeSelector</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>nodeselector-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeselector-pod
+  namespace: scheduling-lab
+spec:
+  nodeSelector:
+    workload-type: training
+  containers:
+  - name: app
+    image: nginx:latest</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f nodeselector-pod.yaml
+kubectl get pods -n scheduling-lab -o wide</pre>
+        </div>
+
+        <h2>Step 4: Create an unschedulable nodeSelector Pod</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>bad-nodeselector-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-nodeselector-pod
+  namespace: scheduling-lab
+spec:
+  nodeSelector:
+    workload-type: does-not-exist
+  containers:
+  - name: app
+    image: nginx:latest</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f bad-nodeselector-pod.yaml
+kubectl get pods -n scheduling-lab
+kubectl describe pod bad-nodeselector-pod -n scheduling-lab</pre>
+        </div>
+        <p>
+          The Pod should remain Pending because no node matches the selector.
+        </p>
+
+        <h2>Step 5: Create a Pod with node affinity</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>node-affinity-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: node-affinity-pod
+  namespace: scheduling-lab
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: workload-type
+            operator: In
+            values:
+            - training
+  containers:
+  - name: app
+    image: nginx:latest</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f node-affinity-pod.yaml
+kubectl get pods -n scheduling-lab -o wide</pre>
+        </div>
+
+        <h2>Step 6: Understand taints and tolerations</h2>
+        <p>
+          A taint on a node says, “Do not schedule Pods here unless they tolerate this taint.”
+        </p>
+        <p>
+          In a kind cluster, the control-plane node may already have scheduling behavior suitable for labs. Be cautious adding taints to your only node because it can block new Pods.
+        </p>
+
+        <h2>Step 7: Add a temporary taint</h2>
+        <div class="code-block">
+<pre>kubectl taint node stealth-k8s-lab-control-plane dedicated=training:NoSchedule</pre>
+        </div>
+
+        <h2>Step 8: Create a Pod without a toleration</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>no-toleration-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: no-toleration-pod
+  namespace: scheduling-lab
+spec:
+  containers:
+  - name: app
+    image: nginx:latest</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f no-toleration-pod.yaml
+kubectl get pods -n scheduling-lab
+kubectl describe pod no-toleration-pod -n scheduling-lab</pre>
+        </div>
+        <p>
+          The Pod may remain Pending because it does not tolerate the taint.
+        </p>
+
+        <h2>Step 9: Create a Pod with a toleration</h2>
+        <p>Create a file named:</p>
+        <div class="code-block"><pre>toleration-pod.yaml</pre></div>
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: toleration-pod
+  namespace: scheduling-lab
+spec:
+  tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "training"
+    effect: "NoSchedule"
+  containers:
+  - name: app
+    image: nginx:latest</pre>
+        </div>
+        <div class="code-block">
+<pre>kubectl apply -f toleration-pod.yaml
+kubectl get pods -n scheduling-lab -o wide</pre>
+        </div>
+
+        <h2>Step 10: Remove the taint</h2>
+        <p>
+          Remove the taint so your lab cluster returns to normal scheduling behavior:
+        </p>
+        <div class="code-block">
+<pre>kubectl taint node stealth-k8s-lab-control-plane dedicated=training:NoSchedule-</pre>
+        </div>
+
+        <h2>Step 11: Understand topology spread</h2>
+        <p>
+          Topology spread constraints help distribute Pods across failure domains such as zones, nodes, or racks. They matter more in multi-node and multi-zone clusters than in a one-node kind lab.
+        </p>
+        <p>
+          The mental model is simple: do not put all replicas in the same failure domain when you have better options.
+        </p>
+
+        <h2>Common scheduling troubleshooting commands</h2>
+        <div class="code-block">
+<pre>kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get nodes --show-labels
+kubectl describe node &lt;node-name&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre>
+        </div>
+
+        <h2>Common mistakes</h2>
+        <ul>
+          <li>Using node names instead of stable labels.</li>
+          <li>Adding constraints that no node satisfies.</li>
+          <li>Forgetting to remove a lab taint.</li>
+          <li>Assuming tolerations force placement. They only allow placement onto tainted nodes.</li>
+          <li>Using single-node lab behavior to infer multi-node production scheduling.</li>
+        </ul>
+
+        <h2>Step 12: Clean up</h2>
+        <div class="code-block">
+<pre>kubectl delete namespace scheduling-lab
+kubectl label node stealth-k8s-lab-control-plane workload-type-</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Scheduling controls influence where Pods run. Use labels, selectors, affinity, taints, and tolerations carefully so Pods land where they should without becoming impossible to schedule.
+        </div>
+
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What does the scheduler decide?</li>
+          <li>What does nodeSelector use?</li>
+          <li>What does node affinity add beyond nodeSelector?</li>
+          <li>What does a taint do?</li>
+          <li>What does a toleration do?</li>
+          <li>Does a toleration force a Pod onto a node?</li>
+          <li>What command shows node labels?</li>
+          <li>What command explains why a Pod is Pending?</li>
+          <li>Why can over-constraining Pods be dangerous?</li>
+          <li>What does topology spread try to improve?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Which node a Pod should run on.</li>
+            <li>Node labels.</li>
+            <li>More expressive matching rules and preferences.</li>
+            <li>Repels Pods unless they tolerate it.</li>
+            <li>Allows a Pod to be scheduled onto a node with a matching taint.</li>
+            <li>No.</li>
+            <li><strong>kubectl get nodes --show-labels</strong>.</li>
+            <li><strong>kubectl describe pod &lt;pod-name&gt;</strong>.</li>
+            <li>No node may satisfy all constraints, leaving Pods Pending.</li>
+            <li>Distribution across failure domains.</li>
+          </ol>
+        </details>
+
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-network-policies.html">← Previous: NetworkPolicies</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-helm-basics-for-application-packaging.html">Next: Helm Basics →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
