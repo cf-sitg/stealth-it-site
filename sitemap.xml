@@ -66,6 +66,46 @@
   </url>
 
   <url>
+    <loc>https://stealthitgroup.com/kubernetes-health-checks-readiness-liveness-startup-probes.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-persistent-storage-volumes-and-claims.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-jobs-and-cronjobs.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-serviceaccounts-and-rbac.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-network-policies.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-scheduling-node-selectors-taints-and-tolerations.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-helm-basics-for-application-packaging.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-observability-logs-events-and-metrics.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-troubleshooting-playbook.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-production-readiness-checklist.html</loc>
+  </url>
+
+  <url>
     <loc>https://stealthitgroup.com/privacy.html</loc>
   </url>
 
