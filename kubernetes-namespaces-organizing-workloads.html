@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes Namespaces, how they organize workloads, and how to create, inspect, use, and clean up namespace-scoped resources.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Namespaces: Organizing Workloads | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes Field Notes lesson on Namespaces, resource organization, namespace-scoped objects, context, and cleanup.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-namespaces-organizing-workloads.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-namespaces-organizing-workloads.html">
+  
+  <title>Namespaces: Organizing Workloads | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Core Concepts</div>
+
+        <h1>Namespaces: Organizing Workloads</h1>
+
+        <p class="intro">
+          Namespaces help organize Kubernetes resources inside a cluster. They are useful for separating teams, applications, environments, and lab work — but they are not the same thing as strong security isolation by themselves.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Core Concepts · Estimated reading time: 22 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          So far, most of our labs used the default namespace. That is fine for early learning, but real clusters need better organization. Namespaces provide a way to group related resources inside the same Kubernetes cluster.
+        </p>
+
+        <p>
+          By the end of this lesson, you should understand:
+        </p>
+
+        <ul>
+          <li>What a Namespace is</li>
+          <li>What Namespaces are good for</li>
+          <li>What Namespaces do not solve by themselves</li>
+          <li>How to list existing Namespaces</li>
+          <li>How to create a Namespace</li>
+          <li>How to deploy resources into a specific Namespace</li>
+          <li>How to query resources across all Namespaces</li>
+          <li>How to set a default Namespace for your current context</li>
+          <li>How Services resolve across Namespaces</li>
+          <li>How to clean up a Namespace and everything inside it</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Namespaces organize resources. They can support security boundaries when combined with RBAC, NetworkPolicies, ResourceQuotas, and admission controls, but a Namespace alone is not a complete security boundary.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          A Namespace is a logical grouping of Kubernetes resources inside a cluster.
+        </p>
+
+        <p>
+          Instead of putting every Pod, Deployment, Service, ConfigMap, and Secret into the same space, you can separate them:
+        </p>
+
+        <div class="code-block">
+<pre>default
+kube-system
+training
+dev
+test
+prod
+team-a
+team-b</pre>
+        </div>
+
+        <p>
+          Each Namespace can contain resources with the same names as resources in another Namespace.
+        </p>
+
+        <p>
+          For example, this is allowed:
+        </p>
+
+        <div class="code-block">
+<pre>dev/nginx
+test/nginx
+prod/nginx</pre>
+        </div>
+
+        <p>
+          The name <strong>nginx</strong> can exist in multiple Namespaces because the full identity includes the Namespace.
+        </p>
+
+        <h2>Why Namespaces matter</h2>
+
+        <p>
+          Namespaces help reduce confusion as clusters grow.
+        </p>
+
+        <p>
+          They are commonly used to separate:
+        </p>
+
+        <ul>
+          <li>Applications</li>
+          <li>Teams</li>
+          <li>Environments</li>
+          <li>Lab work</li>
+          <li>System components</li>
+          <li>Temporary test workloads</li>
+        </ul>
+
+        <p>
+          Without Namespaces, everything ends up in the same default bucket. That becomes hard to read, hard to manage, and easy to accidentally change.
+        </p>
+
+        <h2>What Namespaces are not</h2>
+
+        <p>
+          Namespaces are not the same as separate clusters.
+        </p>
+
+        <p>
+          They do not automatically provide:
+        </p>
+
+        <ul>
+          <li>Strong network isolation</li>
+          <li>Separate node pools</li>
+          <li>Separate administrators</li>
+          <li>Separate etcd databases</li>
+          <li>Automatic security boundaries</li>
+          <li>Automatic resource limits</li>
+        </ul>
+
+        <p>
+          Those controls require additional configuration.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Treat Namespaces as an organization and policy scope. Do not assume they isolate workloads unless you have configured the controls that make isolation real.
+        </div>
+
+        <h2>Namespace-scoped vs cluster-scoped resources</h2>
+
+        <p>
+          Many Kubernetes resources live inside a Namespace.
+        </p>
+
+        <p>
+          Namespace-scoped resources include:
+        </p>
+
+        <ul>
+          <li>Pods</li>
+          <li>Deployments</li>
+          <li>ReplicaSets</li>
+          <li>Services</li>
+          <li>ConfigMaps</li>
+          <li>Secrets</li>
+          <li>Ingress resources</li>
+        </ul>
+
+        <p>
+          Some resources are cluster-scoped and do not belong to a single Namespace.
+        </p>
+
+        <p>
+          Cluster-scoped resources include:
+        </p>
+
+        <ul>
+          <li>Nodes</li>
+          <li>Namespaces</li>
+          <li>PersistentVolumes</li>
+          <li>ClusterRoles</li>
+          <li>ClusterRoleBindings</li>
+          <li>StorageClasses</li>
+        </ul>
+
+        <p>
+          This matters because some commands need a Namespace and others do not.
+        </p>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes:
+        </p>
+
+        <ul>
+          <li>Docker Desktop is running</li>
+          <li>Your kind cluster exists</li>
+          <li>kubectl is installed</li>
+          <li>Your current context is <strong>kind-stealth-k8s-lab</strong></li>
+        </ul>
+
+        <p>
+          Check your context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check your node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Step 1: List existing Namespaces</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces</pre>
+        </div>
+
+        <p>
+          You will usually see Namespaces like:
+        </p>
+
+        <div class="code-block">
+<pre>default
+kube-node-lease
+kube-public
+kube-system
+local-path-storage</pre>
+        </div>
+
+        <h3>What these are</h3>
+
+        <ul>
+          <li><strong>default:</strong> The default place for resources if you do not specify a Namespace.</li>
+          <li><strong>kube-system:</strong> System components often run here.</li>
+          <li><strong>kube-public:</strong> A Namespace intended for publicly readable cluster information.</li>
+          <li><strong>kube-node-lease:</strong> Used for node heartbeat lease objects.</li>
+          <li><strong>local-path-storage:</strong> Often present in kind for local storage support.</li>
+        </ul>
+
+        <h2>Step 2: See resources across all Namespaces</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -A</pre>
+        </div>
+
+        <p>
+          The <strong>-A</strong> flag means all Namespaces.
+        </p>
+
+        <p>
+          You can also run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services -A
+kubectl get deployments -A</pre>
+        </div>
+
+        <p>
+          This is useful when you are not sure where something exists.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          If you cannot find a resource, check whether you are looking in the wrong Namespace before assuming it does not exist.
+        </div>
+
+        <h2>Step 3: Create a Namespace</h2>
+
+        <p>
+          Create a Namespace for this lab:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create namespace training-lab</pre>
+        </div>
+
+        <p>
+          Confirm it exists:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces</pre>
+        </div>
+
+        <p>
+          You should see <strong>training-lab</strong> in the list.
+        </p>
+
+        <h2>Step 4: Create a Deployment in the Namespace</h2>
+
+        <p>
+          Create a Deployment inside the <strong>training-lab</strong> Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment namespace-web-lab --image=nginx:latest -n training-lab</pre>
+        </div>
+
+        <p>
+          The <strong>-n</strong> flag means Namespace.
+        </p>
+
+        <p>
+          Check Deployments in the default Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments</pre>
+        </div>
+
+        <p>
+          You should not see <strong>namespace-web-lab</strong> there.
+        </p>
+
+        <p>
+          Now check the training-lab Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments -n training-lab</pre>
+        </div>
+
+        <p>
+          You should see the Deployment.
+        </p>
+
+        <h2>Step 5: Check Pods in the Namespace</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n training-lab</pre>
+        </div>
+
+        <p>
+          You should see the Pod created by the Deployment.
+        </p>
+
+        <p>
+          You can also check across all Namespaces:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -A</pre>
+        </div>
+
+        <p>
+          Now you should see the Pod listed under the <strong>training-lab</strong> Namespace.
+        </p>
+
+        <h2>Step 6: Create a Service in the Namespace</h2>
+
+        <p>
+          Expose the Deployment with a Service inside the same Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl expose deployment namespace-web-lab --port=80 --target-port=80 --type=ClusterIP -n training-lab</pre>
+        </div>
+
+        <p>
+          Check Services in the Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get services -n training-lab</pre>
+        </div>
+
+        <p>
+          Check endpoints:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get endpoints -n training-lab</pre>
+        </div>
+
+        <p>
+          You should see endpoints for the Service.
+        </p>
+
+        <h2>Step 7: Port-forward to the Service in the Namespace</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl port-forward -n training-lab service/namespace-web-lab 8080:80</pre>
+        </div>
+
+        <p>
+          Keep that PowerShell window open. Then open a browser and go to:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page.
+        </p>
+
+        <p>
+          Press <strong>Ctrl+C</strong> in PowerShell to stop port-forwarding.
+        </p>
+
+        <h2>Step 8: Create the same resource name in another Namespace</h2>
+
+        <p>
+          Create another Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create namespace training-lab-2</pre>
+        </div>
+
+        <p>
+          Now create another Deployment with the same name, but in the second Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create deployment namespace-web-lab --image=httpd:latest -n training-lab-2</pre>
+        </div>
+
+        <p>
+          This works because resource names only need to be unique within the same Namespace.
+        </p>
+
+        <p>
+          Check both:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments -n training-lab
+kubectl get deployments -n training-lab-2</pre>
+        </div>
+
+        <p>
+          Both Namespaces can have a Deployment named <strong>namespace-web-lab</strong>.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A resource name plus Namespace identifies most workload resources. That is why the same application name can exist in dev, test, and prod Namespaces.
+        </div>
+
+        <h2>Step 9: Use a Namespace in YAML</h2>
+
+        <p>
+          You can specify a Namespace in a resource manifest.
+        </p>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>namespace-configmap-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: namespace-config-lab
+  namespace: training-lab
+data:
+  APP_MODE: namespace-training
+  LOG_LEVEL: info</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f namespace-configmap-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check ConfigMaps in the default Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get configmaps</pre>
+        </div>
+
+        <p>
+          You should not see it there.
+        </p>
+
+        <p>
+          Check ConfigMaps in <strong>training-lab</strong>:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get configmaps -n training-lab</pre>
+        </div>
+
+        <p>
+          You should see <strong>namespace-config-lab</strong>.
+        </p>
+
+        <h2>Step 10: Set the default Namespace for your current context</h2>
+
+        <p>
+          Typing <strong>-n training-lab</strong> repeatedly can get annoying. You can set the default Namespace for your current kubectl context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config set-context --current --namespace=training-lab</pre>
+        </div>
+
+        <p>
+          Now run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods
+kubectl get services
+kubectl get configmaps</pre>
+        </div>
+
+        <p>
+          kubectl will use <strong>training-lab</strong> by default for namespace-scoped resources.
+        </p>
+
+        <h3>Confirm the current Namespace</h3>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config view --minify --output 'jsonpath={..namespace}'</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>training-lab</pre>
+        </div>
+
+        <h2>Step 11: Reset the default Namespace back to default</h2>
+
+        <p>
+          Before we finish, set your current context back to the default Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config set-context --current --namespace=default</pre>
+        </div>
+
+        <p>
+          Confirm:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config view --minify --output 'jsonpath={..namespace}'</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>default</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Setting a default Namespace is convenient, but it can also confuse you if you forget it is set. When troubleshooting, always verify context and Namespace.
+        </div>
+
+        <h2>Step 12: Understand service DNS across Namespaces</h2>
+
+        <p>
+          Kubernetes provides DNS names for Services.
+        </p>
+
+        <p>
+          Inside the same Namespace, a workload can usually reach a Service by short name:
+        </p>
+
+        <div class="code-block">
+<pre>namespace-web-lab</pre>
+        </div>
+
+        <p>
+          From another Namespace, it is safer to use a more complete name:
+        </p>
+
+        <div class="code-block">
+<pre>namespace-web-lab.training-lab.svc.cluster.local</pre>
+        </div>
+
+        <p>
+          The pattern is:
+        </p>
+
+        <div class="code-block">
+<pre>&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</pre>
+        </div>
+
+        <p>
+          You do not need to memorize every DNS detail right now. The key idea is that Namespace affects service discovery.
+        </p>
+
+        <h2>Step 13: Describe a Namespace</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe namespace training-lab</pre>
+        </div>
+
+        <p>
+          You may see labels, annotations, and status information. Later, when we cover quotas and policies, this view becomes more useful.
+        </p>
+
+        <h2>Step 14: Delete a Namespace and everything inside it</h2>
+
+        <p>
+          Deleting a Namespace deletes the namespace-scoped resources inside it.
+        </p>
+
+        <p>
+          Delete the first lab Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete namespace training-lab</pre>
+        </div>
+
+        <p>
+          Delete the second lab Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete namespace training-lab-2</pre>
+        </div>
+
+        <p>
+          Check Namespaces:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces</pre>
+        </div>
+
+        <p>
+          It may take a little time for the Namespaces to fully terminate.
+        </p>
+
+        <h3>Why this is useful</h3>
+
+        <p>
+          Namespaces are convenient for labs because you can place all related resources into a Namespace and then delete the Namespace to clean up most of the lab.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Namespace deletion is powerful. In a real environment, deleting the wrong Namespace can remove many resources at once.
+        </div>
+
+        <h2>Common Namespace troubleshooting commands</h2>
+
+        <p>
+          Use this flow when you cannot find a resource or suspect you are looking in the wrong place:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl config view --minify --output 'jsonpath={..namespace}'
+kubectl get namespaces
+kubectl get pods
+kubectl get pods -A
+kubectl get deployments -A
+kubectl get services -A
+kubectl get configmaps -A
+kubectl describe namespace &lt;namespace-name&gt;</pre>
+        </div>
+
+        <p>
+          This usually tells you:
+        </p>
+
+        <ul>
+          <li>Which cluster kubectl is pointed at</li>
+          <li>Which Namespace kubectl uses by default</li>
+          <li>Whether the Namespace exists</li>
+          <li>Whether the resource exists in another Namespace</li>
+          <li>Whether you accidentally created something in default</li>
+        </ul>
+
+        <h2>Common Namespace mistakes</h2>
+
+        <h3>Looking only in default</h3>
+
+        <p>
+          If you run <strong>kubectl get pods</strong> without a Namespace, you may only see resources in your current default Namespace.
+        </p>
+
+        <h3>Forgetting the current default Namespace was changed</h3>
+
+        <p>
+          If you set a default Namespace for your context, kubectl will keep using it until you change it again.
+        </p>
+
+        <h3>Assuming Namespaces provide full isolation</h3>
+
+        <p>
+          Namespaces organize resources, but security isolation requires additional controls.
+        </p>
+
+        <h3>Deleting the wrong Namespace</h3>
+
+        <p>
+          Deleting a Namespace can delete many resources at once. Be careful in shared or production clusters.
+        </p>
+
+        <h2>Where Namespaces fit in real environments</h2>
+
+        <p>
+          In real clusters, Namespaces are often paired with:
+        </p>
+
+        <ul>
+          <li><strong>RBAC:</strong> Controls who can do what inside a Namespace.</li>
+          <li><strong>ResourceQuotas:</strong> Limit how much CPU, memory, or object count a Namespace can consume.</li>
+          <li><strong>LimitRanges:</strong> Apply default or maximum resource limits.</li>
+          <li><strong>NetworkPolicies:</strong> Control allowed network traffic.</li>
+          <li><strong>Pod Security Standards:</strong> Restrict risky Pod behavior.</li>
+          <li><strong>Admission policies:</strong> Enforce cluster rules when resources are created or updated.</li>
+        </ul>
+
+        <p>
+          We will cover these later. For now, focus on how Namespaces organize resources and affect kubectl commands.
+        </p>
+
+        <h2>What you just learned</h2>
+
+        <p>
+          In this lesson, you:
+        </p>
+
+        <ul>
+          <li>Listed existing Namespaces</li>
+          <li>Viewed resources across all Namespaces</li>
+          <li>Created Namespaces</li>
+          <li>Created Deployments and Services inside specific Namespaces</li>
+          <li>Created duplicate resource names in different Namespaces</li>
+          <li>Used Namespace metadata in YAML</li>
+          <li>Changed the default Namespace for your current context</li>
+          <li>Reset the default Namespace back to default</li>
+          <li>Learned how Namespace affects Service DNS</li>
+          <li>Deleted Namespaces to clean up lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Namespaces help organize Kubernetes resources. They make clusters easier to manage, but they are not complete security boundaries unless combined with policy, RBAC, network controls, and resource governance.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the Namespace concepts made sense.
+        </p>
+
+        <ol>
+          <li>What does a Namespace do in Kubernetes?</li>
+          <li>Can two different Namespaces contain resources with the same name?</li>
+          <li>What flag tells kubectl which Namespace to use?</li>
+          <li>What does <strong>-A</strong> mean in <strong>kubectl get pods -A</strong>?</li>
+          <li>Name two resources that are usually namespace-scoped.</li>
+          <li>Name two resources that are cluster-scoped.</li>
+          <li>Why can deleting a Namespace be dangerous?</li>
+          <li>What command sets the default Namespace for the current context?</li>
+          <li>Why should you reset your default Namespace after a lab?</li>
+          <li>What is the full DNS pattern for a Service across Namespaces?</li>
+          <li>Are Namespaces complete security boundaries by themselves?</li>
+          <li>What are three controls commonly paired with Namespaces in real environments?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>A Namespace logically groups Kubernetes resources inside a cluster.</li>
+            <li>Yes, as long as the resources are in different Namespaces.</li>
+            <li><strong>-n</strong> or <strong>--namespace</strong>.</li>
+            <li>All Namespaces.</li>
+            <li>Examples: Pods, Deployments, Services, ConfigMaps, Secrets, Ingress resources.</li>
+            <li>Examples: Nodes, Namespaces, PersistentVolumes, ClusterRoles, ClusterRoleBindings, StorageClasses.</li>
+            <li>Because deleting a Namespace deletes the namespace-scoped resources inside it.</li>
+            <li><strong>kubectl config set-context --current --namespace=&lt;namespace-name&gt;</strong>.</li>
+            <li>To avoid accidentally running future commands in the wrong Namespace.</li>
+            <li><strong>&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</strong>.</li>
+            <li>No. They need additional controls to act as meaningful security boundaries.</li>
+            <li>Examples: RBAC, ResourceQuotas, LimitRanges, NetworkPolicies, Pod Security Standards, and admission policies.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-ingress-getting-traffic-into-the-cluster.html">← Previous: Ingress</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Next lesson coming soon →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
