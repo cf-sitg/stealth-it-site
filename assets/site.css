@@ -747,3 +747,62 @@ html {
 .service-card.k8s-production-card {
   border-color: rgba(6, 182, 212, 0.42);
 }
+
+/* Kubernetes certification alignment badges */
+.cert-track-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.45rem 0 0.75rem;
+}
+
+.cert-track {
+  display: inline-block;
+  padding: 0.22rem 0.52rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cert-kcna {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.cert-cka {
+  color: #ddd6fe;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.cert-ckad {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.cert-kcsa {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.cert-cks {
+  color: #fed7aa;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.cert-note {
+  margin-top: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.45);
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
