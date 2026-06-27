@@ -806,3 +806,15 @@ html {
   font-size: 0.95rem;
   line-height: 1.6;
 }
+
+.reference-guides-section {
+  margin-top: 2.5rem;
+}
+
+.reference-guides-section .services-grid {
+  margin-top: 1.75rem;
+}
+
+.reference-guides-section .service-card {
+  min-height: 260px;
+}
