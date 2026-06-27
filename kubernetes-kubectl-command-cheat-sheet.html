@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="A practical kubectl quick-reference for Kubernetes context, Pods, Deployments, Services, Ingress, ConfigMaps, Secrets, storage, RBAC, events, logs, and troubleshooting.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="kubectl Command Cheat Sheet | Stealth IT Group">
+  <meta property="og:description" content="A practical kubectl quick-reference for Kubernetes context, Pods, Deployments, Services, Ingress, ConfigMaps, Secrets, storage, RBAC, events, logs, and troubleshooting.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-kubectl-command-cheat-sheet.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-kubectl-command-cheat-sheet.html">
+  <title>kubectl Command Cheat Sheet | Kubernetes Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Reference Guide</div>
+        <h1>kubectl Command Cheat Sheet</h1>
+        <p class="intro">A practical quick-reference for the kubectl commands used throughout the Kubernetes Field Notes training path.</p>
+        <p class="article-meta">Kubernetes Field Notes · Reference Guide</p>
+
+        <h2>How to use this page</h2>
+        <p>This is a field reference for common Kubernetes commands. Use it when you know what you are trying to inspect, but need the command quickly.</p>
+        <div class="field-note"><strong>Habit:</strong> Before changing anything, confirm your current context and Namespace.</div>
+        <h2>Context and Namespace</h2><div class="code-block"><pre>kubectl config current-context
+kubectl config get-contexts
+kubectl config use-context &lt;context-name&gt;
+kubectl config view --minify --output 'jsonpath={..namespace}'
+kubectl config set-context --current --namespace=&lt;namespace&gt;
+kubectl get namespaces
+kubectl get all -n &lt;namespace&gt;
+kubectl get all -A</pre></div>
+        <h2>Nodes and cluster information</h2><div class="code-block"><pre>kubectl cluster-info
+kubectl get nodes
+kubectl get nodes -o wide
+kubectl get nodes --show-labels
+kubectl describe node &lt;node-name&gt;
+kubectl top nodes</pre></div><p><strong>Note:</strong> kubectl top requires metrics-server or another metrics pipeline.</p>
+        <h2>Pods</h2><div class="code-block"><pre>kubectl get pods
+kubectl get pods -n &lt;namespace&gt;
+kubectl get pods -A
+kubectl get pods -o wide
+kubectl get pods --show-labels
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o yaml
+kubectl delete pod &lt;pod-name&gt; -n &lt;namespace&gt;</pre></div>
+        <h2>Logs and exec</h2><div class="code-block"><pre>kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs -f &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt; --previous
+kubectl logs deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl exec -it &lt;pod-name&gt; -n &lt;namespace&gt; -- /bin/sh
+kubectl exec -it &lt;pod-name&gt; -n &lt;namespace&gt; -- /bin/bash</pre></div>
+        <h2>Deployments and rollouts</h2><div class="code-block"><pre>kubectl get deployments -n &lt;namespace&gt;
+kubectl describe deployment &lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl create deployment &lt;name&gt; --image=&lt;image&gt; -n &lt;namespace&gt;
+kubectl scale deployment &lt;deployment-name&gt; --replicas=3 -n &lt;namespace&gt;
+kubectl set image deployment/&lt;deployment-name&gt; &lt;container&gt;=&lt;image&gt; -n &lt;namespace&gt;
+kubectl rollout status deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl rollout history deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl rollout undo deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl delete deployment &lt;deployment-name&gt; -n &lt;namespace&gt;</pre></div>
+        <h2>Services and endpoints</h2><div class="code-block"><pre>kubectl get services -n &lt;namespace&gt;
+kubectl describe service &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl expose deployment &lt;deployment-name&gt; --port=80 --target-port=80 --type=ClusterIP -n &lt;namespace&gt;
+kubectl get endpoints -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl port-forward -n &lt;namespace&gt; service/&lt;service-name&gt; 8080:80</pre></div>
+        <h2>Ingress</h2><div class="code-block"><pre>kubectl get ingress -n &lt;namespace&gt;
+kubectl describe ingress &lt;ingress-name&gt; -n &lt;namespace&gt;
+kubectl get ingressclass
+kubectl get pods -n ingress-nginx
+kubectl logs -n ingress-nginx &lt;controller-pod-name&gt;
+kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80
+curl.exe -H "Host: example.localhost" http://localhost:8080</pre></div>
+        <h2>ConfigMaps and Secrets</h2><div class="code-block"><pre>kubectl get configmaps -n &lt;namespace&gt;
+kubectl describe configmap &lt;configmap-name&gt; -n &lt;namespace&gt;
+kubectl get configmap &lt;configmap-name&gt; -n &lt;namespace&gt; -o yaml
+kubectl create configmap &lt;name&gt; --from-literal=KEY=value -n &lt;namespace&gt;
+
+kubectl get secrets -n &lt;namespace&gt;
+kubectl describe secret &lt;secret-name&gt; -n &lt;namespace&gt;
+kubectl get secret &lt;secret-name&gt; -n &lt;namespace&gt; -o yaml
+kubectl create secret generic &lt;name&gt; --from-literal=KEY=value -n &lt;namespace&gt;</pre></div>
+        <h2>Storage</h2><div class="code-block"><pre>kubectl get storageclass
+kubectl get pvc -n &lt;namespace&gt;
+kubectl describe pvc &lt;pvc-name&gt; -n &lt;namespace&gt;
+kubectl get pv
+kubectl describe pv &lt;pv-name&gt;</pre></div>
+        <h2>Jobs and CronJobs</h2><div class="code-block"><pre>kubectl get jobs -n &lt;namespace&gt;
+kubectl describe job &lt;job-name&gt; -n &lt;namespace&gt;
+kubectl get cronjobs -n &lt;namespace&gt;
+kubectl describe cronjob &lt;cronjob-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;job-pod-name&gt; -n &lt;namespace&gt;</pre></div>
+        <h2>RBAC</h2><div class="code-block"><pre>kubectl get serviceaccounts -n &lt;namespace&gt;
+kubectl describe serviceaccount &lt;serviceaccount-name&gt; -n &lt;namespace&gt;
+kubectl get roles -n &lt;namespace&gt;
+kubectl get rolebindings -n &lt;namespace&gt;
+kubectl auth can-i &lt;verb&gt; &lt;resource&gt; -n &lt;namespace&gt;
+kubectl auth can-i list pods --as=system:serviceaccount:&lt;namespace&gt;:&lt;serviceaccount&gt; -n &lt;namespace&gt;</pre></div>
+        <h2>NetworkPolicies</h2><div class="code-block"><pre>kubectl get networkpolicies -n &lt;namespace&gt;
+kubectl describe networkpolicy &lt;policy-name&gt; -n &lt;namespace&gt;
+kubectl get pods --show-labels -n &lt;namespace&gt;
+kubectl get namespaces --show-labels</pre></div>
+        <h2>Events and output formatting</h2><div class="code-block"><pre>kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp
+kubectl get events -A --sort-by=.metadata.creationTimestamp
+kubectl get pod &lt;pod-name&gt; -o yaml
+kubectl get pod &lt;pod-name&gt; -o json
+kubectl get pods -o wide
+kubectl apply -f file.yaml
+kubectl diff -f file.yaml
+kubectl delete -f file.yaml</pre></div>
+        <div class="field-note"><strong>Bottom line:</strong> Start broad with get, go deeper with describe, confirm app behavior with logs, and use events to understand what Kubernetes tried to do.</div>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-field-notes.html">← Back to Kubernetes Field Notes</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-final-project-production-ready-webapp.html">Final Project →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="A practical Kubernetes troubleshooting reference for Pending Pods, ImagePullBackOff, CrashLoopBackOff, Service endpoint issues, Ingress errors, RBAC failures, PVC problems, and rollout failures.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Common Kubernetes Failure Modes | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes troubleshooting reference for Pending Pods, ImagePullBackOff, CrashLoopBackOff, Service endpoint issues, Ingress errors, RBAC failures, PVC problems, and rollout failures.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-common-failure-modes.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-common-failure-modes.html">
+  <title>Common Kubernetes Failure Modes | Kubernetes Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Reference Guide</div>
+        <h1>Common Kubernetes Failure Modes</h1>
+        <p class="intro">A practical field guide for recognizing common Kubernetes failure modes and knowing which commands to run first.</p>
+        <p class="article-meta">Kubernetes Field Notes · Reference Guide</p>
+
+        <h2>How to use this page</h2>
+        <p>Use this page when something is broken and you need a practical path from symptom to likely cause.</p>
+        <div class="field-note"><strong>Habit:</strong> Do not delete broken resources before collecting evidence. Describe output, events, and previous logs may disappear or change.</div>
+        <h2>Universal first checks</h2><div class="code-block"><pre>kubectl config current-context
+kubectl config view --minify --output 'jsonpath={..namespace}'
+kubectl get pods -A
+kubectl get events -A --sort-by=.metadata.creationTimestamp</pre></div>
+        <h2>Pod stuck Pending</h2><p><strong>Usually means:</strong> Kubernetes accepted the Pod, but the scheduler cannot place it or required resources are not available.</p><div class="code-block"><pre>kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp
+kubectl describe node &lt;node-name&gt;
+kubectl get pvc -n &lt;namespace&gt;</pre></div><ul><li>Resource requests are too high.</li><li>Node selector or affinity matches no node.</li><li>Taints exist and the Pod lacks tolerations.</li><li>A PVC is not bound.</li></ul>
+        <h2>ImagePullBackOff or ErrImagePull</h2><p><strong>Usually means:</strong> Kubernetes cannot pull the container image.</p><div class="code-block"><pre>kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp</pre></div><ul><li>Image name is wrong.</li><li>Tag does not exist.</li><li>Registry credentials are missing.</li><li>Node cannot reach the registry.</li></ul>
+        <h2>CrashLoopBackOff</h2><p><strong>Usually means:</strong> The container starts, exits, and Kubernetes keeps trying to restart it.</p><div class="code-block"><pre>kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt; --previous
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</pre></div><ul><li>Application error on startup.</li><li>Bad command or args.</li><li>Missing ConfigMap, Secret, or environment value.</li><li>Liveness probe is too aggressive.</li></ul>
+        <h2>Running but not Ready</h2><p><strong>Usually means:</strong> The container process is running, but readiness is failing.</p><div class="code-block"><pre>kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;</pre></div><ul><li>Readiness probe path or port is wrong.</li><li>Application is not ready yet.</li><li>Dependency check is failing.</li><li>Pods are not Ready, so Service endpoints are missing.</li></ul>
+        <h2>OOMKilled</h2><p><strong>Usually means:</strong> The container exceeded its memory limit.</p><div class="code-block"><pre>kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt; --previous
+kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o yaml</pre></div>
+        <h2>Service has no endpoints</h2><p><strong>Usually means:</strong> The Service exists, but no ready Pods match its selector.</p><div class="code-block"><pre>kubectl describe service &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get pods --show-labels -n &lt;namespace&gt;</pre></div><ul><li>Service selector does not match Pod labels.</li><li>Pods are not Ready.</li><li>Pods are in a different Namespace.</li></ul>
+        <h2>Ingress returns 404</h2><p><strong>Usually means:</strong> The request reached the ingress controller, but no Ingress rule matched the host/path.</p><ul><li>Host header does not match.</li><li>Path does not match.</li><li>Ingress class mismatch.</li></ul>
+        <h2>Ingress returns 502 or 503</h2><p><strong>Usually means:</strong> The route matched, but the backend Service or Pods are unavailable.</p><div class="code-block"><pre>kubectl get endpoints &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl describe service &lt;service-name&gt; -n &lt;namespace&gt;
+kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</pre></div>
+        <h2>ConfigMap or Secret not found</h2><p><strong>Usually means:</strong> The Pod references an object that does not exist in the same Namespace or uses the wrong key.</p><div class="code-block"><pre>kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get configmaps -n &lt;namespace&gt;
+kubectl get secrets -n &lt;namespace&gt;</pre></div>
+        <h2>PVC stuck Pending</h2><p><strong>Usually means:</strong> Kubernetes cannot bind or provision the requested storage.</p><div class="code-block"><pre>kubectl get pvc -n &lt;namespace&gt;
+kubectl describe pvc &lt;pvc-name&gt; -n &lt;namespace&gt;
+kubectl get storageclass
+kubectl get pv</pre></div>
+        <h2>Rollout stuck</h2><p><strong>Usually means:</strong> New Pods are not becoming available.</p><div class="code-block"><pre>kubectl rollout status deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl describe deployment &lt;deployment-name&gt; -n &lt;namespace&gt;
+kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;new-pod-name&gt; -n &lt;namespace&gt;</pre></div><p>Common recovery:</p><div class="code-block"><pre>kubectl rollout undo deployment/&lt;deployment-name&gt; -n &lt;namespace&gt;</pre></div>
+        <h2>RBAC forbidden</h2><p><strong>Usually means:</strong> The user or ServiceAccount is authenticated but not authorized.</p><div class="code-block"><pre>kubectl auth can-i &lt;verb&gt; &lt;resource&gt; -n &lt;namespace&gt;
+kubectl auth can-i &lt;verb&gt; &lt;resource&gt; --as=system:serviceaccount:&lt;namespace&gt;:&lt;serviceaccount&gt; -n &lt;namespace&gt;
+kubectl get rolebindings -n &lt;namespace&gt;</pre></div>
+        <h2>NetworkPolicy blocking traffic</h2><p><strong>Usually means:</strong> NetworkPolicy is denying needed traffic, assuming the CNI enforces policy.</p><div class="code-block"><pre>kubectl get networkpolicies -n &lt;namespace&gt;
+kubectl describe networkpolicy &lt;policy-name&gt; -n &lt;namespace&gt;
+kubectl get pods --show-labels -n &lt;namespace&gt;
+kubectl get namespaces --show-labels</pre></div>
+        <div class="field-note"><strong>Bottom line:</strong> Most Kubernetes failures are visible if you follow the chain: context, Namespace, resource state, describe output, events, logs, selectors, endpoints, and rollout status.</div>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-field-notes.html">← Back to Kubernetes Field Notes</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-final-project-production-ready-webapp.html">Final Project →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="A practical glossary of Kubernetes terms including Pods, Deployments, Services, Ingress, ConfigMaps, Secrets, Namespaces, RBAC, NetworkPolicies, probes, storage, scheduling, and Helm.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Kubernetes Glossary | Stealth IT Group">
+  <meta property="og:description" content="A practical glossary of Kubernetes terms including Pods, Deployments, Services, Ingress, ConfigMaps, Secrets, Namespaces, RBAC, NetworkPolicies, probes, storage, scheduling, and Helm.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-glossary.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-glossary.html">
+  <title>Kubernetes Glossary | Kubernetes Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Reference Guide</div>
+        <h1>Kubernetes Glossary</h1>
+        <p class="intro">A plain-language glossary of the Kubernetes terms used throughout the training path.</p>
+        <p class="article-meta">Kubernetes Field Notes · Reference Guide</p>
+
+        <h2>How to use this page</h2><p>Kubernetes has a lot of terms. This glossary gives short practical definitions for the objects and concepts used throughout the training path.</p>
+        <h2>Cluster and node terms</h2>
+        <h3>Cluster</h3><p>A Kubernetes environment made up of a control plane and worker nodes.</p>
+        <h3>Node</h3><p>A machine that runs Pods. In kind, nodes run as Docker containers. In production, nodes are usually VMs or cloud instances.</p>
+        <h3>Control plane</h3><p>The Kubernetes components that manage cluster state, scheduling, API requests, controllers, and coordination.</p>
+        <h3>API server</h3><p>The front door to Kubernetes. kubectl and controllers communicate with the Kubernetes API server.</p>
+        <h3>kubelet</h3><p>The node agent that makes sure containers are running as expected on a node.</p>
+        <h2>Workload terms</h2>
+        <h3>Pod</h3><p>The smallest deployable unit Kubernetes manages. A Pod wraps one or more containers.</p>
+        <h3>Container</h3><p>A running process created from a container image.</p>
+        <h3>Image</h3><p>A packaged application and runtime filesystem used to create containers.</p>
+        <h3>Deployment</h3><p>A controller that manages stateless application Pods, rollouts, scaling, and rollback behavior.</p>
+        <h3>ReplicaSet</h3><p>A controller that maintains a desired number of matching Pods. Deployments create and manage ReplicaSets.</p>
+        <h3>StatefulSet</h3><p>A controller for stateful workloads that need stable identity and storage patterns.</p>
+        <h3>DaemonSet</h3><p>A controller that runs a copy of a Pod on selected nodes.</p>
+        <h3>Job</h3><p>A workload that runs to completion.</p>
+        <h3>CronJob</h3><p>A workload that creates Jobs on a schedule.</p>
+        <h2>Networking terms</h2>
+        <h3>Service</h3><p>A stable network abstraction that routes traffic to matching Pods.</p>
+        <h3>ClusterIP</h3><p>The default Service type. It exposes a stable IP inside the cluster.</p>
+        <h3>NodePort</h3><p>A Service type that exposes a port on cluster nodes.</p>
+        <h3>LoadBalancer</h3><p>A Service type that requests an external load balancer from the infrastructure provider.</p>
+        <h3>Endpoint</h3><p>A backend network destination behind a Service, usually a Pod IP and port.</p>
+        <h3>Ingress</h3><p>A Kubernetes object that defines HTTP and HTTPS routing rules into Services.</p>
+        <h3>Ingress controller</h3><p>The software that watches Ingress resources and actually routes incoming traffic.</p>
+        <h2>Configuration and storage terms</h2>
+        <h3>ConfigMap</h3><p>A Kubernetes object used to store non-sensitive configuration data.</p>
+        <h3>Secret</h3><p>A Kubernetes object used to store sensitive values such as tokens, keys, and passwords. Secret values still require careful access control.</p>
+        <h3>Volume</h3><p>Storage mounted into a Pod.</p>
+        <h3>PersistentVolume</h3><p>A storage resource available to the cluster.</p>
+        <h3>PersistentVolumeClaim</h3><p>A request for storage by a workload.</p>
+        <h3>StorageClass</h3><p>Defines how storage should be provisioned.</p>
+        <h2>Security terms</h2>
+        <h3>ServiceAccount</h3><p>An identity used by workloads running inside Kubernetes.</p>
+        <h3>RBAC</h3><p>Role-Based Access Control. Kubernetes authorization model for granting permissions.</p>
+        <h3>Role</h3><p>A set of permissions inside a Namespace.</p>
+        <h3>ClusterRole</h3><p>A set of permissions that can apply cluster-wide or across Namespaces.</p>
+        <h3>RoleBinding</h3><p>Grants a Role or ClusterRole to a subject inside a Namespace.</p>
+        <h3>NetworkPolicy</h3><p>A policy that controls allowed Pod network traffic when enforced by the cluster networking plugin.</p>
+        <h2>Operations terms</h2>
+        <h3>Namespace</h3><p>A logical grouping of Kubernetes resources inside a cluster.</p>
+        <h3>Request</h3><p>The CPU or memory amount a container asks Kubernetes to reserve for scheduling.</p>
+        <h3>Limit</h3><p>The maximum CPU or memory amount a container is allowed to use.</p>
+        <h3>Readiness probe</h3><p>A health check that controls whether a Pod should receive Service traffic.</p>
+        <h3>Liveness probe</h3><p>A health check that controls whether Kubernetes should restart a container.</p>
+        <h3>Startup probe</h3><p>A health check that gives slow-starting applications time to initialize before other probes take over.</p>
+        <h3>Event</h3><p>A Kubernetes record of something the platform tried to do or observed.</p>
+        <h3>Rollout</h3><p>The process of updating a Deployment to a new version.</p>
+        <h3>Rollback</h3><p>Reverting a Deployment to a previous working revision.</p>
+        <h2>Scheduling and Helm terms</h2>
+        <h3>Scheduler</h3><p>The Kubernetes component that decides which node a Pod should run on.</p>
+        <h3>nodeSelector</h3><p>A simple way to schedule Pods only onto nodes with matching labels.</p>
+        <h3>Node affinity</h3><p>A more expressive way to influence Pod placement based on node labels.</p>
+        <h3>Taint</h3><p>A setting on a node that repels Pods unless they tolerate it.</p>
+        <h3>Toleration</h3><p>A setting on a Pod that allows it to be scheduled onto a node with a matching taint.</p>
+        <h3>Helm</h3><p>A package manager for Kubernetes applications.</p>
+        <h3>Chart</h3><p>A packaged Kubernetes application.</p>
+        <h3>Values</h3><p>Configuration inputs used to render a Helm chart.</p>
+        <h3>Release</h3><p>An installed instance of a Helm chart in a cluster.</p>
+        <div class="field-note"><strong>Bottom line:</strong> Kubernetes terms become easier when you connect them to the operating model: controllers manage desired state, Services provide stable access, policies define guardrails, and kubectl helps you inspect what is actually happening.</div>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-field-notes.html">← Back to Kubernetes Field Notes</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-final-project-production-ready-webapp.html">Final Project →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
