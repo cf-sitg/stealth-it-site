@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn Kubernetes resource requests and limits, how CPU and memory reservations work, and how to prevent workloads from consuming too many shared cluster resources.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Resource Requests and Limits | Stealth IT Group">
+  <meta property="og:description" content="A practical Kubernetes Field Notes lesson on CPU requests, memory requests, limits, scheduling, throttling, and shared cluster resource management.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-resource-requests-and-limits.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-resource-requests-and-limits.html">
+  
+  <title>Resource Requests and Limits | Kubernetes Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Operations</div>
+
+        <h1>Resource Requests and Limits</h1>
+
+        <p class="intro">
+          Kubernetes clusters are shared environments. Resource requests and limits help the scheduler place workloads correctly and help prevent one workload from consuming more CPU or memory than it should.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes Field Notes · Operations Level · Estimated reading time: 24 minutes
+        </p>
+
+        <h2>What this lesson covers</h2>
+
+        <p>
+          So far, we have created workloads without telling Kubernetes how much CPU or memory they need. That works in a small lab, but it is not a good habit for real clusters. Kubernetes needs resource information to schedule workloads responsibly.
+        </p>
+
+        <p>
+          By the end of this lesson, you should understand:
+        </p>
+
+        <ul>
+          <li>What CPU and memory requests are</li>
+          <li>What CPU and memory limits are</li>
+          <li>How requests affect scheduling</li>
+          <li>How limits affect runtime behavior</li>
+          <li>Why memory limits can cause container restarts</li>
+          <li>Why CPU limits can cause throttling</li>
+          <li>How to inspect resource settings on Pods</li>
+          <li>How to create workloads with requests and limits</li>
+          <li>How to create an intentionally unschedulable Pod</li>
+          <li>How Namespaces can use default resource controls later</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          In shared clusters, workloads without resource requests are guesses. Kubernetes can run them, but the scheduler has less information to make good placement decisions.
+        </div>
+
+        <h2>The short version</h2>
+
+        <p>
+          A resource request is what a container asks Kubernetes to reserve for scheduling.
+        </p>
+
+        <p>
+          A resource limit is the maximum amount a container is allowed to use.
+        </p>
+
+        <div class="code-block">
+<pre>request:
+  "I need at least this much CPU or memory."
+
+limit:
+  "Do not let me use more than this much CPU or memory."</pre>
+        </div>
+
+        <p>
+          Requests help Kubernetes decide where a Pod can run. Limits help define how much a container can consume once it is running.
+        </p>
+
+        <h2>CPU and memory units</h2>
+
+        <p>
+          Kubernetes commonly tracks two basic resources for containers:
+        </p>
+
+        <ul>
+          <li><strong>CPU</strong></li>
+          <li><strong>Memory</strong></li>
+        </ul>
+
+        <p>
+          CPU can be written as whole cores or millicores.
+        </p>
+
+        <div class="code-block">
+<pre>1 CPU    = one CPU core
+500m     = half a CPU core
+250m     = one quarter of a CPU core
+100m     = one tenth of a CPU core</pre>
+        </div>
+
+        <p>
+          Memory is usually written with units like Mi or Gi.
+        </p>
+
+        <div class="code-block">
+<pre>128Mi    = 128 mebibytes
+512Mi    = 512 mebibytes
+1Gi      = 1 gibibyte</pre>
+        </div>
+
+        <h2>Requests vs limits</h2>
+
+        <p>
+          Requests and limits are related, but they are not the same.
+        </p>
+
+        <h3>Requests</h3>
+
+        <p>
+          Requests tell Kubernetes how much resource a container needs for scheduling.
+        </p>
+
+        <p>
+          If a Pod requests 256Mi of memory and 250m of CPU, Kubernetes tries to place it on a node that has enough available allocatable capacity for those requests.
+        </p>
+
+        <h3>Limits</h3>
+
+        <p>
+          Limits define how much resource the container is allowed to use.
+        </p>
+
+        <p>
+          If a container exceeds its memory limit, it can be killed and restarted. If it hits its CPU limit, it may be throttled.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Memory and CPU behave differently. Memory overuse can kill a container. CPU overuse is usually throttled.
+        </div>
+
+        <h2>Why requests matter for scheduling</h2>
+
+        <p>
+          Kubernetes does not schedule based on actual future usage. It schedules based on declared requests.
+        </p>
+
+        <p>
+          If a container does not declare requests, the scheduler has less useful information.
+        </p>
+
+        <p>
+          A cluster might look fine at first, but over time, workloads without requests can lead to noisy neighbor problems, resource pressure, evictions, and unpredictable performance.
+        </p>
+
+        <h2>Why limits matter for protection</h2>
+
+        <p>
+          Limits can prevent a workload from consuming too much of a node.
+        </p>
+
+        <p>
+          This is useful when:
+        </p>
+
+        <ul>
+          <li>An application has a memory leak</li>
+          <li>A process unexpectedly spikes</li>
+          <li>A batch job consumes too much CPU</li>
+          <li>A shared cluster needs guardrails</li>
+          <li>You want to limit blast radius from badly behaved workloads</li>
+        </ul>
+
+        <p>
+          Limits are not always simple, though. Overly tight limits can cause unnecessary failures or poor performance.
+        </p>
+
+        <h2>Before you start the lab</h2>
+
+        <p>
+          This lab assumes:
+        </p>
+
+        <ul>
+          <li>Docker Desktop is running</li>
+          <li>Your kind cluster exists</li>
+          <li>kubectl is installed</li>
+          <li>Your current context is <strong>kind-stealth-k8s-lab</strong></li>
+        </ul>
+
+        <p>
+          Check your context:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context</pre>
+        </div>
+
+        <p>
+          You should see:
+        </p>
+
+        <div class="code-block">
+<pre>kind-stealth-k8s-lab</pre>
+        </div>
+
+        <p>
+          Check your node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes</pre>
+        </div>
+
+        <p>
+          If your cluster no longer exists, recreate it:
+        </p>
+
+        <div class="code-block">
+<pre>kind create cluster --name stealth-k8s-lab</pre>
+        </div>
+
+        <h2>Step 1: Create a Namespace for this lab</h2>
+
+        <p>
+          Create a separate Namespace so this lab is easy to clean up:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl create namespace resource-lab</pre>
+        </div>
+
+        <p>
+          Confirm it exists:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces</pre>
+        </div>
+
+        <h2>Step 2: Create a Pod with resource requests and limits</h2>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>resource-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-pod-lab
+  namespace: resource-lab
+spec:
+  containers:
+  - name: app
+    image: nginx:latest
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f resource-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pod resource-pod-lab -n resource-lab</pre>
+        </div>
+
+        <p>
+          You should see the Pod running.
+        </p>
+
+        <h2>Step 3: Inspect the Pod resources</h2>
+
+        <p>
+          Describe the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod resource-pod-lab -n resource-lab</pre>
+        </div>
+
+        <p>
+          Look for the container resource section. You should see:
+        </p>
+
+        <div class="code-block">
+<pre>Requests:
+  cpu:     100m
+  memory:  128Mi
+Limits:
+  cpu:     500m
+  memory:  256Mi</pre>
+        </div>
+
+        <p>
+          This confirms Kubernetes accepted the resource requests and limits.
+        </p>
+
+        <h2>Step 4: View the Pod YAML</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pod resource-pod-lab -n resource-lab -o yaml</pre>
+        </div>
+
+        <p>
+          Look for:
+        </p>
+
+        <ul>
+          <li><strong>spec.containers.resources.requests</strong></li>
+          <li><strong>spec.containers.resources.limits</strong></li>
+          <li><strong>status</strong></li>
+        </ul>
+
+        <p>
+          The resource settings are part of the container spec.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Resource requests and limits are defined per container, not just per Pod. A Pod with multiple containers can have separate settings for each container.
+        </div>
+
+        <h2>Step 5: Create a Deployment with requests and limits</h2>
+
+        <p>
+          In real workloads, resource settings are usually defined inside a Deployment's Pod template.
+        </p>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>resource-deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource-deployment-lab
+  namespace: resource-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resource-deployment-lab
+  template:
+    metadata:
+      labels:
+        app: resource-deployment-lab
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f resource-deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Deployment and Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get deployments -n resource-lab
+kubectl get pods -n resource-lab</pre>
+        </div>
+
+        <p>
+          You should see two Pods created by the Deployment.
+        </p>
+
+        <h2>Step 6: Describe one of the Deployment Pods</h2>
+
+        <p>
+          Get the Pod names:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n resource-lab</pre>
+        </div>
+
+        <p>
+          Describe one of the Pods:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod &lt;pod-name&gt; -n resource-lab</pre>
+        </div>
+
+        <p>
+          Confirm the same requests and limits are present.
+        </p>
+
+        <h2>Step 7: Create an unschedulable Pod on purpose</h2>
+
+        <p>
+          Now create a Pod that asks for far more CPU than your local kind node is likely to have available.
+        </p>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>too-large-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: too-large-pod-lab
+  namespace: resource-lab
+spec:
+  containers:
+  - name: app
+    image: nginx:latest
+    resources:
+      requests:
+        cpu: "100"
+        memory: "128Mi"
+      limits:
+        cpu: "100"
+        memory: "256Mi"</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f too-large-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Check the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pod too-large-pod-lab -n resource-lab</pre>
+        </div>
+
+        <p>
+          It should remain in <strong>Pending</strong>.
+        </p>
+
+        <h2>Step 8: Troubleshoot the Pending Pod</h2>
+
+        <p>
+          Describe the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod too-large-pod-lab -n resource-lab</pre>
+        </div>
+
+        <p>
+          Look at the events near the bottom. You should see a scheduling problem related to insufficient CPU.
+        </p>
+
+        <p>
+          This demonstrates that requests affect scheduling. Kubernetes will not schedule a Pod onto a node that cannot satisfy the requested resources.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Pending Pods are often scheduler problems. The events section usually explains whether the issue is resource pressure, node selectors, taints, storage, or another scheduling constraint.
+        </div>
+
+        <h2>Step 9: Delete the unschedulable Pod</h2>
+
+        <p>
+          Delete the oversized Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f too-large-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Confirm it is gone:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n resource-lab</pre>
+        </div>
+
+        <h2>Step 10: Create a memory limit failure on purpose</h2>
+
+        <p>
+          Now create a Pod that has a very low memory limit and intentionally tries to allocate more memory than allowed.
+        </p>
+
+        <p>
+          Create a file named:
+        </p>
+
+        <div class="code-block">
+<pre>memory-limit-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Paste this into the file:
+        </p>
+
+        <div class="code-block">
+<pre>apiVersion: v1
+kind: Pod
+metadata:
+  name: memory-limit-pod-lab
+  namespace: resource-lab
+spec:
+  restartPolicy: Never
+  containers:
+  - name: memory-demo
+    image: python:3.12-slim
+    command: ["python", "-c"]
+    args:
+    - |
+      data = []
+      while True:
+          data.append("x" * 1024 * 1024)
+    resources:
+      requests:
+        memory: "32Mi"
+        cpu: "50m"
+      limits:
+        memory: "64Mi"
+        cpu: "250m"</pre>
+        </div>
+
+        <p>
+          Apply it:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -f memory-limit-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Watch the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pod memory-limit-pod-lab -n resource-lab -w</pre>
+        </div>
+
+        <p>
+          Press <strong>Ctrl+C</strong> after you see the status change.
+        </p>
+
+        <p>
+          The container may show a failure state because it exceeded the memory limit.
+        </p>
+
+        <h2>Step 11: Inspect the memory failure</h2>
+
+        <p>
+          Describe the Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe pod memory-limit-pod-lab -n resource-lab</pre>
+        </div>
+
+        <p>
+          Look for container state and termination information. You may see a reason such as <strong>OOMKilled</strong>, which means the container was killed because it exceeded the allowed memory.
+        </p>
+
+        <p>
+          Check logs if available:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl logs memory-limit-pod-lab -n resource-lab</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Memory limits are hard boundaries. If the container uses more memory than allowed, it can be killed.
+        </div>
+
+        <h2>Step 12: Delete the memory test Pod</h2>
+
+        <p>
+          Delete the memory test Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f memory-limit-pod-lab.yaml</pre>
+        </div>
+
+        <h2>Step 13: Check node resource information</h2>
+
+        <p>
+          Describe the node:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl describe node stealth-k8s-lab-control-plane</pre>
+        </div>
+
+        <p>
+          Look for sections such as:
+        </p>
+
+        <ul>
+          <li><strong>Capacity</strong></li>
+          <li><strong>Allocatable</strong></li>
+          <li><strong>Allocated resources</strong></li>
+        </ul>
+
+        <p>
+          <strong>Capacity</strong> is the total resource reported by the node. <strong>Allocatable</strong> is the amount available for Pods after system reservations. <strong>Allocated resources</strong> shows what has been requested and limited by running workloads.
+        </p>
+
+        <h2>Step 14: Optional metrics note</h2>
+
+        <p>
+          You may see examples online using:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl top pods
+kubectl top nodes</pre>
+        </div>
+
+        <p>
+          These commands require metrics-server or another metrics pipeline. A basic kind cluster may not have this installed by default.
+        </p>
+
+        <p>
+          We will cover metrics and observability later. For this lesson, focus on resource requests, limits, scheduling behavior, and describe output.
+        </p>
+
+        <h2>Step 15: Clean up the lab</h2>
+
+        <p>
+          Delete the standalone Pod:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f resource-pod-lab.yaml</pre>
+        </div>
+
+        <p>
+          Delete the Deployment:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete -f resource-deployment-lab.yaml</pre>
+        </div>
+
+        <p>
+          Delete the Namespace:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl delete namespace resource-lab</pre>
+        </div>
+
+        <p>
+          Confirm cleanup:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get namespaces
+kubectl get pods -A</pre>
+        </div>
+
+        <h2>Common troubleshooting commands</h2>
+
+        <p>
+          Use this flow when a workload is stuck, unstable, or behaving like a resource problem:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n &lt;namespace&gt;
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o yaml
+kubectl describe node &lt;node-name&gt;
+kubectl get events -n &lt;namespace&gt; --sort-by=.metadata.creationTimestamp
+kubectl logs &lt;pod-name&gt; -n &lt;namespace&gt;</pre>
+        </div>
+
+        <p>
+          This usually tells you:
+        </p>
+
+        <ul>
+          <li>Whether the Pod is Pending, Running, or restarting</li>
+          <li>Whether the scheduler could place the Pod</li>
+          <li>Whether the Pod requested too much CPU or memory</li>
+          <li>Whether a container was killed for memory usage</li>
+          <li>Whether the node has enough allocatable resources</li>
+        </ul>
+
+        <h2>Common resource mistakes</h2>
+
+        <h3>No requests set</h3>
+
+        <p>
+          Kubernetes can run the workload, but the scheduler has less useful information about how much resource the workload needs.
+        </p>
+
+        <h3>Requests set too high</h3>
+
+        <p>
+          Pods may remain Pending because no node can satisfy the requested resources.
+        </p>
+
+        <h3>Limits set too low</h3>
+
+        <p>
+          Applications may be throttled or killed even though they are working normally.
+        </p>
+
+        <h3>Memory limit too close to normal usage</h3>
+
+        <p>
+          Normal application spikes can cause the container to exceed its limit and be killed.
+        </p>
+
+        <h3>Assuming CPU and memory behave the same</h3>
+
+        <p>
+          CPU is usually throttled. Memory overuse can terminate the container.
+        </p>
+
+        <h2>Where this fits in real clusters</h2>
+
+        <p>
+          In real environments, resource requests and limits usually connect to broader controls:
+        </p>
+
+        <ul>
+          <li><strong>ResourceQuotas:</strong> Limit total resource usage in a Namespace.</li>
+          <li><strong>LimitRanges:</strong> Apply defaults and boundaries for resource requests and limits.</li>
+          <li><strong>Horizontal Pod Autoscaling:</strong> Scale workloads based on metrics.</li>
+          <li><strong>Cluster Autoscaling:</strong> Add or remove nodes based on scheduling needs.</li>
+          <li><strong>Monitoring:</strong> Track actual CPU, memory, restarts, throttling, and saturation.</li>
+          <li><strong>Capacity planning:</strong> Make sure clusters have enough room for normal and peak workloads.</li>
+        </ul>
+
+        <p>
+          We will cover several of these topics later. For now, focus on the core idea: requests help scheduling, and limits define runtime boundaries.
+        </p>
+
+        <h2>What you just learned</h2>
+
+        <p>
+          In this lesson, you:
+        </p>
+
+        <ul>
+          <li>Created a Namespace for resource testing</li>
+          <li>Created a Pod with CPU and memory requests and limits</li>
+          <li>Created a Deployment with resource settings</li>
+          <li>Inspected resource settings with describe and YAML output</li>
+          <li>Created an unschedulable Pod on purpose</li>
+          <li>Used events to understand a Pending Pod</li>
+          <li>Created a memory limit failure on purpose</li>
+          <li>Learned why memory limits can kill containers</li>
+          <li>Inspected node capacity and allocatable resources</li>
+          <li>Cleaned up the lab resources</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Resource requests help Kubernetes schedule Pods. Resource limits help define how much a container can consume. Good resource settings make shared clusters more predictable and safer to operate.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the resource concepts made sense.
+        </p>
+
+        <ol>
+          <li>What does a resource request tell Kubernetes?</li>
+          <li>What does a resource limit define?</li>
+          <li>Which resource setting is most important for scheduling?</li>
+          <li>What does <strong>100m</strong> CPU mean?</li>
+          <li>What can happen if a Pod requests more CPU than any node can provide?</li>
+          <li>What can happen if a container exceeds its memory limit?</li>
+          <li>What usually happens when a container hits its CPU limit?</li>
+          <li>Are resource requests and limits set per Pod or per container?</li>
+          <li>What command shows resource details and scheduling events for a Pod?</li>
+          <li>What node sections help you understand resource capacity?</li>
+          <li>Why might <strong>kubectl top</strong> not work in a basic kind cluster?</li>
+          <li>What are three common controls related to resources in real clusters?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It tells Kubernetes how much CPU or memory to reserve for scheduling.</li>
+            <li>It defines the maximum amount of a resource the container is allowed to use.</li>
+            <li>Requests.</li>
+            <li>One tenth of a CPU core.</li>
+            <li>The Pod can remain Pending because the scheduler cannot place it.</li>
+            <li>It can be killed, often with a reason such as OOMKilled.</li>
+            <li>It is usually throttled.</li>
+            <li>They are set per container.</li>
+            <li><strong>kubectl describe pod &lt;pod-name&gt;</strong>.</li>
+            <li><strong>Capacity</strong>, <strong>Allocatable</strong>, and <strong>Allocated resources</strong>.</li>
+            <li>Because metrics-server or a metrics pipeline may not be installed.</li>
+            <li>Examples: ResourceQuotas, LimitRanges, autoscaling, monitoring, and capacity planning.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-namespaces-organizing-workloads.html">← Previous: Namespaces</a>
+          <a class="nav-index" href="/kubernetes-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Next lesson coming soon →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
