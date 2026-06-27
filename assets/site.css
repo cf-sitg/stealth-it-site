@@ -651,3 +651,99 @@ html {
     text-align: left;
   }
 }
+
+/* Kubernetes Field Notes category coloring */
+.k8s-category {
+  display: inline-block;
+  margin-bottom: 0.65rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.k8s-foundations {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.k8s-core {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.k8s-admin {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.k8s-delivery {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.k8s-security {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.k8s-production {
+  color: #67e8f9;
+  background: rgba(6, 182, 212, 0.14);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+.path-item.k8s-foundations-card {
+  border-color: rgba(59, 130, 246, 0.42);
+}
+
+.path-item.k8s-core-card {
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.path-item.k8s-admin-card {
+  border-color: rgba(139, 92, 246, 0.42);
+}
+
+.path-item.k8s-delivery-card {
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.path-item.k8s-security-card {
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.path-item.k8s-production-card {
+  border-color: rgba(6, 182, 212, 0.42);
+}
+
+.service-card.k8s-foundations-card {
+  border-color: rgba(59, 130, 246, 0.42);
+}
+
+.service-card.k8s-core-card {
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.service-card.k8s-admin-card {
+  border-color: rgba(139, 92, 246, 0.42);
+}
+
+.service-card.k8s-delivery-card {
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.service-card.k8s-security-card {
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.service-card.k8s-production-card {
+  border-color: rgba(6, 182, 212, 0.42);
+}
