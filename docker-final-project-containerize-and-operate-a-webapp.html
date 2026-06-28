@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Build, run, inspect, troubleshoot, secure-review, and operate a containerized web app using the full Docker path.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Final Project: Containerize and Operate a Web App | Stealth IT Group">
+  <meta property="og:description" content="Build, run, inspect, troubleshoot, secure-review, and operate a containerized web app using the full Docker path.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-final-project-containerize-and-operate-a-webapp.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/docker-final-project-containerize-and-operate-a-webapp.html">
+
+  <title>Final Project: Containerize and Operate a Web App | Docker Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Docker Final Project</div>
+
+        <h1>Final Project: Containerize and Operate a Web App</h1>
+
+        <p class="intro">
+          Build, run, inspect, troubleshoot, secure-review, and operate a containerized web app using the full Docker path.
+        </p>
+
+        <p class="article-meta">
+          Docker Field Notes · Practical Skills Path
+        </p>
+
+
+        <h2>Docker skills alignment</h2>
+        <div class="cert-track-list">
+          <span class="cert-track docker-skill-foundations">Foundations</span>
+          <span class="cert-track docker-skill-runtime">Runtime</span>
+          <span class="cert-track docker-skill-build">Image Build</span>
+          <span class="cert-track docker-skill-storage">Storage</span>
+          <span class="cert-track docker-skill-networking">Networking</span>
+          <span class="cert-track docker-skill-compose">Compose</span>
+          <span class="cert-track docker-skill-security">Security</span>
+        </div>
+
+        <h2>Scenario</h2>
+
+        <p>
+          You have been asked to containerize a small internal web application for a local lab. The application must be built into a versioned image, run locally, expose the correct port, be repeatable with Compose, be inspectable through logs and Docker metadata, and pass a basic image hygiene review.
+        </p>
+
+        <h2>Project requirements</h2>
+
+        <ul>
+          <li>Create a project folder.</li>
+          <li>Create a custom <strong>index.html</strong>.</li>
+          <li>Create a Dockerfile using an intentional base image tag.</li>
+          <li>Create a <strong>.dockerignore</strong>.</li>
+          <li>Build a versioned image.</li>
+          <li>Run it manually on port 8090.</li>
+          <li>View logs and inspect the container.</li>
+          <li>Break and fix a port mapping issue.</li>
+          <li>Break and fix a bad image tag issue.</li>
+          <li>Create a Compose file.</li>
+          <li>Run the app with Compose.</li>
+          <li>Perform a security and operations review.</li>
+        </ul>
+
+        <h2>Step 1: Create the project</h2>
+
+        <div class="code-block">
+<pre>mkdir docker-final-webapp-v2
+cd docker-final-webapp-v2</pre>
+        </div>
+
+        <h2>Step 2: Create index.html</h2>
+
+        <div class="code-block">
+<pre>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Docker Final Project&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Docker Final Project Complete&lt;/h1&gt;
+  &lt;p&gt;This web app is running inside a custom Docker image.&lt;/p&gt;
+  &lt;p&gt;The container was built, run, inspected, troubleshot, and reviewed.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+        </div>
+
+        <h2>Step 3: Create Dockerfile</h2>
+
+        <div class="code-block">
+<pre>FROM nginx:1.27
+
+COPY index.html /usr/share/nginx/html/index.html
+
+EXPOSE 80</pre>
+        </div>
+
+        <h2>Step 4: Create .dockerignore</h2>
+
+        <div class="code-block">
+<pre>.git
+.env
+*.key
+*.pem
+secrets*
+node_modules
+*.log
+tmp</pre>
+        </div>
+
+        <h2>Step 5: Build and run</h2>
+
+        <div class="code-block">
+<pre>docker build -t stealth-docker-final-webapp:2.0 .
+docker run --name docker-final-webapp-v2 -d -p 8090:80 stealth-docker-final-webapp:2.0</pre>
+        </div>
+
+        <p>
+          Open <strong>http://localhost:8090</strong>.
+        </p>
+
+        <h2>Step 6: Validate and inspect</h2>
+
+        <div class="code-block">
+<pre>docker ps
+docker logs docker-final-webapp-v2
+docker inspect docker-final-webapp-v2
+docker image inspect stealth-docker-final-webapp:2.0
+docker history stealth-docker-final-webapp:2.0</pre>
+        </div>
+
+        <h2>Step 7: Break and fix port mapping</h2>
+
+        <div class="code-block">
+<pre>docker stop docker-final-webapp-v2
+docker rm docker-final-webapp-v2
+docker run --name docker-final-webapp-v2 -d stealth-docker-final-webapp:2.0
+docker ps
+docker inspect docker-final-webapp-v2</pre>
+        </div>
+
+        <p>
+          The app is running but not reachable from the host because no port was published. Fix it:
+        </p>
+
+        <div class="code-block">
+<pre>docker stop docker-final-webapp-v2
+docker rm docker-final-webapp-v2
+docker run --name docker-final-webapp-v2 -d -p 8090:80 stealth-docker-final-webapp:2.0</pre>
+        </div>
+
+        <h2>Step 8: Break and fix a bad tag</h2>
+
+        <div class="code-block">
+<pre>docker run --name bad-tag-final nginx:not-a-real-final-tag</pre>
+        </div>
+
+        <p>
+          Read the error. Then run a real tag:
+        </p>
+
+        <div class="code-block">
+<pre>docker run --name good-tag-final -d nginx:1.27
+docker stop good-tag-final
+docker rm good-tag-final</pre>
+        </div>
+
+        <h2>Step 9: Add Compose</h2>
+
+        <p>
+          Create <strong>compose.yaml</strong>:
+        </p>
+
+        <div class="code-block">
+<pre>services:
+  web:
+    image: stealth-docker-final-webapp:2.0
+    ports:
+      - "8090:80"
+    restart: unless-stopped</pre>
+        </div>
+
+        <p>
+          Replace manual run with Compose:
+        </p>
+
+        <div class="code-block">
+<pre>docker stop docker-final-webapp-v2
+docker rm docker-final-webapp-v2
+docker compose up -d
+docker compose ps
+docker compose logs</pre>
+        </div>
+
+        <h2>Step 10: Final review checklist</h2>
+
+        <ul>
+          <li>Is the app built from a Dockerfile?</li>
+          <li>Is the image versioned?</li>
+          <li>Does .dockerignore exclude sensitive and unnecessary files?</li>
+          <li>Can you run the app manually?</li>
+          <li>Can you run the app with Compose?</li>
+          <li>Can you explain host port vs container port?</li>
+          <li>Can you view logs?</li>
+          <li>Can you inspect image and container metadata?</li>
+          <li>Can you recover from a missing port mapping?</li>
+          <li>Can you recognize a bad image tag error?</li>
+          <li>Can you explain what should change before production?</li>
+        </ul>
+
+        <h2>Step 11: Clean up</h2>
+
+        <div class="code-block">
+<pre>docker compose down
+docker rmi stealth-docker-final-webapp:2.0</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          You have now built, run, inspected, troubleshot, and operationally reviewed a containerized web application. That is the right foundation before handing workloads to Kubernetes.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the lesson concepts made sense.
+        </p>
+
+        <ol>
+          <li>What file defines how the image is built?</li>
+          <li>What file makes local startup repeatable?</li>
+          <li>What command built the image?</li>
+          <li>What command ran the app manually?</li>
+          <li>What command started the Compose app?</li>
+          <li>What did the broken port mapping prove?</li>
+          <li>What did the bad tag test prove?</li>
+          <li>Why use .dockerignore?</li>
+          <li>Why use versioned tags?</li>
+          <li>What command shows container logs?</li>
+          <li>What command shows image layer history?</li>
+          <li>What would you improve before production?</li>
+          <li>How does this prepare for Kubernetes?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Dockerfile.</li>
+            <li>compose.yaml.</li>
+            <li>docker build -t stealth-docker-final-webapp:2.0 .</li>
+            <li>docker run --name docker-final-webapp-v2 -d -p 8090:80 stealth-docker-final-webapp:2.0</li>
+            <li>docker compose up -d.</li>
+            <li>A container can be running but unreachable from the host without a published port.</li>
+            <li>Image names and tags must exist and be accessible.</li>
+            <li>To keep unnecessary and sensitive files out of the build context.</li>
+            <li>They make builds and deployments more predictable.</li>
+            <li>docker logs.</li>
+            <li>docker history.</li>
+            <li>Examples: non-root user, scanning, registry process, CI/CD, secrets management, monitoring, and Kubernetes manifests.</li>
+            <li>It proves you understand images, runtime config, ports, logs, inspection, and repeatable startup.</li>
+          </ol>
+        </details>
+
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-image-security-basics.html">← Previous: Image Security Basics</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-field-notes.html">Continue to Kubernetes →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

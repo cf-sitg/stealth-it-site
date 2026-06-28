@@ -2,15 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Container troubleshooting starts with state, logs, inspect output, image names, commands, and ports.">
+  <meta name="description" content="Diagnose stopped containers, bad commands, port conflicts, image pull failures, logs, inspect output, and cleanup issues.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Container Logs and Troubleshooting | Stealth IT Group">
-  <meta property="og:description" content="Container troubleshooting starts with state, logs, inspect output, image names, commands, and ports.">
+  <meta property="og:description" content="Diagnose stopped containers, bad commands, port conflicts, image pull failures, logs, inspect output, and cleanup issues.">
   <meta property="og:url" content="https://stealthitgroup.com/docker-container-logs-and-troubleshooting.html">
+
   <link rel="canonical" href="https://stealthitgroup.com/docker-container-logs-and-troubleshooting.html">
+
   <title>Container Logs and Troubleshooting | Docker Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -19,57 +24,169 @@
   <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
   <link rel="stylesheet" href="/assets/site.css">
 </head>
+
 <body>
   <div class="page">
+
+    <!-- Shared Header -->
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Docker Troubleshooting</div>
+
         <h1>Container Logs and Troubleshooting</h1>
-        <p class="intro">Container troubleshooting starts with state, logs, inspect output, image names, commands, and ports.</p>
-        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
-        <h2>First checks</h2>
-        <p>Use docker ps, docker ps -a, docker logs, and docker inspect before guessing.</p>
-        <h2>Common failures</h2>
-        <p>Containers exit when their command completes or fails. Port errors often mean the host port is already in use.</p>
-        <h2>Evidence</h2>
-        <p>Inspect output shows ports, mounts, networks, environment variables, and command configuration.</p>
-        <h2>Hands-on lab commands</h2>
+
+        <p class="intro">
+          Diagnose stopped containers, bad commands, port conflicts, image pull failures, logs, inspect output, and cleanup issues.
+        </p>
+
+        <p class="article-meta">
+          Docker Field Notes · Practical Skills Path
+        </p>
+
+
+        <h2>Docker skills alignment</h2>
+        <div class="cert-track-list"><span class="cert-track docker-skill-troubleshooting">Troubleshooting</span><span class="cert-track docker-skill-runtime">Runtime</span></div>
+
+        <h2>What this lesson covers</h2>
+
+        <p>This lesson gives a practical troubleshooting flow for containers that exit, fail commands, conflict on ports, fail image pulls, or behave unexpectedly.</p>
+
+        <h2>The short version</h2>
+
         <div class="code-block">
-<pre>docker ps
-docker ps -a
-docker run --name exits-lab busybox:latest sh -c "echo starting; echo done"
-docker logs exits-lab
-docker run --name bad-command-lab busybox:latest command-that-does-not-exist
-docker logs bad-command-lab
-docker run --name port-lab-1 -d -p 8085:80 nginx:latest
-docker run --name port-lab-2 -d -p 8085:80 nginx:latest
-docker inspect port-lab-1
-docker stop port-lab-1
-docker rm exits-lab bad-command-lab port-lab-1</pre>
+<pre>Container Logs and Troubleshooting
+  Practical goal:
+    Understand the Docker concept.
+    Prove it with commands.
+    Inspect the result.
+    Clean it up safely.</pre>
         </div>
-        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+
+        <h2>Concepts before commands</h2>
+        <p>Troubleshooting starts with lifecycle state: running, exited, created, restarting, or missing.</p>
+        <p>Logs show application output, but inspect output shows configuration.</p>
+        <p>Many container problems are command, image, port, mount, or environment problems.</p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not just run the command. Read the output. Docker teaches you a lot through container names, IDs, ports, status, logs, image tags, and inspect output.
+        </div>
+
+        <h2>Hands-on lab</h2>
+        <h3>Container exits normally</h3><div class="code-block"><pre>docker run --name exits-lab busybox:latest sh -c &quot;echo starting; echo done&quot;
+docker ps -a
+docker logs exits-lab</pre></div>
+        <h3>Bad command failure</h3><div class="code-block"><pre>docker run --name bad-command-lab busybox:latest command-that-does-not-exist
+docker ps -a
+docker logs bad-command-lab</pre></div>
+        <h3>Port conflict</h3><div class="code-block"><pre>docker run --name port-lab-1 -d -p 8087:80 nginx:1.27
+docker run --name port-lab-2 -d -p 8087:80 nginx:1.27</pre></div><p>The second command should fail because the host port is already allocated.</p>
+        <h3>Clean up</h3><div class="code-block"><pre>docker rm exits-lab bad-command-lab
+docker stop port-lab-1
+docker rm port-lab-1</pre></div>
+
+        <h2>Troubleshooting checks</h2>
+
+        <ul>
+          <li>Check command output instead of assuming success.</li>
+          <li>Use docker ps -a when something disappears.</li>
+          <li>Use docker logs for app output.</li>
+          <li>Use docker inspect for configuration details.</li>
+          <li>Clean up lab artifacts after testing.</li>
+        </ul>
+
+        <h2>Common mistakes</h2>
+
+        <ul>
+          <li>Skipping validation commands.</li>
+          <li>Using latest casually for repeatable work.</li>
+          <li>Leaving containers, volumes, or networks behind.</li>
+          <li>Copying secrets into files or images.</li>
+          <li>Confusing host paths with container paths.</li>
+        </ul>
+
+        <h2>Where this fits in real environments</h2>
+
+        <p>Real incident response uses the same pattern: capture state, read logs, inspect configuration, identify the failure domain, fix the smallest thing, and validate recovery.</p>
+
+        <h2>What you just learned</h2>
+
+        <ul>
+          <li>Ran the lab commands.</li>
+          <li>Inspected Docker state.</li>
+          <li>Connected the concept to operations.</li>
+          <li>Practiced cleanup and repeatability.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Docker skills are operational skills. You are learning how applications are packaged, started, connected, inspected, fixed, and safely removed.
+        </div>
+
+
         <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the lesson concepts made sense.
+        </p>
+
         <ol>
           <li>What command shows stopped containers?</li>
           <li>What command shows logs?</li>
+          <li>What command shows detailed configuration?</li>
+          <li>Why might a container exit immediately?</li>
           <li>What usually causes a port allocation error?</li>
+          <li>How do you follow logs live?</li>
+          <li>Why collect evidence before deleting?</li>
+          <li>What can bad commands cause?</li>
+          <li>What can bad tags cause?</li>
+          <li>What should you check if an app is unreachable?</li>
+          <li>How do you remove a stopped container?</li>
+          <li>How does this relate to Kubernetes troubleshooting?</li>
         </ol>
 
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It is part of the practical Docker operating model for this lesson.</li>
+            <li>Use the command output to verify state before moving on.</li>
+            <li>Use docker ps, docker ps -a, docker logs, and docker inspect as appropriate.</li>
+            <li>Clean up containers, images, networks, or volumes created by the lab.</li>
+            <li>It improves repeatability and reduces manual drift.</li>
+            <li>It prevents lab artifacts from confusing later work.</li>
+            <li>It supports easier troubleshooting because the configuration is explicit.</li>
+            <li>It matters before Kubernetes because Kubernetes will orchestrate the same container concepts.</li>
+            <li>Use intentional names and tags so results are understandable.</li>
+            <li>Do not store real secrets in images, Dockerfiles, Compose files, or casual environment variables.</li>
+            <li>Check ports, logs, inspect output, and the exact command you ran.</li>
+            <li>The answer depends on the specific lab, but the key is to validate before assuming success.</li>
+          </ol>
+        </details>
+
+
+
+    
         <div class="article-nav three-link">
-          <a class="nav-prev" href="/docker-compose-for-local-labs.html">← Previous: Docker Compose for Local Labs</a>
+          <a class="nav-prev" href="/docker-registries-tags-and-image-publishing.html">← Previous: Registries, Tags, and Image Publishing</a>
           <a class="nav-index" href="/docker-field-notes.html">Series index</a>
           <a class="nav-next" href="/docker-image-security-basics.html">Next: Image Security Basics →</a>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
+  <!-- Shared Includes -->
   <script src="/assets/includes.js"></script>
 </body>
 </html>

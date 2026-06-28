@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Run containers intentionally using names, ports, environment variables, restart policies, resource limits, logs, and cleanup habits.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Running Containers Like an Operator | Stealth IT Group">
+  <meta property="og:description" content="Run containers intentionally using names, ports, environment variables, restart policies, resource limits, logs, and cleanup habits.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-running-containers-like-an-operator.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/docker-running-containers-like-an-operator.html">
+
+  <title>Running Containers Like an Operator | Docker Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Container Runtime</div>
+
+        <h1>Running Containers Like an Operator</h1>
+
+        <p class="intro">
+          Run containers intentionally using names, ports, environment variables, restart policies, resource limits, logs, and cleanup habits.
+        </p>
+
+        <p class="article-meta">
+          Docker Field Notes · Practical Skills Path
+        </p>
+
+
+        <h2>Docker skills alignment</h2>
+        <div class="cert-track-list"><span class="cert-track docker-skill-runtime">Runtime</span><span class="cert-track docker-skill-troubleshooting">Troubleshooting</span></div>
+
+        <h2>What this lesson covers</h2>
+
+        <p>This lesson moves beyond basic docker run and focuses on running containers intentionally with operational settings.</p>
+
+        <h2>The short version</h2>
+
+        <div class="code-block">
+<pre>Running Containers Like an Operator
+  Practical goal:
+    Understand the Docker concept.
+    Prove it with commands.
+    Inspect the result.
+    Clean it up safely.</pre>
+        </div>
+
+        <h2>Concepts before commands</h2>
+        <p>Operators care about names, ports, logs, restart behavior, environment variables, resource boundaries, and cleanup.</p>
+        <p>A container command should be understandable. If a container exits, you should know whether it completed normally, failed, or was misconfigured.</p>
+        <p>Docker runtime flags are the local version of many concepts that later appear in Kubernetes Pod specs.</p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not just run the command. Read the output. Docker teaches you a lot through container names, IDs, ports, status, logs, image tags, and inspect output.
+        </div>
+
+        <h2>Hands-on lab</h2>
+        <h3>Step 1: Run with name, env, and port</h3><div class="code-block"><pre>docker run --name operator-nginx -d -p 8083:80 -e APP_ENV=lab nginx:1.27</pre></div>
+        <h3>Step 2: Inspect runtime settings</h3><div class="code-block"><pre>docker ps
+docker inspect operator-nginx
+docker exec -it operator-nginx /bin/sh -c "echo $APP_ENV"</pre></div>
+        <h3>Step 3: Test restart policy</h3><div class="code-block"><pre>docker run --name restart-lab -d --restart unless-stopped nginx:1.27
+docker inspect restart-lab</pre></div>
+        <h3>Step 4: Test resource flags</h3><div class="code-block"><pre>docker run --name resource-runtime-lab -d --memory 256m --cpus 0.5 nginx:1.27
+docker stats resource-runtime-lab</pre></div><p>Press <strong>Ctrl+C</strong> to exit stats.</p>
+        <h3>Step 5: Clean up</h3><div class="code-block"><pre>docker stop operator-nginx restart-lab resource-runtime-lab
+docker rm operator-nginx restart-lab resource-runtime-lab</pre></div>
+
+        <h2>Troubleshooting checks</h2>
+
+        <ul>
+          <li>Use docker inspect for environment variables, restart policy, mounts, and ports.</li>
+          <li>Use docker stats for live resource usage.</li>
+          <li>Use docker ps -a to understand exited containers.</li>
+          <li>Use docker logs before removing evidence.</li>
+        </ul>
+
+        <h2>Common mistakes</h2>
+
+        <ul>
+          <li>Running unnamed containers and losing track of them.</li>
+          <li>Forgetting restart policies exist.</li>
+          <li>Using environment variables for real secrets in casual local labs.</li>
+          <li>Leaving test containers running and consuming ports.</li>
+        </ul>
+
+        <h2>Where this fits in real environments</h2>
+
+        <p>Production platforms wrap runtime settings into declarative specs. Learning the flags locally makes Kubernetes resources easier to understand later.</p>
+
+        <h2>What you just learned</h2>
+
+        <ul>
+          <li>Ran named containers with environment values.</li>
+          <li>Inspected restart and resource settings.</li>
+          <li>Used docker stats.</li>
+          <li>Cleaned up deliberately.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Docker skills are operational skills. You are learning how applications are packaged, started, connected, inspected, fixed, and safely removed.
+        </div>
+
+
+        <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the lesson concepts made sense.
+        </p>
+
+        <ol>
+          <li>Why name containers?</li>
+          <li>What does -e set?</li>
+          <li>What does --restart unless-stopped do?</li>
+          <li>What does --memory control?</li>
+          <li>What does --cpus control?</li>
+          <li>What does docker stats show?</li>
+          <li>Why check docker ps -a?</li>
+          <li>Why inspect before deleting?</li>
+          <li>What is one risk of environment variables?</li>
+          <li>How does this relate to Kubernetes?</li>
+          <li>What does -d do?</li>
+          <li>What should you clean up after a lab?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Names make containers easier to identify and manage.</li>
+            <li>An environment variable.</li>
+            <li>Restarts the container unless explicitly stopped.</li>
+            <li>Memory limit.</li>
+            <li>CPU limit/quota.</li>
+            <li>Live resource usage.</li>
+            <li>To see stopped/exited containers.</li>
+            <li>To preserve evidence and understand configuration.</li>
+            <li>They can expose sensitive values.</li>
+            <li>Kubernetes Pod specs express similar runtime configuration declaratively.</li>
+            <li>Runs in detached/background mode.</li>
+            <li>Containers, networks, and volumes you created.</li>
+          </ol>
+        </details>
+
+
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-images-containers-tags-and-registries.html">← Previous: Images, Containers, Tags, and Registries</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-building-a-simple-image.html">Next: Building a Simple Image →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

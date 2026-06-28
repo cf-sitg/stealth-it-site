@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Learn host ports, container ports, bridge networks, user-defined networks, container DNS, and connectivity troubleshooting.">
+  <meta name="description" content="Learn how image naming, tagging, registry login, push, pull, retagging, and promotion work in practical Docker workflows.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
-  <meta property="og:title" content="Networks and Port Mapping | Stealth IT Group">
-  <meta property="og:description" content="Learn host ports, container ports, bridge networks, user-defined networks, container DNS, and connectivity troubleshooting.">
-  <meta property="og:url" content="https://stealthitgroup.com/docker-networks-and-port-mapping.html">
+  <meta property="og:title" content="Registries, Tags, and Image Publishing | Stealth IT Group">
+  <meta property="og:description" content="Learn how image naming, tagging, registry login, push, pull, retagging, and promotion work in practical Docker workflows.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-registries-tags-and-image-publishing.html">
 
-  <link rel="canonical" href="https://stealthitgroup.com/docker-networks-and-port-mapping.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-registries-tags-and-image-publishing.html">
 
-  <title>Networks and Port Mapping | Docker Field Notes | Stealth IT Group</title>
+  <title>Registries, Tags, and Image Publishing | Docker Field Notes | Stealth IT Group</title>
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -37,12 +37,12 @@
 
     <main>
       <article class="article">
-        <div class="badge">Docker Networking</div>
+        <div class="badge">Images and Registries</div>
 
-        <h1>Networks and Port Mapping</h1>
+        <h1>Registries, Tags, and Image Publishing</h1>
 
         <p class="intro">
-          Learn host ports, container ports, bridge networks, user-defined networks, container DNS, and connectivity troubleshooting.
+          Learn how image naming, tagging, registry login, push, pull, retagging, and promotion work in practical Docker workflows.
         </p>
 
         <p class="article-meta">
@@ -51,16 +51,16 @@
 
 
         <h2>Docker skills alignment</h2>
-        <div class="cert-track-list"><span class="cert-track docker-skill-networking">Networking</span><span class="cert-track docker-skill-runtime">Runtime</span></div>
+        <div class="cert-track-list"><span class="cert-track docker-skill-images">Images & Registries</span><span class="cert-track docker-skill-build">Image Build</span></div>
 
         <h2>What this lesson covers</h2>
 
-        <p>This lesson teaches host ports, container ports, user-defined networks, container-to-container DNS, and basic network troubleshooting.</p>
+        <p>This lesson teaches how Docker image naming, tagging, registry login, push, pull, retagging, and promotion work. The lab is safe because the push step is optional.</p>
 
         <h2>The short version</h2>
 
         <div class="code-block">
-<pre>Networks and Port Mapping
+<pre>Registries, Tags, and Image Publishing
   Practical goal:
     Understand the Docker concept.
     Prove it with commands.
@@ -69,9 +69,9 @@
         </div>
 
         <h2>Concepts before commands</h2>
-        <p>A container can listen on a port internally without exposing that port to the host.</p>
-        <p>Port publishing maps a host port to a container port.</p>
-        <p>User-defined Docker networks allow containers to reach each other by container or service name.</p>
+        <p>A registry is where images are stored and shared.</p>
+        <p>A full image name can include registry hostname, namespace, repository, and tag.</p>
+        <p>Publishing images is how local builds become available to other machines or platforms.</p>
 
         <div class="field-note">
           <strong>Field note:</strong>
@@ -79,15 +79,16 @@
         </div>
 
         <h2>Hands-on lab</h2>
-        <h3>Run with host port mapping</h3><div class="code-block"><pre>docker run --name network-nginx-lab -d -p 8085:80 nginx:1.27</pre></div><p>Open http://localhost:8085.</p>
-        <h3>Create a user-defined network</h3><div class="code-block"><pre>docker network create app-network-lab
-docker network ls
-docker network inspect app-network-lab</pre></div>
-        <h3>Test container DNS</h3><div class="code-block"><pre>docker run --name web-on-network -d --network app-network-lab nginx:1.27
-docker run --rm --network app-network-lab busybox:latest wget -qO- http://web-on-network</pre></div>
-        <h3>Clean up</h3><div class="code-block"><pre>docker stop network-nginx-lab web-on-network
-docker rm network-nginx-lab web-on-network
-docker network rm app-network-lab</pre></div>
+        <h3>Build a local image</h3><div class="code-block"><pre>mkdir registry-lab
+cd registry-lab
+echo FROM nginx:1.27 &gt; Dockerfile
+docker build -t registry-lab-web:1.0 .</pre></div>
+        <h3>Retag for a registry</h3><div class="code-block"><pre>docker tag registry-lab-web:1.0 your-registry.example.com/training/registry-lab-web:1.0
+docker images</pre></div>
+        <h3>Optional login and push</h3><div class="code-block"><pre>docker login your-registry.example.com
+docker push your-registry.example.com/training/registry-lab-web:1.0</pre></div><p>Only run this if you have a real registry and permission.</p>
+        <h3>Clean up local tags</h3><div class="code-block"><pre>docker rmi registry-lab-web:1.0
+docker rmi your-registry.example.com/training/registry-lab-web:1.0</pre></div>
 
         <h2>Troubleshooting checks</h2>
 
@@ -111,7 +112,7 @@ docker network rm app-network-lab</pre></div>
 
         <h2>Where this fits in real environments</h2>
 
-        <p>Container networking shows up again in Compose services, Kubernetes Services, Ingress, and service discovery.</p>
+        <p>In real environments, registries are tied to access control, vulnerability scanning, signed images, promotion workflows, and deployment pipelines.</p>
 
         <h2>What you just learned</h2>
 
@@ -135,18 +136,18 @@ docker network rm app-network-lab</pre></div>
         </p>
 
         <ol>
-          <li>What is the host port in -p 8085:80?</li>
-          <li>What is the container port?</li>
-          <li>What does docker network create do?</li>
-          <li>Why use a user-defined network?</li>
-          <li>How can containers resolve each other by name?</li>
-          <li>What command lists Docker networks?</li>
-          <li>What command inspects a network?</li>
-          <li>Why is localhost confusing inside containers?</li>
-          <li>What causes port conflicts?</li>
-          <li>How do you clean up a network?</li>
-          <li>How does this relate to Kubernetes Services?</li>
-          <li>What should you check when a container is unreachable?</li>
+          <li>What does a registry store?</li>
+          <li>What does docker tag do?</li>
+          <li>What does docker push do?</li>
+          <li>What does docker pull do?</li>
+          <li>Why include a registry hostname?</li>
+          <li>Why use versioned tags?</li>
+          <li>Why is push optional in this lab?</li>
+          <li>What does docker login do?</li>
+          <li>What is image promotion?</li>
+          <li>Why do permissions matter for registries?</li>
+          <li>How does this connect to Kubernetes?</li>
+          <li>Why should registry images be scanned?</li>
         </ol>
 
         <details class="field-note">
@@ -171,9 +172,9 @@ docker network rm app-network-lab</pre></div>
 
     
         <div class="article-nav three-link">
-          <a class="nav-prev" href="/docker-volumes-and-persistent-data.html">← Previous: Volumes and Persistent Data</a>
+          <a class="nav-prev" href="/docker-compose-for-local-labs.html">← Previous: Docker Compose for Local Labs</a>
           <a class="nav-index" href="/docker-field-notes.html">Series index</a>
-          <a class="nav-next" href="/docker-compose-for-local-labs.html">Next: Docker Compose for Local Labs →</a>
+          <a class="nav-next" href="/docker-container-logs-and-troubleshooting.html">Next: Container Logs and Troubleshooting →</a>
         </div>
       </article>
     </main>

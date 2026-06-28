@@ -2,15 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Docker Compose defines local multi-container labs in one YAML file instead of long manual docker run commands.">
+  <meta name="description" content="Use Compose to define repeatable multi-container labs with services, networks, volumes, environment, logs, and cleanup.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Docker Compose for Local Labs | Stealth IT Group">
-  <meta property="og:description" content="Docker Compose defines local multi-container labs in one YAML file instead of long manual docker run commands.">
+  <meta property="og:description" content="Use Compose to define repeatable multi-container labs with services, networks, volumes, environment, logs, and cleanup.">
   <meta property="og:url" content="https://stealthitgroup.com/docker-compose-for-local-labs.html">
+
   <link rel="canonical" href="https://stealthitgroup.com/docker-compose-for-local-labs.html">
+
   <title>Docker Compose for Local Labs | Docker Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -19,55 +24,177 @@
   <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
   <link rel="stylesheet" href="/assets/site.css">
 </head>
+
 <body>
   <div class="page">
+
+    <!-- Shared Header -->
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Docker Compose</div>
+
         <h1>Docker Compose for Local Labs</h1>
-        <p class="intro">Docker Compose defines local multi-container labs in one YAML file instead of long manual docker run commands.</p>
-        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
-        <h2>What Compose solves</h2>
-        <p>Compose makes local environments repeatable by defining services, ports, volumes, networks, commands, and environment settings.</p>
-        <h2>Service names</h2>
-        <p>Compose services can usually reach each other by service name on the Compose network.</p>
-        <h2>Cleanup</h2>
-        <p>docker compose down stops and removes the Compose containers and default network.</p>
-        <h2>Hands-on lab commands</h2>
+
+        <p class="intro">
+          Use Compose to define repeatable multi-container labs with services, networks, volumes, environment, logs, and cleanup.
+        </p>
+
+        <p class="article-meta">
+          Docker Field Notes · Practical Skills Path
+        </p>
+
+
+        <h2>Docker skills alignment</h2>
+        <div class="cert-track-list"><span class="cert-track docker-skill-compose">Compose</span><span class="cert-track docker-skill-networking">Networking</span></div>
+
+        <h2>What this lesson covers</h2>
+
+        <p>This lesson teaches Docker Compose as a repeatable way to define multi-container local labs with services, networks, volumes, environment, logs, and cleanup.</p>
+
+        <h2>The short version</h2>
+
         <div class="code-block">
-<pre>docker compose version
-mkdir docker-compose-lab
+<pre>Docker Compose for Local Labs
+  Practical goal:
+    Understand the Docker concept.
+    Prove it with commands.
+    Inspect the result.
+    Clean it up safely.</pre>
+        </div>
+
+        <h2>Concepts before commands</h2>
+        <p>Compose turns long docker run commands into a readable YAML file.</p>
+        <p>Compose creates a project network and lets services communicate by service name.</p>
+        <p>Compose is not Kubernetes, but it is a useful bridge into orchestration thinking.</p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Do not just run the command. Read the output. Docker teaches you a lot through container names, IDs, ports, status, logs, image tags, and inspect output.
+        </div>
+
+        <h2>Hands-on lab</h2>
+        <h3>Create compose lab</h3><div class="code-block"><pre>mkdir docker-compose-lab
 cd docker-compose-lab
-# create compose.yaml
-docker compose up -d
+mkdir web</pre></div>
+        <h3>Create compose.yaml</h3><div class="code-block"><pre>services:
+  web:
+    image: nginx:1.27
+    ports:
+      - &quot;8086:80&quot;
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+
+  toolbox:
+    image: busybox:latest
+    command: [&quot;sh&quot;, &quot;-c&quot;, &quot;sleep 3600&quot;]</pre></div>
+        <h3>Run and test</h3><div class="code-block"><pre>docker compose up -d
 docker compose ps
 docker compose logs
-docker compose exec toolbox wget -qO- http://web
-docker compose down</pre>
+docker compose exec toolbox wget -qO- http://web</pre></div>
+        <h3>Clean up</h3><div class="code-block"><pre>docker compose down</pre></div>
+
+        <h2>Troubleshooting checks</h2>
+
+        <ul>
+          <li>Check command output instead of assuming success.</li>
+          <li>Use docker ps -a when something disappears.</li>
+          <li>Use docker logs for app output.</li>
+          <li>Use docker inspect for configuration details.</li>
+          <li>Clean up lab artifacts after testing.</li>
+        </ul>
+
+        <h2>Common mistakes</h2>
+
+        <ul>
+          <li>Skipping validation commands.</li>
+          <li>Using latest casually for repeatable work.</li>
+          <li>Leaving containers, volumes, or networks behind.</li>
+          <li>Copying secrets into files or images.</li>
+          <li>Confusing host paths with container paths.</li>
+        </ul>
+
+        <h2>Where this fits in real environments</h2>
+
+        <p>Compose is commonly used for local development and training environments. Production orchestration usually uses Kubernetes or another platform.</p>
+
+        <h2>What you just learned</h2>
+
+        <ul>
+          <li>Ran the lab commands.</li>
+          <li>Inspected Docker state.</li>
+          <li>Connected the concept to operations.</li>
+          <li>Practiced cleanup and repeatability.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Docker skills are operational skills. You are learning how applications are packaged, started, connected, inspected, fixed, and safely removed.
         </div>
-        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+
+
         <h2>Check your understanding</h2>
+
+        <p>
+          Use these questions to test whether the lesson concepts made sense.
+        </p>
+
         <ol>
-          <li>What file does Compose commonly use?</li>
-          <li>What command starts services in the background?</li>
-          <li>How do Compose services reach each other?</li>
+          <li>What file does Compose use?</li>
+          <li>What does docker compose up -d do?</li>
+          <li>What does docker compose ps show?</li>
+          <li>What does docker compose logs show?</li>
+          <li>How do services reach each other?</li>
+          <li>What does docker compose down do?</li>
+          <li>What does a volume mapping do?</li>
+          <li>What does :ro mean?</li>
+          <li>Why is Compose useful for labs?</li>
+          <li>How is Compose different from Kubernetes?</li>
+          <li>What should you avoid storing in compose.yaml?</li>
+          <li>How can Compose help document local dependencies?</li>
         </ol>
 
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It is part of the practical Docker operating model for this lesson.</li>
+            <li>Use the command output to verify state before moving on.</li>
+            <li>Use docker ps, docker ps -a, docker logs, and docker inspect as appropriate.</li>
+            <li>Clean up containers, images, networks, or volumes created by the lab.</li>
+            <li>It improves repeatability and reduces manual drift.</li>
+            <li>It prevents lab artifacts from confusing later work.</li>
+            <li>It supports easier troubleshooting because the configuration is explicit.</li>
+            <li>It matters before Kubernetes because Kubernetes will orchestrate the same container concepts.</li>
+            <li>Use intentional names and tags so results are understandable.</li>
+            <li>Do not store real secrets in images, Dockerfiles, Compose files, or casual environment variables.</li>
+            <li>Check ports, logs, inspect output, and the exact command you ran.</li>
+            <li>The answer depends on the specific lab, but the key is to validate before assuming success.</li>
+          </ol>
+        </details>
+
+
+
+    
         <div class="article-nav three-link">
           <a class="nav-prev" href="/docker-networks-and-port-mapping.html">← Previous: Networks and Port Mapping</a>
           <a class="nav-index" href="/docker-field-notes.html">Series index</a>
-          <a class="nav-next" href="/docker-container-logs-and-troubleshooting.html">Next: Container Logs and Troubleshooting →</a>
+          <a class="nav-next" href="/docker-registries-tags-and-image-publishing.html">Next: Registries, Tags, and Image Publishing →</a>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
+  <!-- Shared Includes -->
   <script src="/assets/includes.js"></script>
 </body>
 </html>
