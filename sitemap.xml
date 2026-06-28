@@ -122,6 +122,50 @@
   </url>
 
   <url>
+  <loc>https://stealthitgroup.com/docker-field-notes.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-what-containers-actually-are.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-images-containers-and-registries.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-building-a-simple-image.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-dockerfiles-explained-practically.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-volumes-and-persistent-data.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-networks-and-port-mapping.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-compose-for-local-labs.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-container-logs-and-troubleshooting.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-image-security-basics.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-final-project-containerize-a-webapp.html</loc>
+</url>
+
+  <url>
     <loc>https://stealthitgroup.com/privacy.html</loc>
   </url>
 
