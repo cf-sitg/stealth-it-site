@@ -54,67 +54,73 @@
       Work through these lessons in order. Each one builds on the prior lesson and leads into the final containerization project.
     </p>
 
-    <div class="path-list">
-      <div class="path-item docker-foundations-card">
-        <span class="docker-category docker-foundations">Docker Foundations</span>
-        <h3><a href="/docker-what-containers-actually-are.html">1. What Containers Actually Are</a></h3>
-        <p>Understand containers as isolated application processes, not tiny virtual machines.</p>
-      </div>
+<div class="path-list">
+  <div class="path-item docker-foundations-card">
+    <span class="docker-category docker-foundations">Docker Foundations</span>
+    <h3><a href="/docker-setting-up-a-local-lab.html">1. Setting Up a Local Docker Lab</a></h3>
+    <p>Build a safe local Docker environment with WSL 2, Ubuntu, Docker Desktop, Linux containers, Docker Compose, and a first test container.</p>
+  </div>
 
-      <div class="path-item docker-foundations-card">
-        <span class="docker-category docker-foundations">Docker Foundations</span>
-        <h3><a href="/docker-images-containers-and-registries.html">2. Images, Containers, and Registries</a></h3>
-        <p>Learn the relationship between images, running containers, tags, layers, and registries.</p>
-      </div>
+  <div class="path-item docker-foundations-card">
+    <span class="docker-category docker-foundations">Docker Foundations</span>
+    <h3><a href="/docker-what-containers-actually-are.html">2. What Containers Actually Are</a></h3>
+    <p>Understand containers as isolated application processes, not tiny virtual machines.</p>
+  </div>
 
-      <div class="path-item docker-build-card">
-        <span class="docker-category docker-build">Image Build</span>
-        <h3><a href="/docker-building-a-simple-image.html">3. Building a Simple Image</a></h3>
-        <p>Create a small static web app image and run it locally.</p>
-      </div>
+  <div class="path-item docker-foundations-card">
+    <span class="docker-category docker-foundations">Docker Foundations</span>
+    <h3><a href="/docker-images-containers-and-registries.html">3. Images, Containers, and Registries</a></h3>
+    <p>Learn the relationship between images, running containers, tags, layers, and registries.</p>
+  </div>
 
-      <div class="path-item docker-build-card">
-        <span class="docker-category docker-build">Image Build</span>
-        <h3><a href="/docker-dockerfiles-explained-practically.html">4. Dockerfiles Explained Practically</a></h3>
-        <p>Understand Dockerfile instructions, image layers, build context, and safer build habits.</p>
-      </div>
+  <div class="path-item docker-build-card">
+    <span class="docker-category docker-build">Image Build</span>
+    <h3><a href="/docker-building-a-simple-image.html">4. Building a Simple Image</a></h3>
+    <p>Create a small static web app image and run it locally.</p>
+  </div>
 
-      <div class="path-item docker-operations-card">
-        <span class="docker-category docker-operations">Container Operations</span>
-        <h3><a href="/docker-volumes-and-persistent-data.html">5. Volumes and Persistent Data</a></h3>
-        <p>Learn how Docker handles container filesystems, named volumes, bind mounts, and persistent data.</p>
-      </div>
+  <div class="path-item docker-build-card">
+    <span class="docker-category docker-build">Image Build</span>
+    <h3><a href="/docker-dockerfiles-explained-practically.html">5. Dockerfiles Explained Practically</a></h3>
+    <p>Understand Dockerfile instructions, image layers, build context, and safer build habits.</p>
+  </div>
 
-      <div class="path-item docker-operations-card">
-        <span class="docker-category docker-operations">Container Operations</span>
-        <h3><a href="/docker-networks-and-port-mapping.html">6. Networks and Port Mapping</a></h3>
-        <p>Learn how containers expose ports, join networks, and communicate with each other.</p>
-      </div>
+  <div class="path-item docker-operations-card">
+    <span class="docker-category docker-operations">Container Operations</span>
+    <h3><a href="/docker-volumes-and-persistent-data.html">6. Volumes and Persistent Data</a></h3>
+    <p>Learn how Docker handles container filesystems, named volumes, bind mounts, and persistent data.</p>
+  </div>
 
-      <div class="path-item docker-compose-card">
-        <span class="docker-category docker-compose">Local Lab Orchestration</span>
-        <h3><a href="/docker-compose-for-local-labs.html">7. Docker Compose for Local Labs</a></h3>
-        <p>Use Compose to run multi-container lab environments with repeatable configuration.</p>
-      </div>
+  <div class="path-item docker-operations-card">
+    <span class="docker-category docker-operations">Container Operations</span>
+    <h3><a href="/docker-networks-and-port-mapping.html">7. Networks and Port Mapping</a></h3>
+    <p>Learn how containers expose ports, join networks, and communicate with each other.</p>
+  </div>
 
-      <div class="path-item docker-troubleshooting-card">
-        <span class="docker-category docker-troubleshooting">Troubleshooting</span>
-        <h3><a href="/docker-container-logs-and-troubleshooting.html">8. Container Logs and Troubleshooting</a></h3>
-        <p>Diagnose stopped containers, port conflicts, bad commands, image issues, and application errors.</p>
-      </div>
+  <div class="path-item docker-compose-card">
+    <span class="docker-category docker-compose">Local Lab Orchestration</span>
+    <h3><a href="/docker-compose-for-local-labs.html">8. Docker Compose for Local Labs</a></h3>
+    <p>Use Compose to run multi-container lab environments with repeatable configuration.</p>
+  </div>
 
-      <div class="path-item docker-security-card">
-        <span class="docker-category docker-security">Container Security</span>
-        <h3><a href="/docker-image-security-basics.html">9. Image Security Basics</a></h3>
-        <p>Learn practical image security habits: trusted images, smaller bases, non-root users, secrets, and scanning.</p>
-      </div>
+  <div class="path-item docker-troubleshooting-card">
+    <span class="docker-category docker-troubleshooting">Troubleshooting</span>
+    <h3><a href="/docker-container-logs-and-troubleshooting.html">9. Container Logs and Troubleshooting</a></h3>
+    <p>Diagnose stopped containers, port conflicts, bad commands, image issues, and application errors.</p>
+  </div>
 
-      <div class="path-item docker-final-card">
-        <span class="docker-category docker-final">Final Project</span>
-        <h3><a href="/docker-final-project-containerize-a-webapp.html">10. Final Project: Containerize a Web App</a></h3>
-        <p>Build, run, inspect, troubleshoot, and review a containerized web app using the full Docker path.</p>
-      </div>
-    </div>
+  <div class="path-item docker-security-card">
+    <span class="docker-category docker-security">Container Security</span>
+    <h3><a href="/docker-image-security-basics.html">10. Image Security Basics</a></h3>
+    <p>Learn practical image security habits: trusted images, smaller bases, non-root users, secrets, and scanning.</p>
+  </div>
+
+  <div class="path-item docker-final-card">
+    <span class="docker-category docker-final">Final Project</span>
+    <h3><a href="/docker-final-project-containerize-a-webapp.html">11. Final Project: Containerize a Web App</a></h3>
+    <p>Build, run, inspect, troubleshoot, and review a containerized web app using the full Docker path.</p>
+  </div>
+</div>
   </div>
 
   <div class="section">
