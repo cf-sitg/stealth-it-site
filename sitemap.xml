@@ -121,12 +121,12 @@
     <loc>https://stealthitgroup.com/kubernetes-glossary.html</loc>
   </url>
 
-  <url>
-  <loc>https://stealthitgroup.com/docker-setting-up-a-local-lab.html</loc>
+<url>
+  <loc>https://stealthitgroup.com/docker-field-notes.html</loc>
 </url>
 
-  <url>
-  <loc>https://stealthitgroup.com/docker-field-notes.html</loc>
+<url>
+  <loc>https://stealthitgroup.com/docker-setting-up-a-local-lab.html</loc>
 </url>
 
 <url>
@@ -134,7 +134,11 @@
 </url>
 
 <url>
-  <loc>https://stealthitgroup.com/docker-images-containers-and-registries.html</loc>
+  <loc>https://stealthitgroup.com/docker-images-containers-tags-and-registries.html</loc>
+</url>
+
+<url>
+  <loc>https://stealthitgroup.com/docker-running-containers-like-an-operator.html</loc>
 </url>
 
 <url>
@@ -158,6 +162,10 @@
 </url>
 
 <url>
+  <loc>https://stealthitgroup.com/docker-registries-tags-and-image-publishing.html</loc>
+</url>
+
+<url>
   <loc>https://stealthitgroup.com/docker-container-logs-and-troubleshooting.html</loc>
 </url>
 
@@ -166,7 +174,7 @@
 </url>
 
 <url>
-  <loc>https://stealthitgroup.com/docker-final-project-containerize-a-webapp.html</loc>
+  <loc>https://stealthitgroup.com/docker-final-project-containerize-and-operate-a-webapp.html</loc>
 </url>
 
   <url>
