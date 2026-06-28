@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Set up a local Docker lab from scratch on Windows with WSL 2, Ubuntu, Docker Desktop, Linux containers, Docker Compose, and a first test container.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Setting Up a Local Docker Lab | Stealth IT Group">
+  <meta property="og:description" content="Build a safe local Docker environment from scratch with WSL 2, Ubuntu, Docker Desktop, Linux containers, Docker Compose, and a first test container.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-setting-up-a-local-lab.html">
+
+  <link rel="canonical" href="https://stealthitgroup.com/docker-setting-up-a-local-lab.html">
+
+  <title>Setting Up a Local Docker Lab | Docker Field Notes | Stealth IT Group</title>
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+
+  <!-- Shared Site Styles -->
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Shared Header -->
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Docker Lab Setup</div>
+
+        <h1>Setting Up a Local Docker Lab</h1>
+
+        <p class="intro">
+          Before learning Docker deeply, you need a safe place to build, run, inspect, break, and clean up containers. This lab starts from a Windows machine and walks through WSL 2, Ubuntu, Docker Desktop, Linux containers, Docker Compose, and your first test container.
+        </p>
+
+        <p class="article-meta">
+          Docker Field Notes · Foundation Level · Estimated reading time: 22 minutes
+        </p>
+
+        <h2>What this lab gives you</h2>
+
+        <p>
+          This lab sets up a local Docker environment on your own machine. The goal is not to build a production container platform. The goal is to create a safe practice environment where you can learn Docker commands, build images, run containers, inspect logs, test networks, use volumes, and clean up quickly.
+        </p>
+
+        <p>
+          For this series, the standard local Docker lab uses:
+        </p>
+
+        <ul>
+          <li>WSL 2 for Linux support on Windows</li>
+          <li>Ubuntu as the local Linux distribution</li>
+          <li>Docker Desktop using the WSL 2 backend</li>
+          <li>Linux containers</li>
+          <li>Docker CLI</li>
+          <li>Docker Compose</li>
+          <li>Visual Studio Code or another editor for Dockerfiles and Compose files</li>
+          <li>PowerShell or Windows Terminal</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          A good container lab is disposable. You should be able to run containers, break them, remove them, rebuild images, and clean up without worrying about damaging anything important.
+        </div>
+
+        <h2>Why start with Docker before Kubernetes?</h2>
+
+        <p>
+          Kubernetes schedules and manages containers, but it does not remove the need to understand containers. If you do not understand images, tags, ports, volumes, logs, networks, and container lifecycle, Kubernetes troubleshooting becomes much harder.
+        </p>
+
+        <p>
+          The first learning goal is simple:
+        </p>
+
+        <ul>
+          <li>Can you install Docker successfully?</li>
+          <li>Can Docker run Linux containers?</li>
+          <li>Can you pull an image?</li>
+          <li>Can you run a container?</li>
+          <li>Can you expose a container on a local port?</li>
+          <li>Can you inspect logs and container state?</li>
+          <li>Can you stop, remove, and rebuild safely?</li>
+        </ul>
+
+        <h2>Before you start</h2>
+
+        <p>
+          This walkthrough assumes you are using a Windows 10 or Windows 11 machine and may be starting without WSL 2, Ubuntu, or Docker Desktop already configured.
+        </p>
+
+        <p>
+          You should have:
+        </p>
+
+        <ul>
+          <li>A Windows machine that supports WSL 2</li>
+          <li>Local administrator rights</li>
+          <li>Internet access</li>
+          <li>PowerShell or Windows Terminal</li>
+          <li>Enough disk space for Docker images, containers, and volumes</li>
+        </ul>
+
+        <p>
+          If you are using a corporate-managed device, installation may be blocked by endpoint policy. In that case, you may need help from your desktop, endpoint, or IT support team.
+        </p>
+
+        <h2>Step 1: Open PowerShell as Administrator</h2>
+
+        <p>
+          Start by opening PowerShell with administrator rights.
+        </p>
+
+        <ul>
+          <li>Click Start.</li>
+          <li>Search for <strong>PowerShell</strong>.</li>
+          <li>Right-click it.</li>
+          <li>Select <strong>Run as administrator</strong>.</li>
+        </ul>
+
+        <h2>Step 2: Install WSL</h2>
+
+        <p>
+          Run this command from the administrator PowerShell window:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --install</pre>
+        </div>
+
+        <p>
+          This installs the Windows Subsystem for Linux components and enables the Windows features needed for WSL. On many systems, it also installs Ubuntu as the default Linux distribution. On some systems, it only installs the WSL components first and requires a reboot before Ubuntu is installed.
+        </p>
+
+        <p>
+          If Windows tells you that changes will not take effect until the system is rebooted, restart the machine before continuing.
+        </p>
+
+        <div class="code-block">
+<pre>Restart-Computer</pre>
+        </div>
+
+        <h2>Step 3: Check whether a Linux distribution is installed</h2>
+
+        <p>
+          After rebooting, open PowerShell again and run:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -l -v</pre>
+        </div>
+
+        <p>
+          If Ubuntu installed successfully, you should see a distribution listed with version <strong>2</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>  NAME      STATE           VERSION
+* Ubuntu    Stopped         2</pre>
+        </div>
+
+        <p>
+          If you see a message that WSL has no installed distributions, that is okay. It means WSL is enabled, but no Linux distribution has been installed yet.
+        </p>
+
+        <h2>Step 4: List available Linux distributions</h2>
+
+        <p>
+          To see which Linux distributions are available, run:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --list --online</pre>
+        </div>
+
+        <p>
+          For this lab, we use Ubuntu because it is common, well documented, and works well with Docker Desktop and container tooling.
+        </p>
+
+        <h2>Step 5: Install Ubuntu</h2>
+
+        <p>
+          Install Ubuntu with:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --install -d Ubuntu</pre>
+        </div>
+
+        <p>
+          If Ubuntu is already installed, continue to the next step.
+        </p>
+
+        <p>
+          If you receive an error, run the online list command again and use the exact Ubuntu distribution name shown in your output.
+        </p>
+
+        <div class="code-block">
+<pre>wsl --list --online
+wsl --install -d Ubuntu-24.04</pre>
+        </div>
+
+        <h2>Step 6: Launch Ubuntu and finish first-run setup</h2>
+
+        <p>
+          Launch Ubuntu:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -d Ubuntu</pre>
+        </div>
+
+        <p>
+          Ubuntu should ask you to create a Linux username and password. These are for your local Linux environment and do not need to match your Windows username and password.
+        </p>
+
+        <p>
+          When Ubuntu setup finishes, exit the Linux shell:
+        </p>
+
+        <div class="code-block">
+<pre>exit</pre>
+        </div>
+
+        <h2>Step 7: Confirm Ubuntu is running on WSL 2</h2>
+
+        <p>
+          Back in PowerShell, run:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -l -v</pre>
+        </div>
+
+        <p>
+          You should see Ubuntu listed with version <strong>2</strong>.
+        </p>
+
+        <p>
+          If Ubuntu shows version <strong>1</strong>, set WSL 2 as the default:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --set-default-version 2</pre>
+        </div>
+
+        <p>
+          Then convert Ubuntu to WSL 2:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --set-version Ubuntu 2</pre>
+        </div>
+
+        <p>
+          If your distribution name is different, use the exact name shown by <strong>wsl -l -v</strong>.
+        </p>
+
+        <h2>Step 8: Update Ubuntu packages</h2>
+
+        <p>
+          Open Ubuntu from the Start menu, or run:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -d Ubuntu</pre>
+        </div>
+
+        <p>
+          Inside Ubuntu, run:
+        </p>
+
+        <div class="code-block">
+<pre>sudo apt update
+sudo apt upgrade -y</pre>
+        </div>
+
+        <p>
+          When it finishes, return to PowerShell:
+        </p>
+
+        <div class="code-block">
+<pre>exit</pre>
+        </div>
+
+        <h2>Step 9: Install Docker Desktop</h2>
+
+        <p>
+          Docker Desktop is the easiest Docker setup for this Windows-based lab. It provides the Docker engine, Docker CLI integration, Docker Compose, and the local container runtime environment.
+        </p>
+
+        <p>
+          From PowerShell, install Docker Desktop with winget:
+        </p>
+
+        <div class="code-block">
+<pre>winget install Docker.DockerDesktop</pre>
+        </div>
+
+        <p>
+          If winget asks you to accept package terms or source agreements, accept them if they are appropriate for your machine.
+        </p>
+
+        <p>
+          After the install finishes, start Docker Desktop from the Windows Start menu.
+        </p>
+
+        <p>
+          Docker may ask you to log out, reboot, or accept its service agreement. Follow the prompts.
+        </p>
+
+        <h2>Step 10: Enable Docker Desktop's WSL 2 backend</h2>
+
+        <p>
+          Open Docker Desktop and check these settings:
+        </p>
+
+        <ul>
+          <li>Go to <strong>Settings</strong>.</li>
+          <li>Go to <strong>General</strong>.</li>
+          <li>Make sure <strong>Use the WSL 2 based engine</strong> is enabled if the option is visible.</li>
+          <li>Go to <strong>Resources</strong>.</li>
+          <li>Go to <strong>WSL Integration</strong>.</li>
+          <li>Enable integration with your Ubuntu WSL distribution.</li>
+          <li>Select <strong>Apply & Restart</strong> if Docker prompts you.</li>
+        </ul>
+
+        <p>
+          On some current Docker Desktop installations, the WSL 2 engine is enabled automatically when the system supports WSL 2, and the setting may not be visible. The important part is that Docker Desktop is running with WSL 2 support and Ubuntu integration is enabled.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          For this lab, Docker needs to run Linux containers. Most Docker and Kubernetes labs use Linux container images.
+        </div>
+
+        <h2>Step 11: Confirm Docker is working</h2>
+
+        <p>
+          Open a new PowerShell window and run:
+        </p>
+
+        <div class="code-block">
+<pre>docker version</pre>
+        </div>
+
+        <p>
+          Then run:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps</pre>
+        </div>
+
+        <p>
+          The first command checks whether the Docker client and server are responding. The second command lists running containers. It is okay if no containers are running yet.
+        </p>
+
+        <h3>If this fails</h3>
+
+        <ul>
+          <li>Start Docker Desktop.</li>
+          <li>Confirm Docker Desktop is using the WSL 2 backend.</li>
+          <li>Confirm Docker Desktop is using Linux containers.</li>
+          <li>Confirm WSL integration is enabled for Ubuntu.</li>
+          <li>Close and reopen PowerShell after installing Docker.</li>
+          <li>Restart Docker Desktop if the Docker engine is not responding.</li>
+        </ul>
+
+        <h2>Step 12: Confirm Docker Compose is available</h2>
+
+        <p>
+          Docker Desktop normally includes Docker Compose. Confirm it:
+        </p>
+
+        <div class="code-block">
+<pre>docker compose version</pre>
+        </div>
+
+        <p>
+          You should see Docker Compose version information.
+        </p>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Use <strong>docker compose</strong> with a space for modern Docker Compose. Older examples online may show <strong>docker-compose</strong> with a hyphen.
+        </div>
+
+        <h2>Step 13: Run your first test container</h2>
+
+        <p>
+          Run nginx and publish it on local port 8080:
+        </p>
+
+        <div class="code-block">
+<pre>docker run --name docker-lab-nginx -d -p 8080:80 nginx:latest</pre>
+        </div>
+
+        <p>
+          Open:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8080</pre>
+        </div>
+
+        <p>
+          You should see the nginx welcome page.
+        </p>
+
+        <h3>What this command does</h3>
+
+        <ul>
+          <li><strong>docker run</strong> starts a container.</li>
+          <li><strong>--name docker-lab-nginx</strong> gives the container a readable name.</li>
+          <li><strong>-d</strong> runs it in the background.</li>
+          <li><strong>-p 8080:80</strong> maps host port 8080 to container port 80.</li>
+          <li><strong>nginx:latest</strong> is the image Docker uses.</li>
+        </ul>
+
+        <h2>Step 14: List running containers</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps</pre>
+        </div>
+
+        <p>
+          You should see <strong>docker-lab-nginx</strong> running.
+        </p>
+
+        <h2>Step 15: View container logs</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>docker logs docker-lab-nginx</pre>
+        </div>
+
+        <p>
+          Refresh the browser and run the logs command again. You should see access log entries from nginx.
+        </p>
+
+        <h2>Step 16: Inspect the container</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>docker inspect docker-lab-nginx</pre>
+        </div>
+
+        <p>
+          The output is long. For now, notice that Docker knows the image, container ID, network settings, port mappings, mounts, environment variables, and runtime configuration.
+        </p>
+
+        <h2>Step 17: Exec into the container</h2>
+
+        <p>
+          Run:
+        </p>
+
+        <div class="code-block">
+<pre>docker exec -it docker-lab-nginx /bin/sh
+hostname
+ps
+ls /usr/share/nginx/html
+exit</pre>
+        </div>
+
+        <p>
+          This lets you inspect inside the running container. Do not get into the habit of manually fixing containers from the inside. Containers should be rebuilt or recreated from images.
+        </p>
+
+        <h2>Step 18: Stop and remove the test container</h2>
+
+        <p>
+          Stop the container:
+        </p>
+
+        <div class="code-block">
+<pre>docker stop docker-lab-nginx</pre>
+        </div>
+
+        <p>
+          Remove it:
+        </p>
+
+        <div class="code-block">
+<pre>docker rm docker-lab-nginx</pre>
+        </div>
+
+        <p>
+          Confirm no containers are running:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps</pre>
+        </div>
+
+        <p>
+          Confirm the stopped container is gone:
+        </p>
+
+        <div class="code-block">
+<pre>docker ps -a</pre>
+        </div>
+
+        <h2>Step 19: Confirm the image still exists</h2>
+
+        <p>
+          Removing a container does not remove the image. Run:
+        </p>
+
+        <div class="code-block">
+<pre>docker images</pre>
+        </div>
+
+        <p>
+          You should still see the nginx image.
+        </p>
+
+        <p>
+          You can remove the image if you want:
+        </p>
+
+        <div class="code-block">
+<pre>docker rmi nginx:latest</pre>
+        </div>
+
+        <h2>Step 20: Run a quick Compose test</h2>
+
+        <p>
+          Create a temporary folder:
+        </p>
+
+        <div class="code-block">
+<pre>mkdir docker-compose-smoke-test
+cd docker-compose-smoke-test</pre>
+        </div>
+
+        <p>
+          Create a file named <strong>compose.yaml</strong>:
+        </p>
+
+        <div class="code-block">
+<pre>services:
+  web:
+    image: nginx:latest
+    ports:
+      - "8081:80"</pre>
+        </div>
+
+        <p>
+          Start it:
+        </p>
+
+        <div class="code-block">
+<pre>docker compose up -d</pre>
+        </div>
+
+        <p>
+          Check it:
+        </p>
+
+        <div class="code-block">
+<pre>docker compose ps</pre>
+        </div>
+
+        <p>
+          Open:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8081</pre>
+        </div>
+
+        <p>
+          Clean it up:
+        </p>
+
+        <div class="code-block">
+<pre>docker compose down
+cd ..</pre>
+        </div>
+
+        <h2>Common setup problems</h2>
+
+        <h3>WSL installed but no Linux distributions are listed</h3>
+
+        <p>
+          WSL is enabled, but Ubuntu has not been installed yet.
+        </p>
+
+        <div class="code-block">
+<pre>wsl --list --online
+wsl --install -d Ubuntu</pre>
+        </div>
+
+        <h3>Ubuntu does not show version 2</h3>
+
+        <p>
+          Check the distribution name:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -l -v</pre>
+        </div>
+
+        <p>
+          Then set that distribution to WSL 2:
+        </p>
+
+        <div class="code-block">
+<pre>wsl --set-version Ubuntu 2</pre>
+        </div>
+
+        <h3>Docker is not running</h3>
+
+        <p>
+          Check:
+        </p>
+
+        <div class="code-block">
+<pre>docker version
+docker ps</pre>
+        </div>
+
+        <p>
+          If the Docker server is not responding, start Docker Desktop and wait for the engine to finish starting.
+        </p>
+
+        <h3>Docker is in Windows container mode</h3>
+
+        <p>
+          Switch Docker Desktop to Linux containers. This is usually available from the Docker Desktop tray icon or Docker Desktop settings.
+        </p>
+
+        <h3>Docker WSL integration is not enabled</h3>
+
+        <p>
+          Open Docker Desktop and check:
+        </p>
+
+        <ul>
+          <li><strong>Settings</strong></li>
+          <li><strong>Resources</strong></li>
+          <li><strong>WSL Integration</strong></li>
+          <li>Enable integration for Ubuntu</li>
+        </ul>
+
+        <h3>PowerShell does not recognize docker</h3>
+
+        <p>
+          Close and reopen PowerShell. If that does not work, restart the machine and confirm Docker Desktop installed successfully.
+        </p>
+
+        <h3>Port 8080 is already in use</h3>
+
+        <p>
+          Use a different host port:
+        </p>
+
+        <div class="code-block">
+<pre>docker run --name docker-lab-nginx -d -p 8082:80 nginx:latest</pre>
+        </div>
+
+        <p>
+          Then browse to:
+        </p>
+
+        <div class="code-block">
+<pre>http://localhost:8082</pre>
+        </div>
+
+        <h2>What this lab is good for</h2>
+
+        <ul>
+          <li>Learning Docker CLI basics</li>
+          <li>Running and inspecting containers</li>
+          <li>Testing Docker images</li>
+          <li>Practicing port mappings</li>
+          <li>Learning logs and troubleshooting</li>
+          <li>Using Docker Compose for repeatable local labs</li>
+        </ul>
+
+        <h2>What this lab is not good for</h2>
+
+        <ul>
+          <li>Production hosting</li>
+          <li>Multi-node orchestration</li>
+          <li>Enterprise registry governance</li>
+          <li>Production secret management</li>
+          <li>Cloud load balancer or Kubernetes behavior</li>
+        </ul>
+
+        <p>
+          Those topics come later. The point of this lab is to build container muscle memory before adding orchestration complexity.
+        </p>
+
+        <h2>Quick lab checklist</h2>
+
+        <p>
+          Before moving to the next lesson, make sure you can run each of these successfully:
+        </p>
+
+        <div class="code-block">
+<pre>wsl -l -v
+wsl --list --online
+wsl -d Ubuntu
+docker version
+docker ps
+docker compose version
+docker run --name docker-lab-nginx -d -p 8080:80 nginx:latest
+docker ps
+docker logs docker-lab-nginx
+docker inspect docker-lab-nginx
+docker exec -it docker-lab-nginx /bin/sh
+docker stop docker-lab-nginx
+docker rm docker-lab-nginx
+docker images</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          You now have a working local Docker lab. That is the foundation for the rest of the Docker Field Notes series.
+        </div>
+
+        <h2>Check your understanding</h2>
+
+        <ol>
+          <li>What role does WSL 2 play in this Windows Docker lab?</li>
+          <li>Why do we use Ubuntu with WSL?</li>
+          <li>Why does Docker Desktop need to run Linux containers for this lab?</li>
+          <li>What does <strong>docker version</strong> confirm?</li>
+          <li>What does <strong>docker ps</strong> show?</li>
+          <li>What does <strong>-p 8080:80</strong> mean?</li>
+          <li>What is the difference between a container and an image?</li>
+          <li>Does removing a container remove the image?</li>
+          <li>What does Docker Compose help with?</li>
+          <li>Why is it useful that the Docker lab is disposable?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>WSL 2 provides Linux support that Docker Desktop can use on Windows.</li>
+            <li>Ubuntu gives you a local Linux distribution for Linux-based tooling and integration.</li>
+            <li>Most container images used in these labs are Linux container images.</li>
+            <li>It confirms the Docker client and server are available and responding.</li>
+            <li>Running containers.</li>
+            <li>Host port 8080 forwards to container port 80.</li>
+            <li>An image is the packaged source; a container is a running instance of that image.</li>
+            <li>No.</li>
+            <li>Repeatable multi-container local lab definitions.</li>
+            <li>You can experiment, break things, remove them, and rebuild without risk to important systems.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-field-notes.html">← Back to Docker Field Notes</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-what-containers-actually-are.html">Next: What Containers Actually Are →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <!-- Shared Includes -->
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
