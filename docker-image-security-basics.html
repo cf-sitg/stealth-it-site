@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Container security starts with the image: what you build from, what you include, what you expose, and how you maintain it.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Image Security Basics | Stealth IT Group">
+  <meta property="og:description" content="Container security starts with the image: what you build from, what you include, what you expose, and how you maintain it.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-image-security-basics.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-image-security-basics.html">
+  <title>Image Security Basics | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Security</div>
+        <h1>Image Security Basics</h1>
+        <p class="intro">Container security starts with the image: what you build from, what you include, what you expose, and how you maintain it.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>Trusted images</h2>
+        <p>Use trusted or organization-approved base images.</p>
+        <h2>Version pinning</h2>
+        <p>Avoid relying blindly on latest for production-style work.</p>
+        <h2>Secrets</h2>
+        <p>Never bake real secrets into Dockerfiles, copied files, image layers, or source repositories.</p>
+        <h2>Image hygiene</h2>
+        <p>Use .dockerignore, keep images small, run as non-root where practical, scan images, and rebuild when base images need updates.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>docker history <image-name>:<tag>
+docker image inspect <image-name>:<tag>
+# create .dockerignore with entries like .git, .env, *.key, secrets*, tmp, *.log</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>Why are trusted base images important?</li>
+          <li>Why is latest risky?</li>
+          <li>Why should secrets not be baked into images?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-container-logs-and-troubleshooting.html">← Previous: Container Logs and Troubleshooting</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-final-project-containerize-a-webapp.html">Next: Final Project: Containerize a Web App →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

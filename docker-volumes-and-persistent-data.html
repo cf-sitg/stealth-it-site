@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Containers are disposable, but some data needs to survive. Volumes and bind mounts separate data from container lifecycle.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Volumes and Persistent Data | Stealth IT Group">
+  <meta property="og:description" content="Containers are disposable, but some data needs to survive. Volumes and bind mounts separate data from container lifecycle.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-volumes-and-persistent-data.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-volumes-and-persistent-data.html">
+  <title>Volumes and Persistent Data | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Operations</div>
+        <h1>Volumes and Persistent Data</h1>
+        <p class="intro">Containers are disposable, but some data needs to survive. Volumes and bind mounts separate data from container lifecycle.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>Container filesystem</h2>
+        <p>Data written only inside a container filesystem can disappear when the container is removed.</p>
+        <h2>Named volumes</h2>
+        <p>A named volume is Docker-managed persistent storage.</p>
+        <h2>Bind mounts</h2>
+        <p>A bind mount maps a host folder into a container and is useful for local development and labs.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>docker volume create docker-data-lab
+docker run --name volume-writer -v docker-data-lab:/data busybox:latest sh -c "echo persistent-data > /data/message.txt"
+docker rm volume-writer
+docker run --name volume-reader -v docker-data-lab:/data busybox:latest cat /data/message.txt
+docker rm volume-reader
+docker volume rm docker-data-lab</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What is a named volume?</li>
+          <li>What is a bind mount?</li>
+          <li>Why does persistent data need a lifecycle outside the container?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-dockerfiles-explained-practically.html">← Previous: Dockerfiles Explained Practically</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-networks-and-port-mapping.html">Next: Networks and Port Mapping →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

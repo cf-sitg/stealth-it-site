@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="The fastest way to understand images is to build one. This lab packages a small web page into a custom nginx image.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Building a Simple Image | Stealth IT Group">
+  <meta property="og:description" content="The fastest way to understand images is to build one. This lab packages a small web page into a custom nginx image.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-building-a-simple-image.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-building-a-simple-image.html">
+  <title>Building a Simple Image | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Image Build</div>
+        <h1>Building a Simple Image</h1>
+        <p class="intro">The fastest way to understand images is to build one. This lab packages a small web page into a custom nginx image.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>Project goal</h2>
+        <p>Create a simple index.html file, write a Dockerfile, build a tagged image, and run that image locally.</p>
+        <h2>Build context</h2>
+        <p>The dot at the end of docker build means Docker can use the current folder as the build context.</p>
+        <h2>Versioning</h2>
+        <p>Build a new tag when application content changes so you can tell versions apart.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>mkdir docker-simple-image-lab
+cd docker-simple-image-lab
+# create index.html
+# create Dockerfile with:
+# FROM nginx:1.27
+# COPY index.html /usr/share/nginx/html/index.html
+docker build -t stealth-simple-web:1.0 .
+docker run --name stealth-simple-web-lab -d -p 8082:80 stealth-simple-web:1.0
+docker logs stealth-simple-web-lab
+docker stop stealth-simple-web-lab
+docker rm stealth-simple-web-lab</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What does a Dockerfile define?</li>
+          <li>What does docker build -t do?</li>
+          <li>What is build context?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-images-containers-and-registries.html">← Previous: Images, Containers, and Registries</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-dockerfiles-explained-practically.html">Next: Dockerfiles Explained Practically →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

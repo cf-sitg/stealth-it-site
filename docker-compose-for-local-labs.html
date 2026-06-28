@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Docker Compose defines local multi-container labs in one YAML file instead of long manual docker run commands.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Docker Compose for Local Labs | Stealth IT Group">
+  <meta property="og:description" content="Docker Compose defines local multi-container labs in one YAML file instead of long manual docker run commands.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-compose-for-local-labs.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-compose-for-local-labs.html">
+  <title>Docker Compose for Local Labs | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Compose</div>
+        <h1>Docker Compose for Local Labs</h1>
+        <p class="intro">Docker Compose defines local multi-container labs in one YAML file instead of long manual docker run commands.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>What Compose solves</h2>
+        <p>Compose makes local environments repeatable by defining services, ports, volumes, networks, commands, and environment settings.</p>
+        <h2>Service names</h2>
+        <p>Compose services can usually reach each other by service name on the Compose network.</p>
+        <h2>Cleanup</h2>
+        <p>docker compose down stops and removes the Compose containers and default network.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>docker compose version
+mkdir docker-compose-lab
+cd docker-compose-lab
+# create compose.yaml
+docker compose up -d
+docker compose ps
+docker compose logs
+docker compose exec toolbox wget -qO- http://web
+docker compose down</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What file does Compose commonly use?</li>
+          <li>What command starts services in the background?</li>
+          <li>How do Compose services reach each other?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-networks-and-port-mapping.html">← Previous: Networks and Port Mapping</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-container-logs-and-troubleshooting.html">Next: Container Logs and Troubleshooting →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

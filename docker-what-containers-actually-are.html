@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Containers are isolated application processes created from images. This lesson shows how to run, inspect, log, exec into, stop, and remove a container.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="What Containers Actually Are | Stealth IT Group">
+  <meta property="og:description" content="Containers are isolated application processes created from images. This lesson shows how to run, inspect, log, exec into, stop, and remove a container.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-what-containers-actually-are.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-what-containers-actually-are.html">
+  <title>What Containers Actually Are | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Foundations</div>
+        <h1>What Containers Actually Are</h1>
+        <p class="intro">Containers are isolated application processes created from images. This lesson shows how to run, inspect, log, exec into, stop, and remove a container.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>What this lesson covers</h2>
+        <p>A container is a running application process with a packaged filesystem and runtime isolation. It is not a full virtual machine.</p>
+        <h2>Container vs virtual machine</h2>
+        <p>Virtual machines include a guest operating system. Containers share the host kernel and package the application with its dependencies.</p>
+        <h2>What Docker gives you</h2>
+        <p>Docker provides tooling to pull images, start containers, map ports, inspect runtime settings, view logs, and clean up containers.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>docker version
+docker ps
+docker run --name docker-container-lab -d -p 8080:80 nginx:latest
+docker ps
+docker logs docker-container-lab
+docker inspect docker-container-lab
+docker exec -it docker-container-lab /bin/sh
+hostname
+ps
+ls
+exit
+docker stop docker-container-lab
+docker rm docker-container-lab</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What is the difference between an image and a container?</li>
+          <li>What does -p 8080:80 do?</li>
+          <li>Why should containers be treated as disposable?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-field-notes.html">← Previous: Docker Field Notes</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-images-containers-and-registries.html">Next: Images, Containers, and Registries →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

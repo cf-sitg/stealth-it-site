@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Containers need networking to receive traffic and communicate with each other. Port mappings and Docker networks are the starting point.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Networks and Port Mapping | Stealth IT Group">
+  <meta property="og:description" content="Containers need networking to receive traffic and communicate with each other. Port mappings and Docker networks are the starting point.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-networks-and-port-mapping.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-networks-and-port-mapping.html">
+  <title>Networks and Port Mapping | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Operations</div>
+        <h1>Networks and Port Mapping</h1>
+        <p class="intro">Containers need networking to receive traffic and communicate with each other. Port mappings and Docker networks are the starting point.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>Port mapping</h2>
+        <p>A mapping like -p 8080:80 maps host port 8080 to container port 80.</p>
+        <h2>User-defined networks</h2>
+        <p>Containers on the same user-defined Docker network can communicate by container name.</p>
+        <h2>Localhost warning</h2>
+        <p>Inside a container, localhost means that same container, not the host or another container.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>docker run --name network-nginx-lab -d -p 8083:80 nginx:latest
+docker network create app-network-lab
+docker run --name web-on-network -d --network app-network-lab nginx:latest
+docker run --rm --network app-network-lab busybox:latest wget -qO- http://web-on-network
+docker network inspect app-network-lab
+docker stop network-nginx-lab web-on-network
+docker rm network-nginx-lab web-on-network
+docker network rm app-network-lab</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>Which side of -p is the host port?</li>
+          <li>What does a user-defined network provide?</li>
+          <li>Why does localhost confuse container networking?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-volumes-and-persistent-data.html">← Previous: Volumes and Persistent Data</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-compose-for-local-labs.html">Next: Docker Compose for Local Labs →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

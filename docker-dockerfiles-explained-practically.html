@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Dockerfiles are build instructions. Good Dockerfiles make images repeatable, understandable, and safer.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Dockerfiles Explained Practically | Stealth IT Group">
+  <meta property="og:description" content="Dockerfiles are build instructions. Good Dockerfiles make images repeatable, understandable, and safer.">
+  <meta property="og:url" content="https://stealthitgroup.com/docker-dockerfiles-explained-practically.html">
+  <link rel="canonical" href="https://stealthitgroup.com/docker-dockerfiles-explained-practically.html">
+  <title>Dockerfiles Explained Practically | Docker Field Notes | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Docker Image Build</div>
+        <h1>Dockerfiles Explained Practically</h1>
+        <p class="intro">Dockerfiles are build instructions. Good Dockerfiles make images repeatable, understandable, and safer.</p>
+        <p class="article-meta">Docker Field Notes · Hands-on Lab</p>
+        <h2>Common instructions</h2>
+        <p>FROM selects the base image. COPY copies files. RUN executes build-time commands. EXPOSE documents a port. CMD defines the default runtime command.</p>
+        <h2>.dockerignore</h2>
+        <p>Use .dockerignore to keep unnecessary and sensitive files out of the build context.</p>
+        <h2>Layers</h2>
+        <p>Docker can cache build layers. Instruction order affects rebuild speed and image behavior.</p>
+        <h2>Hands-on lab commands</h2>
+        <div class="code-block">
+<pre>docker build -t dockerfile-lab:1.0 .
+docker images
+docker image inspect dockerfile-lab:1.0
+docker history dockerfile-lab:1.0</pre>
+        </div>
+        <div class="field-note"><strong>Bottom line:</strong> This lesson builds the practical Docker foundation needed before moving into orchestrated Kubernetes workloads.</div>
+        <h2>Check your understanding</h2>
+        <ol>
+          <li>What does FROM define?</li>
+          <li>Why use .dockerignore?</li>
+          <li>Why should secrets never be copied into images?</li>
+        </ol>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/docker-building-a-simple-image.html">← Previous: Building a Simple Image</a>
+          <a class="nav-index" href="/docker-field-notes.html">Series index</a>
+          <a class="nav-next" href="/docker-volumes-and-persistent-data.html">Next: Volumes and Persistent Data →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
