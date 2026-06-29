@@ -52,12 +52,14 @@
         <ul>
           <li>Cloning the Wazuh Kubernetes deployment repository</li>
           <li>Understanding the local Kubernetes deployment layout</li>
+          <li>Preparing certificate scripts on Windows / PowerShell</li>
           <li>Generating Wazuh indexer and dashboard certificates</li>
           <li>Checking Kubernetes storage before deploying a stateful platform</li>
           <li>Applying Wazuh manifests with Kustomize</li>
           <li>Validating namespaces, services, pods, PVCs, and events</li>
           <li>Accessing the dashboard with port-forwarding</li>
           <li>Reviewing default credentials and password-change expectations</li>
+          <li>Understanding expected kubectl apply namespace warnings</li>
           <li>Troubleshooting common deployment failures</li>
         </ul>
 
@@ -150,7 +152,40 @@ ls wazuh/secrets</pre>
           <li><strong>Kustomize</strong> is used through <strong>kubectl apply -k</strong>.</li>
         </ul>
 
-        <h2>Step 4: Generate the Wazuh indexer certificates</h2>
+        <h2>Step 4: Prepare certificate scripts on Windows / PowerShell</h2>
+
+        <p>
+          If you cloned the Wazuh Kubernetes repository on Windows and are running the certificate scripts through WSL, confirm the scripts use Linux line endings before generating certificates. If the files have Windows CRLF line endings, Bash may fail with errors such as <strong>$'\r': command not found</strong>, broken <strong>cd</strong> paths, or OpenSSL parsing errors.
+        </p>
+
+        <div class="field-note">
+          <strong>Windows / PowerShell note:</strong>
+          This is a common Windows lab issue. The repository may be located under <strong>C:\k8s\wazuh-kubernetes</strong>, but the certificate scripts are Bash scripts. Run them through WSL after converting the script and config files to Linux line endings.
+        </div>
+
+        <p>
+          From PowerShell, while you are in <strong>C:\k8s\wazuh-kubernetes</strong>, run:
+        </p>
+
+        <div class="code-block">
+<pre>wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes && sudo apt-get update && sudo apt-get install -y dos2unix && find wazuh/certs -type f \( -name '*.sh' -o -name '*.cnf' -o -name '*.conf' -o -name '*.yml' -o -name '*.yaml' \) -print0 | xargs -0 dos2unix"</pre>
+        </div>
+
+        <p>
+          If WSL asks for a password, it is asking for the Linux user password for your WSL distribution. It is not your Kubernetes password, not your Wazuh password, and not the Wazuh dashboard password.
+        </p>
+
+        <h3>Clean up failed partial certificate output</h3>
+
+        <p>
+          If you already tried to run the scripts and saw <strong>$'\r'</strong> errors, clean up any partial certificate files before rerunning the scripts.
+        </p>
+
+        <div class="code-block">
+<pre>wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes/wazuh/certs/indexer_cluster && rm -f *.pem *.csr *.srl *-temp.pem && cd ../dashboard_http && rm -f *.pem *.csr *.srl *-temp.pem"</pre>
+        </div>
+
+        <h2>Step 5: Generate the Wazuh indexer certificates</h2>
 
         <p>
           Wazuh components need certificates so the indexer, dashboard, manager, and related services can communicate securely. In a local lab, self-signed certificates are acceptable. In production, certificate handling needs real lifecycle ownership.
@@ -158,6 +193,16 @@ ls wazuh/secrets</pre>
 
         <div class="code-block">
 <pre>bash wazuh/certs/indexer_cluster/generate_certs.sh</pre>
+        </div>
+
+        <h3>PowerShell / WSL command</h3>
+
+        <p>
+          If you are running the lab from PowerShell with the repository at <strong>C:\k8s\wazuh-kubernetes</strong>, run the script through WSL:
+        </p>
+
+        <div class="code-block">
+<pre>wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes && bash wazuh/certs/indexer_cluster/generate_certs.sh"</pre>
         </div>
 
         <h3>What you should see</h3>
@@ -173,9 +218,10 @@ ls wazuh/secrets</pre>
           <li>Confirm the script exists at <strong>wazuh/certs/indexer_cluster/generate_certs.sh</strong>.</li>
           <li>Confirm your shell can run Bash scripts.</li>
           <li>Confirm file permissions allow the script to execute or run it explicitly through <strong>bash</strong>.</li>
+          <li>If you see <strong>$'\r': command not found</strong>, convert the files to Linux line endings using the Windows / PowerShell step above.</li>
         </ul>
 
-        <h2>Step 5: Generate the Wazuh dashboard certificates</h2>
+        <h2>Step 6: Generate the Wazuh dashboard certificates</h2>
 
         <p>
           The dashboard also needs certificate material for HTTPS access.
@@ -183,6 +229,16 @@ ls wazuh/secrets</pre>
 
         <div class="code-block">
 <pre>bash wazuh/certs/dashboard_http/generate_certs.sh</pre>
+        </div>
+
+        <h3>PowerShell / WSL command</h3>
+
+        <p>
+          If you are running the lab from PowerShell with the repository at <strong>C:\k8s\wazuh-kubernetes</strong>, run the script through WSL:
+        </p>
+
+        <div class="code-block">
+<pre>wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes && bash wazuh/certs/dashboard_http/generate_certs.sh"</pre>
         </div>
 
         <h3>What this means</h3>
@@ -196,7 +252,7 @@ ls wazuh/secrets</pre>
           Lab certificates are not production certificate management. In production, certificate ownership, rotation, secret storage, trust chains, and access control must be designed intentionally.
         </div>
 
-        <h2>Step 6: Confirm your storage class</h2>
+        <h2>Step 7: Confirm your storage class</h2>
 
         <p>
           Wazuh has stateful components, so storage must work before the platform will become healthy.
@@ -224,7 +280,7 @@ ls wazuh/secrets</pre>
           If your lab requires a different provisioner, adjust the file before applying the local manifests. Do not guess. Match the provisioner to what your cluster actually supports.
         </p>
 
-        <h2>Step 7: Review the local deployment overlay</h2>
+        <h2>Step 8: Review the local deployment overlay</h2>
 
         <p>
           Before you deploy, inspect the local overlay.
@@ -251,7 +307,37 @@ kubectl kustomize envs/local-env/ | head -n 80</pre>
           Previewing generated manifests is a strong habit. It helps you understand what Kubernetes is about to receive before you ask the API server to create it.
         </div>
 
-        <h2>Step 8: Apply the local Kubernetes manifests</h2>
+        <h2>Step 9: Apply the local Kubernetes manifests</h2>
+
+        <p>
+          Before applying the manifests, confirm the generated certificate files exist. Kustomize will fail if files such as <strong>wazuh/certs/indexer_cluster/root-ca.pem</strong> are missing.
+        </p>
+
+        <div class="code-block">
+<pre>Get-ChildItem .\wazuh\certs\indexer_cluster\*.pem
+Get-ChildItem .\wazuh\certs\dashboard_http\*.pem</pre>
+        </div>
+
+        <p>
+          You should see files such as:
+        </p>
+
+        <div class="code-block">
+<pre>root-ca.pem
+node.pem
+node-key.pem
+dashboard.pem
+dashboard-key.pem
+admin.pem
+admin-key.pem
+filebeat.pem
+filebeat-key.pem</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Do not skip this check:</strong>
+          If <strong>root-ca.pem</strong> does not exist, stop and fix certificate generation before running <strong>kubectl apply -k envs/local-env/</strong>.
+        </div>
 
         <p>
           For a local lab, use the <strong>local-env</strong> overlay.
@@ -261,13 +347,28 @@ kubectl kustomize envs/local-env/ | head -n 80</pre>
 <pre>kubectl apply -k envs/local-env/</pre>
         </div>
 
+        <h3>Expected warning if the namespace already exists</h3>
+
+        <p>
+          If you created the <strong>wazuh</strong> namespace earlier during lab preparation, you may see a warning similar to this:
+        </p>
+
+        <div class="code-block">
+<pre>Warning: resource namespaces/wazuh is missing the kubectl.kubernetes.io/last-applied-configuration annotation...
+namespace/wazuh configured</pre>
+        </div>
+
+        <p>
+          This is not a deployment failure. It means the namespace was originally created with <strong>kubectl create namespace</strong> instead of <strong>kubectl apply</strong>, so it did not have the apply-tracking annotation. Kubernetes patches the annotation automatically and continues.
+        </p>
+
         <h3>What this creates</h3>
 
         <p>
           Expect Kubernetes to create the Wazuh namespace, secrets, services, StatefulSets, Deployments, persistent volume claims, and supporting configuration.
         </p>
 
-        <h2>Step 9: Watch the deployment come up</h2>
+        <h2>Step 10: Watch the deployment come up</h2>
 
         <p>
           Stateful platforms take time. Watch the pods instead of immediately assuming failure.
@@ -291,7 +392,7 @@ kubectl kustomize envs/local-env/ | head -n 80</pre>
           <li><strong>CrashLoopBackOff:</strong> the container started and failed repeatedly.</li>
         </ul>
 
-        <h2>Step 10: Verify the Wazuh namespace</h2>
+        <h2>Step 11: Verify the Wazuh namespace</h2>
 
         <div class="code-block">
 <pre>kubectl get namespaces | grep wazuh</pre>
@@ -301,7 +402,7 @@ kubectl kustomize envs/local-env/ | head -n 80</pre>
           You should see the <strong>wazuh</strong> namespace active.
         </p>
 
-        <h2>Step 11: Verify Wazuh services</h2>
+        <h2>Step 12: Verify Wazuh services</h2>
 
         <div class="code-block">
 <pre>kubectl get services -n wazuh
@@ -312,7 +413,7 @@ kubectl get services -n wazuh -o wide</pre>
           Look for services for the dashboard, indexer, Wazuh manager, Wazuh cluster, and workers. Exact names and service types can vary by version and environment.
         </p>
 
-        <h2>Step 12: Verify pods, storage, and events</h2>
+        <h2>Step 13: Verify pods, storage, and events</h2>
 
         <div class="code-block">
 <pre>kubectl get pods -n wazuh -o wide
@@ -332,7 +433,7 @@ kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
           <li>Events should not show ongoing image pull, mount, scheduling, or readiness failures.</li>
         </ul>
 
-        <h2>Step 13: Access the dashboard with port-forwarding</h2>
+        <h2>Step 14: Access the dashboard with port-forwarding</h2>
 
         <p>
           In a local lab, do not expose the dashboard broadly. Use port-forwarding to bind dashboard access to the local machine.
@@ -354,7 +455,7 @@ kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
           Your browser may warn about the certificate because the lab uses self-signed certificates.
         </p>
 
-        <h2>Step 14: Login and immediately review credentials</h2>
+        <h2>Step 15: Login and immediately review credentials</h2>
 
         <p>
           Wazuh's Kubernetes deployment documentation lists the default lab dashboard credentials as:
@@ -374,7 +475,7 @@ Password: SecretPassword</pre>
           Default credentials are acceptable only as a short-lived lab bootstrap step. They are not acceptable for persistent, shared, exposed, or production-like environments.
         </div>
 
-        <h2>Step 15: Document the deployment</h2>
+        <h2>Step 16: Document the deployment</h2>
 
         <p>
           Before moving to the next lesson, capture a short deployment record.
@@ -390,11 +491,43 @@ Dashboard access method:
 Default credentials changed:
 Pods healthy:
 PVCs bound:
+Windows / PowerShell line-ending fix needed:
 Known issues:
 Cleanup procedure:</pre>
         </div>
 
         <h2>Common deployment problems</h2>
+
+        <h3>Certificate script fails with $'\r': command not found</h3>
+
+        <p>
+          This means the Bash scripts have Windows CRLF line endings. Convert the certificate scripts and config files with <strong>dos2unix</strong>, remove partial certificate output, and rerun both certificate generation scripts through WSL.
+        </p>
+
+        <div class="code-block">
+<pre>wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes && find wazuh/certs -type f \( -name '*.sh' -o -name '*.cnf' -o -name '*.conf' -o -name '*.yml' -o -name '*.yaml' \) -print0 | xargs -0 dos2unix"
+
+wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes/wazuh/certs/indexer_cluster && rm -f *.pem *.csr *.srl *-temp.pem && cd ../dashboard_http && rm -f *.pem *.csr *.srl *-temp.pem"
+
+wsl bash -lc "cd /mnt/c/k8s/wazuh-kubernetes && bash wazuh/certs/indexer_cluster/generate_certs.sh && bash wazuh/certs/dashboard_http/generate_certs.sh"</pre>
+        </div>
+
+        <h3>Kustomize fails because root-ca.pem is missing</h3>
+
+        <p>
+          This means certificate generation did not complete successfully. Confirm the PEM files exist before applying manifests.
+        </p>
+
+        <div class="code-block">
+<pre>Get-ChildItem .\wazuh\certs\indexer_cluster\*.pem
+Get-ChildItem .\wazuh\certs\dashboard_http\*.pem</pre>
+        </div>
+
+        <h3>kubectl apply warns that the wazuh namespace is missing the last-applied annotation</h3>
+
+        <p>
+          This is expected if you created the namespace earlier with <strong>kubectl create namespace wazuh</strong>. The apply command patches the missing annotation automatically and continues. Treat it as a warning, not a deployment failure.
+        </p>
 
         <h3>Pods stay Pending</h3>
 
@@ -477,6 +610,9 @@ kubectl describe pod -n wazuh &lt;pod-name&gt;</pre>
           <li>What should you document after deployment?</li>
           <li>What should you check first if pods are Pending?</li>
           <li>What should you check if the dashboard will not open?</li>
+          <li>What does <strong>$'\r': command not found</strong> usually mean when running the certificate scripts?</li>
+          <li>Why should you remove partial certificate output after a failed certificate-generation attempt?</li>
+          <li>Is the missing <strong>last-applied-configuration</strong> namespace warning a deployment failure?</li>
         </ol>
 
         <details class="field-note">
@@ -496,6 +632,9 @@ kubectl describe pod -n wazuh &lt;pod-name&gt;</pre>
             <li>Version, context, StorageClass, namespace, dashboard access, credential status, pod health, PVC state, known issues, and cleanup plan.</li>
             <li>Describe the pod, check PVCs, check resources, and review namespace events.</li>
             <li>Check the service name, port-forward process, URL, certificate warning, and dashboard pod readiness.</li>
+            <li>The scripts have Windows CRLF line endings and need to be converted to Linux line endings before running through Bash.</li>
+            <li>Partial files can leave the certificate directories in a confusing broken state, so clean them up before rerunning the scripts.</li>
+            <li>No. In this lab it usually means the namespace was created earlier with <strong>kubectl create namespace</strong>; Kubernetes patches the annotation automatically and continues.</li>
           </ol>
         </details>
 
