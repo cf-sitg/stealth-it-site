@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Access the Wazuh dashboard safely in a local lab using port-forwarding, then understand how production access differs.">
+  <meta name="description" content="Use the Wazuh dashboard like a SOC analyst: verify platform visibility, review alerts, filter by timestamp and source, inspect rule details, capture evidence, and avoid unsafe dashboard changes.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
-  <meta property="og:title" content="Accessing the Wazuh Dashboard Safely | Stealth IT Group">
-  <meta property="og:description" content="Access the Wazuh dashboard safely in a local lab using port-forwarding, then understand how production access differs.">
+  <meta property="og:title" content="Using the Wazuh Dashboard Like a SOC Analyst | Stealth IT Group">
+  <meta property="og:description" content="Use the Wazuh dashboard like a SOC analyst: verify platform visibility, review alerts, filter by timestamp and source, inspect rule details, capture evidence, and avoid unsafe dashboard changes.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-accessing-the-wazuh-dashboard.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-accessing-the-wazuh-dashboard.html">
-  <title>Accessing the Wazuh Dashboard Safely | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <title>Using the Wazuh Dashboard Like a SOC Analyst | Kubernetes SOC Field Lab | Stealth IT Group</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -24,53 +24,271 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
-        <div class="badge">Dashboard Access</div>
-        <h1>Accessing the Wazuh Dashboard Safely</h1>
-        <p class="intro">Access the Wazuh dashboard safely in a local lab using port-forwarding, then understand how production access differs.</p>
-        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+        <div class="badge">Dashboard Operations</div>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-platform">Platform Operations</span></div>
-        <h2>Lab objective</h2><p>Access the Wazuh dashboard safely in a local Kubernetes lab. Start with port-forwarding so the dashboard is not broadly exposed.</p>
-        <h2>Step 1: Find dashboard service</h2><div class="code-block"><pre>kubectl get svc -n wazuh</pre></div>
-        <h2>Step 2: Port-forward the dashboard</h2><div class="code-block"><pre>kubectl port-forward -n wazuh svc/&lt;dashboard-service-name&gt; 5601:5601</pre></div>
-        <p>Open <strong>https://localhost:5601</strong> or the URL/port indicated by your deployment. Local certificates may trigger a browser warning in a lab.</p>
-        <h2>Step 3: Login and validate</h2><ul><li>Confirm you can log in.</li><li>Confirm Wazuh loads without server connection errors.</li><li>Confirm agents or platform components appear where expected.</li><li>Confirm alerts/search views are reachable.</li></ul>
-        <h2>Why not expose it broadly?</h2><p>The dashboard is a sensitive SOC interface. In production, access should be protected with strong authentication, TLS, network controls, role-based access, logging, and operational ownership.</p>
-        <div class="field-note"><strong>Security note:</strong> Do not publish the dashboard to the internet from a lab. Learning access control is part of SOC lab discipline.</div>
+        <h1>Using the Wazuh Dashboard Like a SOC Analyst</h1>
+
+        <p class="intro">
+          Now that Wazuh is deployed and reachable, use the dashboard with purpose: verify visibility, find alerts, filter by time and source, inspect rule details, capture evidence, and document what the alert means.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+
+        <div class="cert-track-list">
+          <span class="cert-track soc-siem">SIEM Operations</span>
+          <span class="cert-track soc-ir">Incident Response</span>
+          <span class="cert-track soc-detection">Detection Engineering</span>
+        </div>
+
+        <h2>What this lesson covers</h2>
+
+        <ul>
+          <li>Confirming the dashboard is reachable</li>
+          <li>Validating Wazuh platform visibility</li>
+          <li>Understanding dashboard areas at a high level</li>
+          <li>Reviewing alerts like an analyst</li>
+          <li>Filtering by time, source, rule, and severity</li>
+          <li>Capturing evidence without overreacting</li>
+          <li>Avoiding unsafe or unnecessary dashboard changes</li>
+        </ul>
+
+        <h2>Step 1: Start dashboard access</h2>
+
+        <p>
+          If your port-forward is not already running, start it again:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl -n wazuh port-forward --address 127.0.0.1 service/dashboard 8443:443</pre>
+        </div>
+
+        <p>
+          Open:
+        </p>
+
+        <div class="code-block">
+<pre>https://127.0.0.1:8443</pre>
+        </div>
+
+        <p>
+          Login with the lab credentials or the updated credentials you configured after deployment.
+        </p>
+
+        <div class="field-note">
+          <strong>Security note:</strong>
+          This page assumes local lab access. Do not publish the dashboard broadly, and do not leave default credentials in place for anything persistent, shared, or exposed.
+        </div>
+
+        <h2>Step 2: Confirm the platform is actually healthy</h2>
+
+        <p>
+          Before investigating alerts, make sure the dashboard is connected to the rest of the Wazuh platform.
+        </p>
+
+        <h3>Dashboard checks</h3>
+
+        <ul>
+          <li>The dashboard loads without backend connection errors.</li>
+          <li>Wazuh application areas are available.</li>
+          <li>Agent or endpoint sections load.</li>
+          <li>Alert or event views return data once telemetry exists.</li>
+          <li>The dashboard time range is not hiding recent events.</li>
+        </ul>
+
+        <h3>Kubernetes checks</h3>
+
+        <div class="code-block">
+<pre>kubectl get pods -n wazuh
+kubectl get svc -n wazuh
+kubectl get pvc -n wazuh
+kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Analyst note:</strong>
+          If the dashboard is unhealthy, an empty alert screen does not mean the lab is quiet. It may mean the platform is not collecting, indexing, or displaying data correctly.
+        </div>
+
+        <h2>Step 3: Set the right time range</h2>
+
+        <p>
+          Time range mistakes are common in SIEM work. Before searching, set the dashboard time window to cover the activity you care about.
+        </p>
+
+        <ul>
+          <li>For fresh lab events, start with the last 15 minutes or last 1 hour.</li>
+          <li>For earlier tests, widen the window.</li>
+          <li>Record the time you generated each test event.</li>
+          <li>Be aware of local time vs UTC display differences.</li>
+        </ul>
+
+        <h2>Step 4: Review alerts with a repeatable analyst checklist</h2>
+
+        <p>
+          Every alert review should answer the same core questions.
+        </p>
+
+        <div class="code-block">
+<pre>Alert title:
+Timestamp:
+Agent/source:
+Namespace/workload:
+Rule ID:
+Severity:
+Description:
+Full log summary:
+Expected or unexpected:
+Evidence:
+Recommended action:</pre>
+        </div>
+
+        <h3>What to look for</h3>
+
+        <ul>
+          <li><strong>Timestamp:</strong> when the event occurred.</li>
+          <li><strong>Agent/source:</strong> where the telemetry came from.</li>
+          <li><strong>Rule ID:</strong> which detection or rule fired.</li>
+          <li><strong>Severity:</strong> how Wazuh rated it.</li>
+          <li><strong>Description:</strong> what Wazuh thinks happened.</li>
+          <li><strong>Full log:</strong> the raw or detailed evidence behind the alert.</li>
+        </ul>
+
+        <h2>Step 5: Filter instead of scrolling</h2>
+
+        <p>
+          Do not treat the dashboard like a long inbox. Filter the data to answer a question.
+        </p>
+
+        <h3>Useful filter questions</h3>
+
+        <ul>
+          <li>Show alerts from the last 30 minutes.</li>
+          <li>Show alerts from a specific agent or workload.</li>
+          <li>Show alerts above a certain severity.</li>
+          <li>Show a specific rule ID.</li>
+          <li>Show activity near the time you generated the lab event.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Analyst note:</strong>
+          Filtering is part of the investigation. The question comes first; the filter supports the question.
+        </div>
+
+        <h2>Step 6: Correlate dashboard evidence with Kubernetes evidence</h2>
+
+        <p>
+          Wazuh may show an alert, but Kubernetes can help confirm what workload, namespace, pod, or event existed at that time.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -A -o wide
+kubectl get events -A --sort-by=.lastTimestamp
+kubectl logs -n soc-lab &lt;pod-name&gt;
+kubectl describe pod -n soc-lab &lt;pod-name&gt;</pre>
+        </div>
+
+        <h3>What correlation helps prove</h3>
+
+        <ul>
+          <li>The workload existed at the time of the alert.</li>
+          <li>The pod was running, restarting, or terminating.</li>
+          <li>The source namespace matches the lab activity.</li>
+          <li>Kubernetes events support or contradict the dashboard view.</li>
+        </ul>
+
+        <h2>Step 7: Capture evidence without making assumptions</h2>
+
+        <p>
+          Evidence is not the same as a conclusion. Capture the alert details first, then decide what they mean.
+        </p>
+
+        <div class="code-block">
+<pre>Evidence captured:
+- Screenshot or copied alert details
+- Timestamp
+- Agent/source
+- Rule ID and severity
+- Full log summary
+- Kubernetes pod/event/log correlation
+- Whether the activity was expected lab activity</pre>
+        </div>
+
+        <h2>Step 8: Know what not to change casually</h2>
+
+        <p>
+          Avoid making broad dashboard or platform changes while you are learning alert review.
+        </p>
+
+        <ul>
+          <li>Do not suppress alerts globally because they are noisy in a lab.</li>
+          <li>Do not delete users, roles, rules, or index data casually.</li>
+          <li>Do not change passwords without documenting the change.</li>
+          <li>Do not expose the dashboard just to make access easier.</li>
+          <li>Do not confuse expected lab activity with real incident response.</li>
+        </ul>
+
+        <h2>Step 9: Write a short analyst note</h2>
+
+        <div class="code-block">
+<pre>Analyst note:
+The alert occurred at &lt;time&gt; from &lt;source&gt;.
+Wazuh rule &lt;rule_id&gt; reported &lt;description&gt; with severity &lt;level&gt;.
+The activity appears expected/unexpected because &lt;evidence&gt;.
+Kubernetes correlation showed &lt;pod/namespace/event/log result&gt;.
+Recommended action: &lt;close as lab test / tune / investigate further / remediate&gt;.</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          A SOC dashboard is not the investigation. It is one evidence source. A good analyst combines dashboard context, platform context, and documented reasoning.
+        </div>
 
         <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+
+        <p>
+          Use these questions to check whether the dashboard workflow is clear before moving forward.
+        </p>
+
         <ol>
-          <li>Why start with port-forwarding?</li>
-          <li>What command lists services?</li>
-          <li>What command forwards a service locally?</li>
-          <li>Why is the dashboard sensitive?</li>
-          <li>What should production dashboard access include?</li>
-          <li>Why might the browser show a certificate warning?</li>
-          <li>What should you validate after login?</li>
-          <li>Why avoid public exposure?</li>
-          <li>What does port-forwarding not prove?</li>
-          <li>Why document the access method?</li>
+          <li>Why should you confirm platform health before investigating alerts?</li>
+          <li>Why does time range matter in a dashboard investigation?</li>
+          <li>What is the difference between an alert description and the full log?</li>
+          <li>Why should you filter instead of scrolling?</li>
+          <li>What dashboard fields should you capture for an alert?</li>
+          <li>Why correlate Wazuh evidence with Kubernetes commands?</li>
+          <li>Why is severity not enough by itself?</li>
+          <li>Why should you avoid global alert suppression during a lab?</li>
+          <li>Why should credential changes be documented?</li>
+          <li>What makes an analyst note useful?</li>
+          <li>Why should evidence be captured before conclusions?</li>
+          <li>What does an empty alert view possibly mean besides “nothing happened”?</li>
         </ol>
+
         <details class="field-note">
           <summary><strong>Answer key</strong></summary>
           <ol>
-            <li>It limits exposure in a local lab.</li>
-            <li>kubectl get svc -n wazuh.</li>
-            <li>kubectl port-forward -n wazuh svc/<name> local:remote.</li>
-            <li>It exposes security monitoring data and administrative functions.</li>
-            <li>Strong auth, TLS, network restrictions, RBAC, logging, and ownership.</li>
-            <li>Local/self-signed lab certificates.</li>
-            <li>Login, component connection, agents, alerts, and searches.</li>
-            <li>To avoid unnecessary risk.</li>
-            <li>Production-grade access security.</li>
-            <li>So future operators know how the dashboard was accessed and secured.</li>
+            <li>If Wazuh is unhealthy, missing data may reflect a collection, indexing, or dashboard problem rather than a quiet environment.</li>
+            <li>The dashboard only shows data inside the selected time window, and time zone differences can hide relevant events.</li>
+            <li>The description summarizes what the rule thinks happened; the full log provides the underlying evidence.</li>
+            <li>Filtering turns the investigation into a focused question instead of random browsing.</li>
+            <li>Timestamp, source/agent, rule ID, severity, description, full log summary, and expected/unexpected status.</li>
+            <li>Kubernetes commands help validate workload, namespace, pod, log, and event context.</li>
+            <li>Severity needs context, source, evidence, and impact before deciding response.</li>
+            <li>Suppressing globally can hide useful signal and create blind spots.</li>
+            <li>So access remains recoverable, auditable, and understandable to future operators.</li>
+            <li>It states what happened, what evidence supports it, and what action is recommended.</li>
+            <li>Conclusions should be supported by evidence, not assumptions.</li>
+            <li>It may mean no telemetry, wrong time range, dashboard/indexer issue, or collection failure.</li>
           </ol>
         </details>
 
-    
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-understanding-wazuh-components.html">← Previous: Understanding the Wazuh Components</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
@@ -78,11 +296,13 @@
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
   <script src="/assets/includes.js"></script>
 </body>
 </html>
