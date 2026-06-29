@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Deploy Wazuh into Kubernetes using the official Wazuh Kubernetes deployment model and validate the resulting pods, services, storage, and secrets.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Deploying Wazuh on Kubernetes | Stealth IT Group">
+  <meta property="og:description" content="Deploy Wazuh into Kubernetes using the official Wazuh Kubernetes deployment model and validate the resulting pods, services, storage, and secrets.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-on-kubernetes.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-on-kubernetes.html">
+  <title>Deploying Wazuh on Kubernetes | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Wazuh Deployment</div>
+        <h1>Deploying Wazuh on Kubernetes</h1>
+        <p class="intro">Deploy Wazuh into Kubernetes using the official Wazuh Kubernetes deployment model and validate the resulting pods, services, storage, and secrets.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-platform">Platform Operations</span></div>
+        <h2>Important deployment note</h2>
+        <p>This lesson anchors deployment to the official Wazuh Kubernetes documentation instead of copying a fixed manifest into this training page. Wazuh versions, image tags, credentials, services, and manifests can change. Use official Wazuh documentation as the source of truth for the current deployment procedure.</p>
+        <div class="field-note"><strong>Operator note:</strong> Training content should explain what you are applying and how to validate it. The vendor documentation should remain the source of truth for current manifests and version-specific commands.</div>
+        <h2>Official Wazuh Kubernetes resources</h2>
+        <ul><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html">Wazuh deployment on Kubernetes</a></li><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-conf.html">Kubernetes configuration</a></li><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-deployment.html">Deployment steps</a></li><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-clean-up.html">Cleanup</a></li></ul>
+        <h2>Deployment workflow</h2><div class="code-block"><pre>1. Review official Wazuh Kubernetes documentation.
+2. Confirm lab CPU, memory, and storage.
+3. Clone or obtain official Wazuh Kubernetes deployment manifests.
+4. Review namespaces, secrets, storage, and service types before applying.
+5. Apply the local Kubernetes deployment variant recommended by Wazuh.
+6. Watch pods, services, and PVCs in the wazuh namespace.
+7. Access the dashboard safely.
+8. Change default credentials where required.
+9. Document deployed version and cleanup steps.</pre></div>
+        <h2>Validation commands</h2><div class="code-block"><pre>kubectl get namespace wazuh
+kubectl get all -n wazuh
+kubectl get pods -n wazuh -o wide
+kubectl get svc -n wazuh
+kubectl get pvc -n wazuh
+kubectl get secrets -n wazuh
+kubectl get events -n wazuh --sort-by=.lastTimestamp</pre></div>
+        <h2>Troubleshooting deployment</h2><ul><li>Use kubectl describe pod for scheduling, mount, image pull, and readiness problems.</li><li>Use kubectl logs for container startup errors.</li><li>Use kubectl get pvc if pods are waiting on storage.</li><li>Use kubectl get events for chronological failure clues.</li></ul>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>Why should official Wazuh docs be the source of truth for deployment commands?</li>
+          <li>What Wazuh components should you expect to see?</li>
+          <li>Why check PVCs?</li>
+          <li>What command lists services in the wazuh namespace?</li>
+          <li>What command shows chronological namespace events?</li>
+          <li>Why review secrets and credentials?</li>
+          <li>What command helps diagnose scheduling and mount failures?</li>
+          <li>What command helps diagnose startup failures?</li>
+          <li>Why document the deployed version?</li>
+          <li>Why is cleanup part of deployment planning?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Vendor manifests and commands can change by version.</li>
+            <li>Manager, indexer, dashboard, and related services/storage/secrets.</li>
+            <li>Stateful components require storage.</li>
+            <li>kubectl get svc -n wazuh.</li>
+            <li>kubectl get events -n wazuh --sort-by=.lastTimestamp.</li>
+            <li>Defaults or generated credentials must be understood and changed where appropriate.</li>
+            <li>kubectl describe pod.</li>
+            <li>kubectl logs.</li>
+            <li>For troubleshooting, repeatability, and future upgrades.</li>
+            <li>Stateful apps can leave resources and volumes behind.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-prepare-the-kubernetes-lab.html">← Previous: Preparing the Kubernetes Lab for Wazuh</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-understanding-wazuh-components.html">Next: Understanding the Wazuh Components →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

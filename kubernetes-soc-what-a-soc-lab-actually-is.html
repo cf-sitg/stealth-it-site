@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Define SOC, SIEM, XDR, telemetry, alerts, triage, investigations, findings, and the purpose of a safe lab.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="What a SOC Lab Actually Is | Stealth IT Group">
+  <meta property="og:description" content="Define SOC, SIEM, XDR, telemetry, alerts, triage, investigations, findings, and the purpose of a safe lab.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-what-a-soc-lab-actually-is.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-what-a-soc-lab-actually-is.html">
+  <title>What a SOC Lab Actually Is | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">SOC Foundations</div>
+        <h1>What a SOC Lab Actually Is</h1>
+        <p class="intro">Define SOC, SIEM, XDR, telemetry, alerts, triage, investigations, findings, and the purpose of a safe lab.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-foundations">SOC Foundations</span><span class="cert-track soc-ir">Incident Response</span></div>
+        <h2>What this lesson covers</h2>
+        <ul><li>What a SOC is</li><li>Events, alerts, incidents, and findings</li><li>SIEM and XDR concepts</li><li>What a safe lab can and cannot prove</li></ul>
+        <h2>The short version</h2>
+        <div class="code-block"><pre>Event: something happened.
+Alert: a rule decided the event may matter.
+Incident: a security event requiring response.
+Finding: documented observation requiring remediation, tuning, or follow-up.</pre></div>
+        <p>A SOC lab is a controlled environment where you practice security monitoring and investigation workflows. It should generate enough telemetry to practice detection and triage, but it should not become a reckless attack playground or a fake production environment.</p>
+        <p>A SIEM helps centralize and search security events. XDR usually expands the idea by correlating telemetry and response across endpoints, identities, workloads, cloud services, and other sources. In this lab, Wazuh gives us a practical platform for alert review, agent visibility, and security monitoring workflows.</p>
+        <div class="field-note"><strong>Analyst note:</strong> Not every alert is an incident. Triage is the discipline of deciding what the alert means, what evidence supports it, and what the next action should be.</div>
+        <h2>Lab scope statement</h2>
+        <div class="code-block"><pre>This lab teaches SOC workflow on Kubernetes using Wazuh.
+It deploys Wazuh, monitors safe lab workloads, generates benign test events,
+investigates alerts, documents findings, and practices cleanup.
+
+This lab will not:
+- Attack third-party systems
+- Teach stealth, persistence, or evasion
+- Represent production-grade SOC architecture
+- Replace official Wazuh or Kubernetes documentation</pre></div>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>What is the difference between an event and an alert?</li>
+          <li>Why is every alert not automatically an incident?</li>
+          <li>What does a SIEM help with?</li>
+          <li>What does XDR usually add conceptually?</li>
+          <li>Why should a SOC lab have a written scope?</li>
+          <li>Why should test events be safe and controlled?</li>
+          <li>What is a finding?</li>
+          <li>What is triage?</li>
+          <li>Why is Kubernetes useful for this lab?</li>
+          <li>What should this lab not be used for?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>An event is something that happened; an alert is an event or pattern that a rule decided may matter.</li>
+            <li>Some alerts are false positives, expected behavior, low severity, or lack impact.</li>
+            <li>Centralizing, searching, correlating, and reviewing security telemetry.</li>
+            <li>Broader cross-domain detection and response.</li>
+            <li>It defines boundaries and prevents reckless or unclear activity.</li>
+            <li>To teach investigation without causing harm.</li>
+            <li>A documented observation requiring remediation, tuning, or follow-up.</li>
+            <li>Deciding what an alert means and what action is appropriate.</li>
+            <li>It provides repeatable workloads, namespaces, logs, services, and security boundaries.</li>
+            <li>Attacking real systems, teaching evasion, or claiming production readiness.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-field-lab.html">← Previous: Kubernetes SOC Field Lab</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-lab-architecture.html">Next: Kubernetes SOC Lab Architecture →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

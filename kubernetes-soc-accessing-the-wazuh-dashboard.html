@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Access the Wazuh dashboard safely in a local lab using port-forwarding, then understand how production access differs.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Accessing the Wazuh Dashboard Safely | Stealth IT Group">
+  <meta property="og:description" content="Access the Wazuh dashboard safely in a local lab using port-forwarding, then understand how production access differs.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-accessing-the-wazuh-dashboard.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-accessing-the-wazuh-dashboard.html">
+  <title>Accessing the Wazuh Dashboard Safely | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Dashboard Access</div>
+        <h1>Accessing the Wazuh Dashboard Safely</h1>
+        <p class="intro">Access the Wazuh dashboard safely in a local lab using port-forwarding, then understand how production access differs.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-platform">Platform Operations</span></div>
+        <h2>Lab objective</h2><p>Access the Wazuh dashboard safely in a local Kubernetes lab. Start with port-forwarding so the dashboard is not broadly exposed.</p>
+        <h2>Step 1: Find dashboard service</h2><div class="code-block"><pre>kubectl get svc -n wazuh</pre></div>
+        <h2>Step 2: Port-forward the dashboard</h2><div class="code-block"><pre>kubectl port-forward -n wazuh svc/&lt;dashboard-service-name&gt; 5601:5601</pre></div>
+        <p>Open <strong>https://localhost:5601</strong> or the URL/port indicated by your deployment. Local certificates may trigger a browser warning in a lab.</p>
+        <h2>Step 3: Login and validate</h2><ul><li>Confirm you can log in.</li><li>Confirm Wazuh loads without server connection errors.</li><li>Confirm agents or platform components appear where expected.</li><li>Confirm alerts/search views are reachable.</li></ul>
+        <h2>Why not expose it broadly?</h2><p>The dashboard is a sensitive SOC interface. In production, access should be protected with strong authentication, TLS, network controls, role-based access, logging, and operational ownership.</p>
+        <div class="field-note"><strong>Security note:</strong> Do not publish the dashboard to the internet from a lab. Learning access control is part of SOC lab discipline.</div>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>Why start with port-forwarding?</li>
+          <li>What command lists services?</li>
+          <li>What command forwards a service locally?</li>
+          <li>Why is the dashboard sensitive?</li>
+          <li>What should production dashboard access include?</li>
+          <li>Why might the browser show a certificate warning?</li>
+          <li>What should you validate after login?</li>
+          <li>Why avoid public exposure?</li>
+          <li>What does port-forwarding not prove?</li>
+          <li>Why document the access method?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It limits exposure in a local lab.</li>
+            <li>kubectl get svc -n wazuh.</li>
+            <li>kubectl port-forward -n wazuh svc/<name> local:remote.</li>
+            <li>It exposes security monitoring data and administrative functions.</li>
+            <li>Strong auth, TLS, network restrictions, RBAC, logging, and ownership.</li>
+            <li>Local/self-signed lab certificates.</li>
+            <li>Login, component connection, agents, alerts, and searches.</li>
+            <li>To avoid unnecessary risk.</li>
+            <li>Production-grade access security.</li>
+            <li>So future operators know how the dashboard was accessed and secured.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-understanding-wazuh-components.html">← Previous: Understanding the Wazuh Components</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-deploying-wazuh-agents.html">Next: Deploying Wazuh Agents in Kubernetes →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

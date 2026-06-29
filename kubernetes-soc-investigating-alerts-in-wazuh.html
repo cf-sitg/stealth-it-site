@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Triage Wazuh alerts using timestamp, source, rule, severity, description, full log, scope, and recommended action.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Investigating Alerts in Wazuh | Stealth IT Group">
+  <meta property="og:description" content="Triage Wazuh alerts using timestamp, source, rule, severity, description, full log, scope, and recommended action.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-investigating-alerts-in-wazuh.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-investigating-alerts-in-wazuh.html">
+  <title>Investigating Alerts in Wazuh | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Alert Investigation</div>
+        <h1>Investigating Alerts in Wazuh</h1>
+        <p class="intro">Triage Wazuh alerts using timestamp, source, rule, severity, description, full log, scope, and recommended action.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-ir">Incident Response</span></div>
+        <h2>Investigation objective</h2><p>Practice alert triage. The goal is not to click randomly through a dashboard. The goal is to answer a repeatable set of questions with evidence.</p>
+        <h2>Alert review checklist</h2><ul><li>When did the alert occur?</li><li>What source or agent generated it?</li><li>What rule fired?</li><li>What severity was assigned?</li><li>What does the description claim happened?</li><li>What does the full log show?</li><li>Is this expected lab activity?</li><li>What action is recommended?</li></ul>
+        <h2>Investigation worksheet</h2><div class="code-block"><pre>Alert title:
+Timestamp:
+Agent/source:
+Namespace/workload:
+Rule ID:
+Severity:
+Description:
+Full log summary:
+Expected or unexpected:
+Likely cause:
+Evidence:
+Recommended action:
+Follow-up needed:</pre></div>
+        <h2>Kubernetes correlation commands</h2><div class="code-block"><pre>kubectl get pods -A -o wide
+kubectl get events -A --sort-by=.lastTimestamp
+kubectl logs -n soc-lab &lt;pod-name&gt;
+kubectl describe pod -n soc-lab &lt;pod-name&gt;</pre></div>
+        <h2>Decision outcomes</h2><ul><li><strong>Expected lab activity:</strong> document and close as test.</li><li><strong>Benign but noisy:</strong> create a tuning note.</li><li><strong>Misconfiguration:</strong> document a remediation finding.</li><li><strong>Suspicious and unexplained:</strong> escalate as an incident candidate.</li></ul>
+        <div class="field-note"><strong>Analyst note:</strong> A good investigation explains why you believe something, not just what the dashboard displayed.</div>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>What is the first goal of triage?</li>
+          <li>Why review the full log?</li>
+          <li>Why correlate with Kubernetes commands?</li>
+          <li>What is a rule ID useful for?</li>
+          <li>What should you do with expected lab activity?</li>
+          <li>What should you do with noisy benign activity?</li>
+          <li>What makes something an incident candidate?</li>
+          <li>Why document evidence?</li>
+          <li>Why is severity not enough by itself?</li>
+          <li>What does a good investigation explain?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Understand what happened and whether action is needed.</li>
+            <li>It contains underlying evidence/details.</li>
+            <li>To validate source, workload, and timing.</li>
+            <li>Finding rule details, repeat alerts, and tuning discussions.</li>
+            <li>Document and close as test.</li>
+            <li>Create a tuning note.</li>
+            <li>Suspicious, unexplained activity with possible impact or risk.</li>
+            <li>To support conclusions and follow-up.</li>
+            <li>Severity needs context, source, and evidence.</li>
+            <li>Why the conclusion is reasonable.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-generating-test-security-events.html">← Previous: Generating Test Security Events</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-detection-and-tuning-notes.html">Next: Detection and Tuning Notes →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

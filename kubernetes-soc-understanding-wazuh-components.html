@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Understand the Wazuh manager, indexer, dashboard, agents, services, StatefulSets, Deployments, persistent volumes, and secrets.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Understanding the Wazuh Components | Stealth IT Group">
+  <meta property="og:description" content="Understand the Wazuh manager, indexer, dashboard, agents, services, StatefulSets, Deployments, persistent volumes, and secrets.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-understanding-wazuh-components.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-understanding-wazuh-components.html">
+  <title>Understanding the Wazuh Components | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">SIEM Operations</div>
+        <h1>Understanding the Wazuh Components</h1>
+        <p class="intro">Understand the Wazuh manager, indexer, dashboard, agents, services, StatefulSets, Deployments, persistent volumes, and secrets.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-platform">Platform Operations</span></div>
+        <h2>Lab objective</h2><p>Understand the deployed Wazuh components as Kubernetes resources. The goal is to connect SOC concepts to what is actually running in the cluster.</p>
+        <h2>Component map</h2><ul><li><strong>Manager:</strong> receives, analyzes, and manages data from agents.</li><li><strong>Indexer:</strong> stores and indexes alert data for search and analysis.</li><li><strong>Dashboard:</strong> provides analyst access to alerts and Wazuh data.</li><li><strong>Agents:</strong> collect telemetry depending on deployment model.</li><li><strong>Services:</strong> expose component communication paths.</li><li><strong>PersistentVolumeClaims:</strong> preserve state.</li><li><strong>Secrets:</strong> store credentials and sensitive configuration values.</li></ul>
+        <h2>Inspection commands</h2><div class="code-block"><pre>kubectl get all -n wazuh
+kubectl get statefulset -n wazuh
+kubectl get deployment -n wazuh
+kubectl get svc -n wazuh
+kubectl get pvc -n wazuh
+kubectl get secrets -n wazuh
+kubectl describe pod -n wazuh &lt;pod-name&gt;</pre></div>
+        <h2>StatefulSet vs Deployment</h2><p>StatefulSets are used when stable identity and persistent state matter. Deployments are better for stateless workloads. Wazuh manager and indexer components commonly need state; dashboard-style web front ends are generally more stateless.</p>
+        <div class="field-note"><strong>Analyst note:</strong> If the dashboard, indexer, manager, or agents are unhealthy, alert absence may mean collection failure rather than safety.</div>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>Which component processes data from agents?</li>
+          <li>Which component stores searchable alert data?</li>
+          <li>Which component provides analyst UI?</li>
+          <li>Why are Services important?</li>
+          <li>Why are PVCs important?</li>
+          <li>Why inspect Secrets?</li>
+          <li>When is a StatefulSet useful?</li>
+          <li>When is a Deployment useful?</li>
+          <li>Why document component roles?</li>
+          <li>Why can missing alerts be misleading?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Wazuh manager.</li>
+            <li>Wazuh indexer.</li>
+            <li>Wazuh dashboard.</li>
+            <li>They expose communication paths between components or users.</li>
+            <li>They preserve state for stateful components.</li>
+            <li>They may contain credentials or sensitive settings.</li>
+            <li>When stable identity and persistent state matter.</li>
+            <li>For stateless workloads.</li>
+            <li>It supports troubleshooting and investigation.</li>
+            <li>They may indicate collection or platform failure, not safety.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-deploying-wazuh-on-kubernetes.html">← Previous: Deploying Wazuh on Kubernetes</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-accessing-the-wazuh-dashboard.html">Next: Accessing the Wazuh Dashboard Safely →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

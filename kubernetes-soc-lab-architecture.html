@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Design the lab namespaces, Wazuh components, storage, access path, monitored workloads, and analyst workflow.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Kubernetes SOC Lab Architecture | Stealth IT Group">
+  <meta property="og:description" content="Design the lab namespaces, Wazuh components, storage, access path, monitored workloads, and analyst workflow.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-lab-architecture.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-lab-architecture.html">
+  <title>Kubernetes SOC Lab Architecture | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">SOC Architecture</div>
+        <h1>Kubernetes SOC Lab Architecture</h1>
+        <p class="intro">Design the lab namespaces, Wazuh components, storage, access path, monitored workloads, and analyst workflow.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-platform">Platform Operations</span><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-k8s-security">Kubernetes Security</span></div>
+        <h2>Target architecture</h2>
+        <div class="code-block"><pre>Local Kubernetes cluster
+|-- namespace: wazuh
+|   |-- Wazuh manager
+|   |-- Wazuh indexer
+|   |-- Wazuh dashboard
+|   |-- services, secrets, config, PVCs
+|-- namespace: soc-lab
+|   |-- demo workloads and benign test activity
+|-- namespace: soc-observer
+|   |-- optional toolbox pods
+|-- namespace: wazuh-daemonset
+    |-- optional Wazuh agent DaemonSet</pre></div>
+        <h2>Why separate namespaces?</h2>
+        <p>Namespace separation makes the lab easier to reason about. The monitoring platform should not be mixed casually with the workloads being monitored. This gives you a practical way to discuss boundaries, access control, cleanup, and troubleshooting scope.</p>
+        <h2>Wazuh components</h2>
+        <ul><li><strong>Wazuh manager:</strong> receives and processes security data from agents.</li><li><strong>Wazuh indexer:</strong> indexes and stores alert data for search and analysis.</li><li><strong>Wazuh dashboard:</strong> web interface for reviewing alerts.</li><li><strong>Wazuh agents:</strong> collect telemetry from systems, nodes, workloads, or pods.</li></ul>
+        <h2>Analyst workflow</h2>
+        <div class="code-block"><pre>Generate safe lab event
+  ↓
+Wazuh collects telemetry
+  ↓
+Alert appears in dashboard
+  ↓
+Analyst triages alert
+  ↓
+Analyst documents finding or tuning note
+  ↓
+Analyst validates cleanup or remediation</pre></div>
+        <div class="field-note"><strong>Analyst note:</strong> Architecture is part of the investigation. If you do not know where telemetry should come from, you cannot confidently say whether missing data is normal, a blind spot, or a failure.</div>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>Why separate the Wazuh namespace from lab workloads?</li>
+          <li>Which Wazuh component stores searchable alert data?</li>
+          <li>Which component provides the web UI?</li>
+          <li>Which component processes agent data?</li>
+          <li>Why does storage matter for Wazuh?</li>
+          <li>Why start with port-forwarding in a local lab?</li>
+          <li>What is the purpose of soc-lab namespace?</li>
+          <li>What is the purpose of soc-observer namespace?</li>
+          <li>Why is architecture useful during investigation?</li>
+          <li>What is a telemetry blind spot?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>It creates operational boundaries and simpler cleanup/troubleshooting scope.</li>
+            <li>Wazuh indexer.</li>
+            <li>Wazuh dashboard.</li>
+            <li>Wazuh manager.</li>
+            <li>Stateful components need data to survive pod restarts.</li>
+            <li>It limits exposure while learning.</li>
+            <li>It hosts monitored demo workloads and safe test activity.</li>
+            <li>It can host toolbox or observer pods used for testing.</li>
+            <li>It tells analysts where data should originate and how components relate.</li>
+            <li>Activity occurs but is not collected or visible.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-what-a-soc-lab-actually-is.html">← Previous: What a SOC Lab Actually Is</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-prepare-the-kubernetes-lab.html">Next: Preparing the Kubernetes Lab for Wazuh →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

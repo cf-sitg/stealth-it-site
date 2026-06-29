@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Generating Test Security Events | Stealth IT Group">
+  <meta property="og:description" content="Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-generating-test-security-events.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-generating-test-security-events.html">
+  <title>Generating Test Security Events | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Detection Testing</div>
+        <h1>Generating Test Security Events</h1>
+        <p class="intro">Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-detection">Detection Engineering</span><span class="cert-track soc-k8s-security">Kubernetes Security</span></div>
+        <h2>Lab objective</h2><p>Generate safe, benign events that help you practice alert review without teaching harmful behavior. The goal is telemetry, not exploitation.</p>
+        <h2>Create demo namespace</h2><div class="code-block"><pre>kubectl create namespace soc-lab --dry-run=client -o yaml | kubectl apply -f -</pre></div>
+        <h2>Safe test event examples</h2><ul><li>Create and delete files inside a test container.</li><li>Run harmless shell commands in a test pod.</li><li>Start and stop a short-lived workload.</li><li>Access a demo web service with curl/wget from a toolbox pod.</li><li>Create a ConfigMap and inspect Kubernetes events.</li></ul>
+        <h2>Example: test workload activity</h2><div class="code-block"><pre>kubectl -n soc-lab create deployment soc-demo-web --image=nginx:latest
+kubectl -n soc-lab get pods
+kubectl -n soc-lab exec -it deploy/soc-demo-web -- /bin/sh -c "echo SOC lab test event > /tmp/soc-test.txt && cat /tmp/soc-test.txt"</pre></div>
+        <h2>Example: toolbox network request</h2><div class="code-block"><pre>kubectl -n soc-lab expose deployment soc-demo-web --port=80
+kubectl -n soc-lab run soc-toolbox --image=busybox:latest --restart=Never -- sleep 3600
+kubectl -n soc-lab exec -it soc-toolbox -- wget -qO- http://soc-demo-web</pre></div>
+        <h2>Clean up</h2><div class="code-block"><pre>kubectl -n soc-lab delete pod soc-toolbox
+kubectl -n soc-lab delete service soc-demo-web
+kubectl -n soc-lab delete deployment soc-demo-web</pre></div>
+        <div class="field-note"><strong>Safety note:</strong> Keep test events benign. You can learn triage, validation, and documentation without simulating real compromise behavior.</div>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>What is the goal of safe test events?</li>
+          <li>Why avoid exploit-style activity?</li>
+          <li>What namespace hosts demo activity?</li>
+          <li>What does kubectl exec do?</li>
+          <li>Why record the time of your test?</li>
+          <li>What should you compare in Wazuh?</li>
+          <li>Why clean up demo workloads?</li>
+          <li>What makes an event useful for training?</li>
+          <li>What is a false positive in this context?</li>
+          <li>Why should test activity be documented?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>To generate telemetry for investigation practice.</li>
+            <li>To keep the lab safe and responsible.</li>
+            <li>soc-lab.</li>
+            <li>Runs a command inside a container/pod.</li>
+            <li>To correlate activity with alerts.</li>
+            <li>Timestamp, source, rule, severity, and full log.</li>
+            <li>To avoid clutter and confusion.</li>
+            <li>It is controlled, documented, and visible.</li>
+            <li>An alert on benign/expected activity.</li>
+            <li>So analysts know what was intentionally generated.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-deploying-wazuh-agents.html">← Previous: Deploying Wazuh Agents in Kubernetes</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-investigating-alerts-in-wazuh.html">Next: Investigating Alerts in Wazuh →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>

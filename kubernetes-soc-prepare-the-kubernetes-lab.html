@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Validate the Kubernetes lab before deploying Wazuh: nodes, storage, namespaces, resources, DNS, and baseline troubleshooting commands.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Preparing the Kubernetes Lab for Wazuh | Stealth IT Group">
+  <meta property="og:description" content="Validate the Kubernetes lab before deploying Wazuh: nodes, storage, namespaces, resources, DNS, and baseline troubleshooting commands.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-prepare-the-kubernetes-lab.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-prepare-the-kubernetes-lab.html">
+  <title>Preparing the Kubernetes Lab for Wazuh | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+    <main>
+      <article class="article">
+        <div class="badge">Platform Preparation</div>
+        <h1>Preparing the Kubernetes Lab for Wazuh</h1>
+        <p class="intro">Validate the Kubernetes lab before deploying Wazuh: nodes, storage, namespaces, resources, DNS, and baseline troubleshooting commands.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-platform">Platform Operations</span><span class="cert-track soc-k8s-security">Kubernetes Security</span></div>
+        <h2>Lab objective</h2><p>Validate that your Kubernetes lab is healthy enough to deploy a stateful security monitoring platform. Wazuh is heavier than a simple nginx lesson, so do not skip preflight checks.</p>
+        <h2>Step 1: Confirm cluster access</h2><div class="code-block"><pre>kubectl config current-context
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods -A</pre></div>
+        <h2>Step 2: Check storage support</h2><div class="code-block"><pre>kubectl get storageclass
+kubectl get pv
+kubectl get pvc -A</pre></div>
+        <h2>Step 3: Check available resources</h2><div class="code-block"><pre>kubectl top nodes
+kubectl top pods -A</pre></div>
+        <h2>Step 4: Create lab namespaces</h2><div class="code-block"><pre>kubectl create namespace wazuh
+kubectl create namespace soc-lab
+kubectl create namespace soc-observer</pre></div>
+        <h2>Step 5: Label namespaces for clarity</h2><div class="code-block"><pre>kubectl label namespace wazuh stealthitgroup.com/lab-role=soc-platform
+kubectl label namespace soc-lab stealthitgroup.com/lab-role=monitored-workloads
+kubectl label namespace soc-observer stealthitgroup.com/lab-role=tooling</pre></div>
+        <h2>Step 6: Baseline deployment test</h2><div class="code-block"><pre>kubectl -n soc-lab create deployment soc-demo-web --image=nginx:latest
+kubectl -n soc-lab expose deployment soc-demo-web --port=80
+kubectl -n soc-lab get all
+kubectl -n soc-lab delete service soc-demo-web
+kubectl -n soc-lab delete deployment soc-demo-web</pre></div>
+        <h2>Troubleshooting preflight failures</h2><ul><li>If kubectl cannot connect, fix context or cluster availability before continuing.</li><li>If nodes are not Ready, do not deploy Wazuh yet.</li><li>If storage classes are missing, resolve storage before deploying stateful components.</li><li>If system pods are failing, troubleshoot the cluster first.</li></ul>
+
+        <h2>Check your understanding</h2>
+        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <ol>
+          <li>Why run preflight checks before deploying Wazuh?</li>
+          <li>What command confirms the current cluster context?</li>
+          <li>What does kubectl get nodes validate?</li>
+          <li>Why does storage matter?</li>
+          <li>What namespace hosts Wazuh?</li>
+          <li>What namespace hosts demo workloads?</li>
+          <li>Why label namespaces?</li>
+          <li>What should you do if nodes are NotReady?</li>
+          <li>What should you check if PVCs stay Pending?</li>
+          <li>Why should you not deploy Wazuh into a broken cluster?</li>
+        </ol>
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>Wazuh is stateful/heavier, so cluster problems can look like Wazuh problems.</li>
+            <li>kubectl config current-context.</li>
+            <li>Whether nodes are registered and Ready.</li>
+            <li>Wazuh stateful components need persistent storage.</li>
+            <li>wazuh.</li>
+            <li>soc-lab.</li>
+            <li>For clarity, filtering, and documentation.</li>
+            <li>Fix node or cluster health first.</li>
+            <li>StorageClass, provisioner, PVC events, and PVs.</li>
+            <li>It creates noise and makes troubleshooting unreliable.</li>
+          </ol>
+        </details>
+
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-lab-architecture.html">← Previous: Kubernetes SOC Lab Architecture</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-deploying-wazuh-on-kubernetes.html">Next: Deploying Wazuh on Kubernetes →</a>
+        </div>
+      </article>
+    </main>
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
