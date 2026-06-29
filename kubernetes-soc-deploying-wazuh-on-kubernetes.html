@@ -413,6 +413,21 @@ kubectl get services -n wazuh -o wide</pre>
           Look for services for the dashboard, indexer, Wazuh manager, Wazuh cluster, and workers. Exact names and service types can vary by version and environment.
         </p>
 
+        <h3>StatefulSet pods stay Pending because PVCs are Pending</h3>
+
+<p>
+  If the dashboard pod is running but the Wazuh indexer and manager pods are Pending, check the PVCs before troubleshooting Wazuh itself.
+</p>
+
+<div class="code-block">
+<pre>kubectl get pvc -n wazuh
+kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
+</div>
+
+<p>
+  If the events show <strong>failed to provision volume with StorageClass "wazuh-storage": configuration error, no node was specified</strong>, update <strong>envs/local-env/storage-class.yaml</strong> so the StorageClass uses <strong>volumeBindingMode: WaitForFirstConsumer</strong>.
+</p>
+
         <h2>Step 13: Verify pods, storage, and events</h2>
 
         <div class="code-block">
