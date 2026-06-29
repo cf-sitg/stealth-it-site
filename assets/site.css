@@ -819,3 +819,116 @@ html {
   min-height: 260px;
 }
 
+/* Kubernetes SOC Field Lab category coloring */
+.soc-category {
+  display: inline-block;
+  margin-bottom: 0.65rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.soc-foundations {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.soc-platform {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.soc-siem {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.soc-k8s-security {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.soc-detection {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.soc-ir {
+  color: #67e8f9;
+  background: rgba(6, 182, 212, 0.14);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+.soc-final {
+  color: #fed7aa;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.path-item.soc-foundations-card,
+.service-card.soc-foundations-card {
+  border-color: rgba(59, 130, 246, 0.42);
+}
+
+.path-item.soc-platform-card,
+.service-card.soc-platform-card {
+  border-color: rgba(139, 92, 246, 0.42);
+}
+
+.path-item.soc-siem-card,
+.service-card.soc-siem-card {
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.path-item.soc-k8s-security-card,
+.service-card.soc-k8s-security-card {
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.path-item.soc-detection-card,
+.service-card.soc-detection-card {
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.path-item.soc-ir-card,
+.service-card.soc-ir-card {
+  border-color: rgba(6, 182, 212, 0.42);
+}
+
+.path-item.soc-final-card,
+.service-card.soc-final-card {
+  border-color: rgba(249, 115, 22, 0.42);
+}
+
+.kubernetes-soc-field-lab-page > .section {
+  margin-top: 2.5rem;
+}
+
+.kubernetes-soc-field-lab-page > .section:first-of-type {
+  margin-top: 3rem;
+}
+
+.kubernetes-soc-field-lab-page .path-list {
+  margin-top: 1.75rem;
+}
+
+.kubernetes-soc-field-lab-page .path-item {
+  margin-bottom: 1.15rem;
+}
+
+.kubernetes-soc-field-lab-page .path-item:last-child {
+  margin-bottom: 0;
+}
+
+.kubernetes-soc-field-lab-page .services-grid {
+  margin-top: 1.75rem;
+}
+
