@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Deploy Wazuh into Kubernetes using the official Wazuh Kubernetes deployment model and validate the resulting pods, services, storage, and secrets.">
+  <meta name="description" content="Deploy Wazuh on Kubernetes in a guided SOC lab using the Wazuh Kubernetes repository, certificates, storage validation, Kustomize manifests, service checks, dashboard access, and credential review.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Deploying Wazuh on Kubernetes | Stealth IT Group">
-  <meta property="og:description" content="Deploy Wazuh into Kubernetes using the official Wazuh Kubernetes deployment model and validate the resulting pods, services, storage, and secrets.">
+  <meta property="og:description" content="Deploy Wazuh on Kubernetes in a guided SOC lab using the Wazuh Kubernetes repository, certificates, storage validation, Kustomize manifests, service checks, dashboard access, and credential review.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-on-kubernetes.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-on-kubernetes.html">
   <title>Deploying Wazuh on Kubernetes | Kubernetes SOC Field Lab | Stealth IT Group</title>
@@ -24,68 +24,481 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Wazuh Deployment</div>
-        <h1>Deploying Wazuh on Kubernetes</h1>
-        <p class="intro">Deploy Wazuh into Kubernetes using the official Wazuh Kubernetes deployment model and validate the resulting pods, services, storage, and secrets.</p>
-        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-platform">Platform Operations</span></div>
-        <h2>Important deployment note</h2>
-        <p>This lesson anchors deployment to the official Wazuh Kubernetes documentation instead of copying a fixed manifest into this training page. Wazuh versions, image tags, credentials, services, and manifests can change. Use official Wazuh documentation as the source of truth for the current deployment procedure.</p>
-        <div class="field-note"><strong>Operator note:</strong> Training content should explain what you are applying and how to validate it. The vendor documentation should remain the source of truth for current manifests and version-specific commands.</div>
-        <h2>Official Wazuh Kubernetes resources</h2>
-        <ul><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html">Wazuh deployment on Kubernetes</a></li><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-conf.html">Kubernetes configuration</a></li><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-deployment.html">Deployment steps</a></li><li><a href="https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-clean-up.html">Cleanup</a></li></ul>
-        <h2>Deployment workflow</h2><div class="code-block"><pre>1. Review official Wazuh Kubernetes documentation.
-2. Confirm lab CPU, memory, and storage.
-3. Clone or obtain official Wazuh Kubernetes deployment manifests.
-4. Review namespaces, secrets, storage, and service types before applying.
-5. Apply the local Kubernetes deployment variant recommended by Wazuh.
-6. Watch pods, services, and PVCs in the wazuh namespace.
-7. Access the dashboard safely.
-8. Change default credentials where required.
-9. Document deployed version and cleanup steps.</pre></div>
-        <h2>Validation commands</h2><div class="code-block"><pre>kubectl get namespace wazuh
-kubectl get all -n wazuh
-kubectl get pods -n wazuh -o wide
-kubectl get svc -n wazuh
+        <h1>Deploying Wazuh on Kubernetes</h1>
+
+        <p class="intro">
+          Walk through the Wazuh Kubernetes deployment in a guided SOC lab format: clone the deployment repository, generate certificates, validate storage, apply the local manifests, verify the platform, access the dashboard, and document what was built.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+
+        <div class="cert-track-list">
+          <span class="cert-track soc-siem">SIEM Operations</span>
+          <span class="cert-track soc-platform">Platform Operations</span>
+          <span class="cert-track soc-k8s-security">Kubernetes Security</span>
+        </div>
+
+        <h2>What this lesson covers</h2>
+
+        <ul>
+          <li>Cloning the Wazuh Kubernetes deployment repository</li>
+          <li>Understanding the local Kubernetes deployment layout</li>
+          <li>Generating Wazuh indexer and dashboard certificates</li>
+          <li>Checking Kubernetes storage before deploying a stateful platform</li>
+          <li>Applying Wazuh manifests with Kustomize</li>
+          <li>Validating namespaces, services, pods, PVCs, and events</li>
+          <li>Accessing the dashboard with port-forwarding</li>
+          <li>Reviewing default credentials and password-change expectations</li>
+          <li>Troubleshooting common deployment failures</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Operator note:</strong>
+          This lab follows the Wazuh Kubernetes deployment flow, but explains each step in SOC/operator terms so you understand what is being created and how to validate it.
+        </div>
+
+        <h2>Before you start</h2>
+
+        <p>
+          This lesson assumes you already completed the earlier preparation lesson and have a working Kubernetes lab with <strong>kubectl</strong>, working storage, enough CPU and memory, Git, and a shell that can run Bash scripts.
+        </p>
+
+        <p>
+          Keep the current Wazuh Kubernetes deployment documentation open while doing the lab. The training below is written in Stealth IT Group style, but Wazuh version branches, manifests, resource names, service ports, and credentials may change over time.
+        </p>
+
+        <h2>Step 1: Confirm Kubernetes is ready</h2>
+
+        <p>
+          Do not start by applying manifests. First make sure the cluster is healthy enough to host a stateful SOC platform.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl config current-context
+kubectl get nodes
+kubectl get pods -A
+kubectl get storageclass</pre>
+        </div>
+
+        <h3>What you are checking</h3>
+
+        <ul>
+          <li><strong>Context:</strong> kubectl is pointed at the lab cluster you intend to use.</li>
+          <li><strong>Nodes:</strong> the cluster has Ready nodes.</li>
+          <li><strong>System pods:</strong> the cluster is not already unhealthy.</li>
+          <li><strong>StorageClass:</strong> the cluster can dynamically provision storage for stateful Wazuh components.</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Field note:</strong>
+          Wazuh has stateful components. If your lab has no working StorageClass, Wazuh pods may sit in Pending because persistent volume claims cannot bind.
+        </div>
+
+        <h2>Step 2: Clone the Wazuh Kubernetes deployment repository</h2>
+
+        <p>
+          Wazuh publishes Kubernetes deployment manifests in the <strong>wazuh-kubernetes</strong> repository. Clone the current versioned branch shown in the Wazuh documentation. At the time this page was prepared, the current Wazuh docs used <strong>v4.14.5</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>git clone https://github.com/wazuh/wazuh-kubernetes.git -b v4.14.5 --depth=1
+cd wazuh-kubernetes</pre>
+        </div>
+
+        <h3>What this does</h3>
+
+        <p>
+          This pulls the Kubernetes manifests, Kustomize overlays, certificate scripts, secrets, services, and workload definitions Wazuh uses to deploy its Kubernetes components.
+        </p>
+
+        <div class="field-note">
+          <strong>Operator note:</strong>
+          The branch matters. Do not blindly keep using one version forever. Check the current Wazuh documentation before running this lab so the branch matches the supported release you intend to deploy.
+        </div>
+
+        <h2>Step 3: Review the repository layout</h2>
+
+        <p>
+          Before applying anything, inspect the directories. This builds operator confidence and helps later troubleshooting.
+        </p>
+
+        <div class="code-block">
+<pre>ls
+ls envs
+ls envs/local-env
+ls wazuh
+ls wazuh/certs
+ls wazuh/secrets</pre>
+        </div>
+
+        <h3>What to notice</h3>
+
+        <ul>
+          <li><strong>envs/local-env/</strong> is the local Kubernetes deployment overlay.</li>
+          <li><strong>envs/eks/</strong> is for Amazon EKS deployments.</li>
+          <li><strong>wazuh/certs/</strong> contains certificate generation material.</li>
+          <li><strong>wazuh/secrets/</strong> contains secret manifests that deserve review.</li>
+          <li><strong>Kustomize</strong> is used through <strong>kubectl apply -k</strong>.</li>
+        </ul>
+
+        <h2>Step 4: Generate the Wazuh indexer certificates</h2>
+
+        <p>
+          Wazuh components need certificates so the indexer, dashboard, manager, and related services can communicate securely. In a local lab, self-signed certificates are acceptable. In production, certificate handling needs real lifecycle ownership.
+        </p>
+
+        <div class="code-block">
+<pre>bash wazuh/certs/indexer_cluster/generate_certs.sh</pre>
+        </div>
+
+        <h3>What you should see</h3>
+
+        <p>
+          The script should create certificate material for multiple Wazuh components. Successful output should show certificate and key creation rather than shell errors.
+        </p>
+
+        <h3>If this fails</h3>
+
+        <ul>
+          <li>Confirm you are in the <strong>wazuh-kubernetes</strong> directory.</li>
+          <li>Confirm the script exists at <strong>wazuh/certs/indexer_cluster/generate_certs.sh</strong>.</li>
+          <li>Confirm your shell can run Bash scripts.</li>
+          <li>Confirm file permissions allow the script to execute or run it explicitly through <strong>bash</strong>.</li>
+        </ul>
+
+        <h2>Step 5: Generate the Wazuh dashboard certificates</h2>
+
+        <p>
+          The dashboard also needs certificate material for HTTPS access.
+        </p>
+
+        <div class="code-block">
+<pre>bash wazuh/certs/dashboard_http/generate_certs.sh</pre>
+        </div>
+
+        <h3>What this means</h3>
+
+        <p>
+          The generated certificate files are later consumed by Kustomize secret generators or secret manifests so Kubernetes can mount the certificate material into the appropriate Wazuh components.
+        </p>
+
+        <div class="field-note">
+          <strong>Security note:</strong>
+          Lab certificates are not production certificate management. In production, certificate ownership, rotation, secret storage, trust chains, and access control must be designed intentionally.
+        </div>
+
+        <h2>Step 6: Confirm your storage class</h2>
+
+        <p>
+          Wazuh has stateful components, so storage must work before the platform will become healthy.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get sc</pre>
+        </div>
+
+        <p>
+          Look for a default StorageClass. If your cluster uses a local lab platform, the provisioner name may be different than Wazuh's examples. That is normal. What matters is that your PVCs can bind successfully.
+        </p>
+
+        <h3>If you need to adjust storage</h3>
+
+        <p>
+          Wazuh's local deployment includes storage configuration under <strong>envs/local-env/</strong>. Review the storage class file before applying manifests:
+        </p>
+
+        <div class="code-block">
+<pre>cat envs/local-env/storage-class.yaml</pre>
+        </div>
+
+        <p>
+          If your lab requires a different provisioner, adjust the file before applying the local manifests. Do not guess. Match the provisioner to what your cluster actually supports.
+        </p>
+
+        <h2>Step 7: Review the local deployment overlay</h2>
+
+        <p>
+          Before you deploy, inspect the local overlay.
+        </p>
+
+        <div class="code-block">
+<pre>cat envs/local-env/kustomization.yml
+kubectl kustomize envs/local-env/ | head -n 80</pre>
+        </div>
+
+        <h3>What you are checking</h3>
+
+        <ul>
+          <li>The namespace and resources being created</li>
+          <li>Secret generators or secret references</li>
+          <li>Services and service types</li>
+          <li>Stateful components and PVC definitions</li>
+          <li>Image names and tags</li>
+          <li>Resource requests, limits, and storage sizes</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Operator note:</strong>
+          Previewing generated manifests is a strong habit. It helps you understand what Kubernetes is about to receive before you ask the API server to create it.
+        </div>
+
+        <h2>Step 8: Apply the local Kubernetes manifests</h2>
+
+        <p>
+          For a local lab, use the <strong>local-env</strong> overlay.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl apply -k envs/local-env/</pre>
+        </div>
+
+        <h3>What this creates</h3>
+
+        <p>
+          Expect Kubernetes to create the Wazuh namespace, secrets, services, StatefulSets, Deployments, persistent volume claims, and supporting configuration.
+        </p>
+
+        <h2>Step 9: Watch the deployment come up</h2>
+
+        <p>
+          Stateful platforms take time. Watch the pods instead of immediately assuming failure.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n wazuh -w</pre>
+        </div>
+
+        <p>
+          Press <strong>Ctrl+C</strong> when you are done watching.
+        </p>
+
+        <h3>What you may see</h3>
+
+        <ul>
+          <li><strong>Pending:</strong> scheduling or storage may not be ready.</li>
+          <li><strong>ContainerCreating:</strong> images, volumes, or mounts are being prepared.</li>
+          <li><strong>Running:</strong> the container started.</li>
+          <li><strong>Ready 0/1:</strong> the container started but readiness checks may not be satisfied yet.</li>
+          <li><strong>CrashLoopBackOff:</strong> the container started and failed repeatedly.</li>
+        </ul>
+
+        <h2>Step 10: Verify the Wazuh namespace</h2>
+
+        <div class="code-block">
+<pre>kubectl get namespaces | grep wazuh</pre>
+        </div>
+
+        <p>
+          You should see the <strong>wazuh</strong> namespace active.
+        </p>
+
+        <h2>Step 11: Verify Wazuh services</h2>
+
+        <div class="code-block">
+<pre>kubectl get services -n wazuh
+kubectl get services -n wazuh -o wide</pre>
+        </div>
+
+        <p>
+          Look for services for the dashboard, indexer, Wazuh manager, Wazuh cluster, and workers. Exact names and service types can vary by version and environment.
+        </p>
+
+        <h2>Step 12: Verify pods, storage, and events</h2>
+
+        <div class="code-block">
+<pre>kubectl get pods -n wazuh -o wide
+kubectl get statefulset -n wazuh
+kubectl get deployment -n wazuh
 kubectl get pvc -n wazuh
 kubectl get secrets -n wazuh
-kubectl get events -n wazuh --sort-by=.lastTimestamp</pre></div>
-        <h2>Troubleshooting deployment</h2><ul><li>Use kubectl describe pod for scheduling, mount, image pull, and readiness problems.</li><li>Use kubectl logs for container startup errors.</li><li>Use kubectl get pvc if pods are waiting on storage.</li><li>Use kubectl get events for chronological failure clues.</li></ul>
+kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
+        </div>
+
+        <h3>What healthy looks like</h3>
+
+        <ul>
+          <li>Pods should eventually reach Running and Ready states.</li>
+          <li>PVCs should be Bound.</li>
+          <li>Services should exist for expected components.</li>
+          <li>Events should not show ongoing image pull, mount, scheduling, or readiness failures.</li>
+        </ul>
+
+        <h2>Step 13: Access the dashboard with port-forwarding</h2>
+
+        <p>
+          In a local lab, do not expose the dashboard broadly. Use port-forwarding to bind dashboard access to the local machine.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl -n wazuh port-forward --address 127.0.0.1 service/dashboard 8443:443</pre>
+        </div>
+
+        <p>
+          Then open:
+        </p>
+
+        <div class="code-block">
+<pre>https://127.0.0.1:8443</pre>
+        </div>
+
+        <p>
+          Your browser may warn about the certificate because the lab uses self-signed certificates.
+        </p>
+
+        <h2>Step 14: Login and immediately review credentials</h2>
+
+        <p>
+          Wazuh's Kubernetes deployment documentation lists the default lab dashboard credentials as:
+        </p>
+
+        <div class="code-block">
+<pre>Username: admin
+Password: SecretPassword</pre>
+        </div>
+
+        <p>
+          Use these only as lab defaults. After confirming the dashboard works, review the Wazuh documentation for changing default user passwords and document what you changed.
+        </p>
+
+        <div class="field-note">
+          <strong>Security note:</strong>
+          Default credentials are acceptable only as a short-lived lab bootstrap step. They are not acceptable for persistent, shared, exposed, or production-like environments.
+        </div>
+
+        <h2>Step 15: Document the deployment</h2>
+
+        <p>
+          Before moving to the next lesson, capture a short deployment record.
+        </p>
+
+        <div class="code-block">
+<pre>Deployment date:
+Wazuh branch/version:
+Kubernetes context:
+StorageClass:
+Namespace:
+Dashboard access method:
+Default credentials changed:
+Pods healthy:
+PVCs bound:
+Known issues:
+Cleanup procedure:</pre>
+        </div>
+
+        <h2>Common deployment problems</h2>
+
+        <h3>Pods stay Pending</h3>
+
+        <div class="code-block">
+<pre>kubectl describe pod -n wazuh &lt;pod-name&gt;
+kubectl get pvc -n wazuh
+kubectl describe pvc -n wazuh &lt;pvc-name&gt;
+kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
+        </div>
+
+        <p>
+          Most Pending problems are scheduling, resource, or storage related.
+        </p>
+
+        <h3>PVCs stay Pending</h3>
+
+        <p>
+          Check your StorageClass and provisioner. If dynamic provisioning is not working, Wazuh stateful components will not become healthy.
+        </p>
+
+        <h3>Image pull failures</h3>
+
+        <div class="code-block">
+<pre>kubectl describe pod -n wazuh &lt;pod-name&gt;</pre>
+        </div>
+
+        <p>
+          Look for image name, tag, registry, authentication, or network-related errors.
+        </p>
+
+        <h3>Readiness failures</h3>
+
+        <div class="code-block">
+<pre>kubectl logs -n wazuh &lt;pod-name&gt;
+kubectl describe pod -n wazuh &lt;pod-name&gt;</pre>
+        </div>
+
+        <p>
+          Readiness failures can happen while Wazuh components initialize. If they persist, inspect logs and events.
+        </p>
+
+        <h3>Dashboard does not open</h3>
+
+        <ul>
+          <li>Confirm the dashboard service exists.</li>
+          <li>Confirm the port-forward command is still running.</li>
+          <li>Confirm you are browsing to <strong>https://127.0.0.1:8443</strong>.</li>
+          <li>Confirm dashboard pods are Running and Ready.</li>
+        </ul>
+
+        <h2>Cleanup note</h2>
+
+        <p>
+          Do not delete Wazuh casually unless you are done with the lab. Stateful workloads can leave PVCs and storage behind. Use Wazuh cleanup guidance and confirm what will be removed before deleting resources.
+        </p>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          You did not just install Wazuh. You deployed a stateful SOC platform into Kubernetes, validated its moving parts, accessed the dashboard safely, and documented the operational state of the lab.
+        </div>
 
         <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+
+        <p>
+          Use these questions to check whether the deployment concepts are clear before moving forward.
+        </p>
+
         <ol>
-          <li>Why should official Wazuh docs be the source of truth for deployment commands?</li>
-          <li>What Wazuh components should you expect to see?</li>
-          <li>Why check PVCs?</li>
-          <li>What command lists services in the wazuh namespace?</li>
-          <li>What command shows chronological namespace events?</li>
-          <li>Why review secrets and credentials?</li>
-          <li>What command helps diagnose scheduling and mount failures?</li>
-          <li>What command helps diagnose startup failures?</li>
-          <li>Why document the deployed version?</li>
-          <li>Why is cleanup part of deployment planning?</li>
+          <li>Why should you confirm cluster health before applying Wazuh manifests?</li>
+          <li>Why does the Wazuh version branch matter?</li>
+          <li>What is the purpose of the Wazuh Kubernetes repository?</li>
+          <li>Why are certificates generated before applying the manifests?</li>
+          <li>Why does storage matter for Wazuh?</li>
+          <li>What is the difference between <strong>envs/eks</strong> and <strong>envs/local-env</strong>?</li>
+          <li>What does <strong>kubectl apply -k envs/local-env/</strong> do?</li>
+          <li>Why should you watch pods after applying manifests?</li>
+          <li>What does a Bound PVC indicate?</li>
+          <li>Why use port-forwarding for dashboard access in a local lab?</li>
+          <li>Why are default credentials a security concern?</li>
+          <li>What should you document after deployment?</li>
+          <li>What should you check first if pods are Pending?</li>
+          <li>What should you check if the dashboard will not open?</li>
         </ol>
+
         <details class="field-note">
           <summary><strong>Answer key</strong></summary>
           <ol>
-            <li>Vendor manifests and commands can change by version.</li>
-            <li>Manager, indexer, dashboard, and related services/storage/secrets.</li>
-            <li>Stateful components require storage.</li>
-            <li>kubectl get svc -n wazuh.</li>
-            <li>kubectl get events -n wazuh --sort-by=.lastTimestamp.</li>
-            <li>Defaults or generated credentials must be understood and changed where appropriate.</li>
-            <li>kubectl describe pod.</li>
-            <li>kubectl logs.</li>
-            <li>For troubleshooting, repeatability, and future upgrades.</li>
-            <li>Stateful apps can leave resources and volumes behind.</li>
+            <li>A broken cluster makes Wazuh troubleshooting unreliable because platform failures can look like Wazuh failures.</li>
+            <li>The branch controls which manifests, images, scripts, and deployment structure you are using.</li>
+            <li>It provides the Kubernetes manifests, overlays, scripts, secrets, and configuration used to deploy Wazuh.</li>
+            <li>Wazuh components use certificate material for secure component communication and dashboard access.</li>
+            <li>Stateful Wazuh components need persistent storage, and pods may not start if PVCs cannot bind.</li>
+            <li><strong>envs/eks</strong> is for Amazon EKS; <strong>envs/local-env</strong> is for other/local Kubernetes clusters.</li>
+            <li>It applies the Kustomize local deployment overlay to the cluster.</li>
+            <li>Stateful platforms take time, and watching status helps distinguish normal initialization from failure.</li>
+            <li>The PVC has successfully matched to storage and is available for the pod.</li>
+            <li>It avoids broadly exposing the sensitive dashboard while learning locally.</li>
+            <li>They are publicly documented and should not remain in persistent, shared, or exposed deployments.</li>
+            <li>Version, context, StorageClass, namespace, dashboard access, credential status, pod health, PVC state, known issues, and cleanup plan.</li>
+            <li>Describe the pod, check PVCs, check resources, and review namespace events.</li>
+            <li>Check the service name, port-forward process, URL, certificate warning, and dashboard pod readiness.</li>
           </ol>
         </details>
 
-    
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-prepare-the-kubernetes-lab.html">← Previous: Preparing the Kubernetes Lab for Wazuh</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
@@ -93,11 +506,13 @@ kubectl get events -n wazuh --sort-by=.lastTimestamp</pre></div>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
   <script src="/assets/includes.js"></script>
 </body>
 </html>
