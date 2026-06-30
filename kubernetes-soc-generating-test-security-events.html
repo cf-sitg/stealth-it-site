@@ -2,21 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.">
+  <meta name="description" content="Generate safe Kubernetes and Windows host activity, search for it in Wazuh, and document what each endpoint can see.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
-  <meta property="og:title" content="Generating Test Security Events | Stealth IT Group">
-  <meta property="og:description" content="Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.">
+  <meta property="og:title" content="Generating Safe Security Events | Stealth IT Group">
+  <meta property="og:description" content="Generate safe Kubernetes and Windows host activity, search for it in Wazuh, and document what each endpoint can see.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-generating-test-security-events.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-generating-test-security-events.html">
-  <title>Generating Test Security Events | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <title>Generating Safe Security Events | Kubernetes SOC Field Lab | Stealth IT Group</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
   <link rel="stylesheet" href="/assets/site.css">
@@ -24,59 +22,171 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Detection Testing</div>
-        <h1>Generating Test Security Events</h1>
-        <p class="intro">Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.</p>
-        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-detection">Detection Engineering</span><span class="cert-track soc-k8s-security">Kubernetes Security</span></div>
-        <h2>Lab objective</h2><p>Generate safe, benign events that help you practice alert review without teaching harmful behavior. The goal is telemetry, not exploitation.</p>
-        <h2>Create demo namespace</h2><div class="code-block"><pre>kubectl create namespace soc-lab --dry-run=client -o yaml | kubectl apply -f -</pre></div>
-        <h2>Safe test event examples</h2><ul><li>Create and delete files inside a test container.</li><li>Run harmless shell commands in a test pod.</li><li>Start and stop a short-lived workload.</li><li>Access a demo web service with curl/wget from a toolbox pod.</li><li>Create a ConfigMap and inspect Kubernetes events.</li></ul>
-        <h2>Example: test workload activity</h2><div class="code-block"><pre>kubectl -n soc-lab create deployment soc-demo-web --image=nginx:latest
-kubectl -n soc-lab get pods
-kubectl -n soc-lab exec -it deploy/soc-demo-web -- /bin/sh -c "echo SOC lab test event > /tmp/soc-test.txt && cat /tmp/soc-test.txt"</pre></div>
-        <h2>Example: toolbox network request</h2><div class="code-block"><pre>kubectl -n soc-lab expose deployment soc-demo-web --port=80
-kubectl -n soc-lab run soc-toolbox --image=busybox:latest --restart=Never -- sleep 3600
-kubectl -n soc-lab exec -it soc-toolbox -- wget -qO- http://soc-demo-web</pre></div>
-        <h2>Clean up</h2><div class="code-block"><pre>kubectl -n soc-lab delete pod soc-toolbox
-kubectl -n soc-lab delete service soc-demo-web
-kubectl -n soc-lab delete deployment soc-demo-web</pre></div>
-        <div class="field-note"><strong>Safety note:</strong> Keep test events benign. You can learn triage, validation, and documentation without simulating real compromise behavior.</div>
+        <h1>Generating Safe Security Events</h1>
+
+        <p class="intro">
+          Generate safe Kubernetes and Windows host activity, search for it in Wazuh, and document what each endpoint can see.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+        <div class="cert-track-list">
+          <span class="cert-track soc-detection">Detection Engineering</span>
+          <span class="cert-track soc-siem">SIEM Operations</span>
+          <span class="cert-track soc-ir">Incident Response</span>
+        </div>
+
+        <h2>What this lesson covers</h2>
+        <ul>
+          <li>Generating safe Kubernetes lab events</li>
+          <li>Generating safe Windows host lab events</li>
+          <li>Confirming which endpoint produced the event</li>
+          <li>Using timestamps to find activity in Wazuh</li>
+          <li>Avoiding exploit, malware, credential, and evasion-style testing</li>
+          <li>Documenting event evidence for later investigation</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Safety boundary:</strong>
+          This lesson uses benign administrative and file activity only. The goal is SOC visibility, not attacker emulation.
+        </div>
+
+        <h2>Step 1: Confirm both monitored endpoints are active</h2>
+        <p>In Wazuh, confirm that both endpoints are active before generating events.</p>
+        <div class="code-block"><pre>Expected endpoints:
+- Kubernetes node agent from the DaemonSet
+- Windows host agent</pre></div>
+
+        <p>From Kubernetes, confirm the DaemonSet agent is still running:</p>
+        <div class="code-block"><pre>kubectl get pods -n wazuh-agents -o wide</pre></div>
+
+        <p>On Windows, confirm the Wazuh service is running:</p>
+        <div class="code-block"><pre>Get-Service WazuhSvc</pre></div>
+
+        <h2>Step 2: Set a test window</h2>
+        <p>
+          Before generating test activity, write down the current time. You will use this time window in Wazuh.
+        </p>
+        <div class="code-block"><pre>Get-Date</pre></div>
+
+        <p>
+          In the Wazuh dashboard, set the time range to the last 15 or 30 minutes so the lab events are easier to find.
+        </p>
+
+        <h2>Step 3: Generate a safe Kubernetes pod event</h2>
+        <p>
+          Run a short-lived pod that prints a clear lab message.
+        </p>
+        <div class="code-block"><pre>kubectl run soc-k8s-test -n wazuh-agents --image=busybox:latest --restart=Never -- sh -c "echo SOC Kubernetes visibility test $(date) && sleep 30"
+
+kubectl logs -n wazuh-agents soc-k8s-test
+
+kubectl delete pod -n wazuh-agents soc-k8s-test</pre></div>
+
+        <h3>What to look for</h3>
+        <p>
+          This event may appear directly or may help with correlation depending on what the Kubernetes agent is collecting. Use it to confirm timing, namespace, pod name, and endpoint context.
+        </p>
+
+        <h2>Step 4: Generate safe Windows file activity</h2>
+        <p>
+          Run these from PowerShell on the Windows host. This creates and removes a harmless temporary file.
+        </p>
+        <div class="code-block"><pre>$TestFile = "$env:TEMP\wazuh-windows-host-lab-test.txt"
+New-Item -Path $TestFile -ItemType File -Force
+Add-Content -Path $TestFile -Value "Wazuh Windows host lab test $(Get-Date)"
+Get-Content -Path $TestFile
+Remove-Item -Path $TestFile -Force</pre></div>
+
+        <h2>Step 5: Generate safe Windows inventory-style activity</h2>
+        <p>
+          These commands are normal administrative discovery commands. They are useful for visibility testing without crossing into offensive behavior.
+        </p>
+        <div class="code-block"><pre>whoami
+hostname
+ipconfig
+Get-Process | Select-Object -First 5
+Get-Service | Select-Object -First 5</pre></div>
+
+        <div class="field-note">
+          <strong>Do not use:</strong>
+          credential dumping, password extraction, exploit tools, malicious payloads, bypass techniques, persistence tests, or evasion-style commands in this beginner SOC lab.
+        </div>
+
+        <h2>Step 6: Search in Wazuh</h2>
+        <p>
+          In Wazuh, use the endpoint view and event/search views to look around the timestamp you recorded.
+        </p>
+        <div class="code-block"><pre>Search approach:
+- Set time range to last 15 or 30 minutes
+- Filter by endpoint: Windows host
+- Filter by endpoint: Kubernetes node agent
+- Compare timestamps
+- Review rule description and severity
+- Open full event details when available</pre></div>
+
+        <h2>Step 7: Capture evidence</h2>
+        <div class="code-block"><pre>Test name:
+Endpoint:
+Timestamp:
+Command or action:
+Expected result:
+Observed Wazuh event:
+Rule ID:
+Severity:
+Source:
+Full log summary:
+Screenshot captured:
+Notes:</pre></div>
+
+        <h2>Step 8: Compare Kubernetes and Windows visibility</h2>
+        <p>
+          The goal is not for both endpoints to show the same data. The goal is to understand what each sensor can see.
+        </p>
+        <div class="code-block"><pre>Kubernetes agent sees:
+- Node/container-oriented telemetry
+- Kubernetes-adjacent activity depending on mounts and configuration
+- Agent state for the Kubernetes node
+
+Windows agent sees:
+- Windows host inventory
+- Windows endpoint events
+- Windows security/configuration/compliance data depending on configuration</pre></div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          A SOC analyst must understand sensor coverage. No alert does not always mean no activity. It may mean the activity is outside the current collection scope.
+        </div>
 
         <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
         <ol>
-          <li>What is the goal of safe test events?</li>
-          <li>Why avoid exploit-style activity?</li>
-          <li>What namespace hosts demo activity?</li>
-          <li>What does kubectl exec do?</li>
-          <li>Why record the time of your test?</li>
-          <li>What should you compare in Wazuh?</li>
-          <li>Why clean up demo workloads?</li>
-          <li>What makes an event useful for training?</li>
-          <li>What is a false positive in this context?</li>
-          <li>Why should test activity be documented?</li>
+          <li>Why should you record the test time before generating events?</li>
+          <li>Why might a Kubernetes pod test not appear the same way as a Windows host test?</li>
+          <li>Why are benign file and inventory commands enough for this lab?</li>
+          <li>What should you document when an event appears?</li>
+          <li>What does it mean if expected activity does not appear?</li>
         </ol>
+
         <details class="field-note">
           <summary><strong>Answer key</strong></summary>
           <ol>
-            <li>To generate telemetry for investigation practice.</li>
-            <li>To keep the lab safe and responsible.</li>
-            <li>soc-lab.</li>
-            <li>Runs a command inside a container/pod.</li>
-            <li>To correlate activity with alerts.</li>
-            <li>Timestamp, source, rule, severity, and full log.</li>
-            <li>To avoid clutter and confusion.</li>
-            <li>It is controlled, documented, and visible.</li>
-            <li>An alert on benign/expected activity.</li>
-            <li>So analysts know what was intentionally generated.</li>
+            <li>It gives you a narrow time window to search in Wazuh.</li>
+            <li>Different agents collect different telemetry from different operating environments.</li>
+            <li>The goal is visibility validation, not attack simulation.</li>
+            <li>Endpoint, timestamp, action, rule, severity, source, full log context, and notes.</li>
+            <li>It may mean collection does not cover that activity, the time range is wrong, the endpoint is disconnected, or the rule does not alert on it.</li>
           </ol>
         </details>
 
-    
+
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-windows-host-agent.html">← Previous: Installing a Wazuh Agent on the Windows Host</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
@@ -84,11 +194,13 @@ kubectl -n soc-lab delete deployment soc-demo-web</pre></div>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
   <script src="/assets/includes.js"></script>
 </body>
 </html>
