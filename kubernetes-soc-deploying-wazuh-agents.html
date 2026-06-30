@@ -2,21 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Understand Wazuh agent deployment models in Kubernetes, including DaemonSet and sidecar patterns, and validate agent visibility.">
+  <meta name="description" content="Deploy a real Wazuh agent into Kubernetes using a DaemonSet pattern, connect it to the Wazuh manager service, validate enrollment, and document monitoring coverage.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
-  <meta property="og:title" content="Deploying Wazuh Agents in Kubernetes | Stealth IT Group">
-  <meta property="og:description" content="Understand Wazuh agent deployment models in Kubernetes, including DaemonSet and sidecar patterns, and validate agent visibility.">
+  <meta property="og:title" content="Deploying a Wazuh Agent DaemonSet | Stealth IT Group">
+  <meta property="og:description" content="Deploy a real Wazuh agent into Kubernetes using a DaemonSet pattern, connect it to the Wazuh manager service, validate enrollment, and document monitoring coverage.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-agents.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-agents.html">
-  <title>Deploying Wazuh Agents in Kubernetes | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <title>Deploying a Wazuh Agent DaemonSet | Kubernetes SOC Field Lab | Stealth IT Group</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
   <link rel="stylesheet" href="/assets/site.css">
@@ -24,63 +22,119 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Agent Deployment</div>
-        <h1>Deploying Wazuh Agents in Kubernetes</h1>
-        <p class="intro">Understand Wazuh agent deployment models in Kubernetes, including DaemonSet and sidecar patterns, and validate agent visibility.</p>
+        <h1>Deploying a Wazuh Agent DaemonSet</h1>
+        <p class="intro">Deploy a real Wazuh agent into Kubernetes using a DaemonSet pattern, connect it to the Wazuh manager service, validate enrollment, and document monitoring coverage.</p>
         <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-k8s-security">Kubernetes Security</span><span class="cert-track soc-siem">SIEM Operations</span></div>
-        <h2>Lab objective</h2><p>Understand Wazuh agent deployment models in Kubernetes and validate whether monitored sources are visible in Wazuh.</p>
-        <h2>Agent deployment models</h2><ul><li><strong>DaemonSet model:</strong> one agent runs on each node for broad node/container activity visibility.</li><li><strong>Sidecar model:</strong> an agent runs alongside a specific application pod to monitor that application.</li><li><strong>Endpoint model:</strong> agents run on servers, desktops, or VMs outside Kubernetes.</li></ul>
-        <h2>Why the model matters</h2><p>Agent placement determines visibility. A DaemonSet may provide broad node coverage. A sidecar is narrower but tied to a specific workload. Endpoint agents cover machines outside the cluster. A SOC analyst should understand what is monitored and what is not.</p>
-        <h2>Validation commands</h2><div class="code-block"><pre>kubectl get daemonset -A
-kubectl get pods -A -o wide
-kubectl get pods -n wazuh-daemonset
-kubectl logs -n wazuh-daemonset &lt;agent-pod-name&gt;
-kubectl describe pod -n wazuh-daemonset &lt;agent-pod-name&gt;</pre></div>
-        <h2>What to document</h2><ul><li>Agent model used</li><li>Namespace used</li><li>Covered nodes or workloads</li><li>Uncovered nodes or workloads</li><li>Agent registration method</li><li>Evidence that agents are reporting</li></ul>
-        <div class="field-note"><strong>Analyst note:</strong> If you do not know the monitoring coverage model, you cannot interpret alert absence. No alert may mean no detection, no event, or no collection.</div>
-
-        <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
-        <ol>
-          <li>What does a DaemonSet agent model provide?</li>
-          <li>What does a sidecar model monitor?</li>
-          <li>Why does agent placement matter?</li>
-          <li>What command lists DaemonSets across namespaces?</li>
-          <li>Why check agent logs?</li>
-          <li>Why document uncovered workloads?</li>
-          <li>What is agent enrollment?</li>
-          <li>Why follow official Wazuh docs for enrollment?</li>
-          <li>Why can alert absence be misleading?</li>
-          <li>What evidence proves agents are reporting?</li>
-        </ol>
-        <details class="field-note">
-          <summary><strong>Answer key</strong></summary>
-          <ol>
-            <li>One agent per node for broader node/container visibility.</li>
-            <li>A specific application pod/workload.</li>
-            <li>It defines what telemetry is collected.</li>
-            <li>kubectl get daemonset -A.</li>
-            <li>To confirm startup, connection, and errors.</li>
-            <li>To know blind spots.</li>
-            <li>Registering an agent with the manager.</li>
-            <li>Variables and defaults can change.</li>
-            <li>It may mean no collection, not no issue.</li>
-            <li>Agent visible/active in dashboard and logs showing connection.</li>
-          </ol>
-        </details>
-
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-k8s-security">Kubernetes Security</span><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-platform">Platform Operations</span></div>
+        <h2>What this lesson covers</h2><ul><li>Why the DaemonSet model is a good first Kubernetes agent lab</li><li>How the agent reaches the Wazuh manager inside the cluster</li><li>How to create an agent namespace</li><li>How to create a Kubernetes Secret for the Wazuh enrollment password</li><li>How to apply a DaemonSet manifest</li><li>How to validate scheduling, startup, and enrollment</li><li>How to verify the agent in the dashboard</li><li>How to document monitoring coverage and blind spots</li></ul>
+        <div class="field-note"><strong>Lab note:</strong> Wazuh supports Kubernetes agent deployment patterns such as DaemonSet and sidecar. This first lab uses the DaemonSet model because it is the clearest way to monitor cluster nodes in a small Kubernetes SOC lab.</div>
+        <h2>Step 1: Confirm the Wazuh platform is healthy</h2><div class="code-block"><pre>kubectl get pods -n wazuh
+kubectl get svc -n wazuh
+kubectl get pvc -n wazuh</pre></div><p>You want the indexer, manager master, manager worker, and dashboard pods to be Running and Ready, and the PVCs to be Bound.</p>
+        <h2>Step 2: Identify the manager service the agent will use</h2><div class="code-block"><pre>kubectl get svc -n wazuh</pre></div><p>The agent communicates with the Wazuh manager service inside the cluster.</p>
+        <h2>Step 3: Decide the in-cluster manager address</h2><div class="code-block"><pre>wazuh.wazuh.svc.cluster.local</pre></div><div class="code-block"><pre>WAZUH_MANAGER=wazuh.wazuh.svc.cluster.local</pre></div>
+        <h2>Step 4: Create an agent namespace</h2><div class="code-block"><pre>kubectl create namespace wazuh-agents --dry-run=client -o yaml | kubectl apply -f -</pre></div>
+        <h2>Step 5: Create the enrollment password secret</h2><div class="code-block"><pre>kubectl get secret -n wazuh wazuh-authd-pass</pre></div><div class="code-block"><pre>kubectl create secret generic wazuh-authd-pass -n wazuh-agents --from-literal=authd.pass=&lt;your-authd-password&gt;</pre></div><div class="field-note"><strong>Security note:</strong> Do not hardcode real passwords into public training repos.</div>
+        <h2>Step 6: Create the Wazuh agent DaemonSet manifest</h2><p>Create <strong>wazuh-agent-daemonset.yaml</strong>:</p><div class="code-block"><pre>apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wazuh-agent
+  namespace: wazuh-agents
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: wazuh-agent
+  namespace: wazuh-agents
+  labels:
+    app: wazuh-agent
+spec:
+  selector:
+    matchLabels:
+      app: wazuh-agent
+  template:
+    metadata:
+      labels:
+        app: wazuh-agent
+    spec:
+      serviceAccountName: wazuh-agent
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: wazuh-agent
+          image: wazuh/wazuh-agent:4.14.5
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WAZUH_MANAGER
+              value: "wazuh.wazuh.svc.cluster.local"
+            - name: WAZUH_REGISTRATION_SERVER
+              value: "wazuh.wazuh.svc.cluster.local"
+            - name: WAZUH_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: WAZUH_AGENT_GROUP
+              value: "kubernetes"
+            - name: WAZUH_REGISTRATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wazuh-authd-pass
+                  key: authd.pass
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: var-log
+              mountPath: /var/log
+              readOnly: true
+      volumes:
+        - name: var-log
+          hostPath:
+            path: /var/log
+            type: Directory</pre></div>
+        <div class="field-note"><strong>Best-practice note:</strong> This lab manifest is intentionally limited. A production DaemonSet requires deeper review of privileges, hostPath mounts, update strategy, tolerations, resource limits, and policy.</div>
+        <h2>Step 7: Apply the DaemonSet</h2><div class="code-block"><pre>kubectl apply -f wazuh-agent-daemonset.yaml</pre></div>
+        <h2>Step 8: Verify the DaemonSet exists</h2><div class="code-block"><pre>kubectl get daemonset -n wazuh-agents
+kubectl get pods -n wazuh-agents -o wide</pre></div>
+        <h2>Step 9: Watch the agent logs</h2><div class="code-block"><pre>kubectl logs -n wazuh-agents -l app=wazuh-agent --tail=100</pre></div>
+        <h2>Step 10: Troubleshoot agent startup</h2><h3>Image pull failure</h3><div class="code-block"><pre>kubectl describe pod -n wazuh-agents &lt;agent-pod-name&gt;</pre></div><h3>Secret error</h3><div class="code-block"><pre>kubectl get secret -n wazuh-agents wazuh-authd-pass
+kubectl describe pod -n wazuh-agents &lt;agent-pod-name&gt;</pre></div><h3>Manager connection or DNS error</h3><div class="code-block"><pre>kubectl run dns-test -n wazuh-agents --image=busybox:latest --restart=Never -- sleep 3600
+kubectl exec -n wazuh-agents dns-test -- nslookup wazuh.wazuh.svc.cluster.local
+kubectl delete pod -n wazuh-agents dns-test</pre></div>
+        <h2>Step 11: Verify the agent in the Wazuh dashboard</h2><div class="code-block"><pre>Expected evidence:
+- Agent visible in Wazuh
+- Agent name matches the Kubernetes node name or configured agent name
+- Agent status is active
+- Agent group is kubernetes, if configured
+- Recent keepalive or event timestamp is present</pre></div>
+        <h2>Step 12: Generate a safe node-level test event</h2><div class="code-block"><pre>kubectl run soc-agent-test -n wazuh-agents --image=busybox:latest --restart=Never -- sh -c "echo Wazuh agent DaemonSet lab test && sleep 30"
+kubectl logs -n wazuh-agents soc-agent-test
+kubectl delete pod -n wazuh-agents soc-agent-test</pre></div>
+        <h2>Step 13: Document monitoring coverage</h2><div class="code-block"><pre>Agent deployment model:
+Namespace:
+DaemonSet name:
+Agent image/tag:
+Manager service address:
+Nodes covered:
+Nodes not covered:
+Host paths mounted:
+Secrets used:
+Agent visible in dashboard:
+Known blind spots:
+Next tuning action:</pre></div>
     
         <div class="article-nav three-link">
-          <a class="nav-prev" href="/kubernetes-soc-accessing-the-wazuh-dashboard.html">← Previous: Accessing the Wazuh Dashboard Safely</a>
+          <a class="nav-prev" href="/kubernetes-soc-accessing-the-wazuh-dashboard.html">← Previous: Accessing and Validating the Wazuh Dashboard</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
-          <a class="nav-next" href="/kubernetes-soc-generating-test-security-events.html">Next: Generating Test Security Events →</a>
+          <a class="nav-next" href="/kubernetes-soc-generating-test-security-events.html">Next: Generating Safe Security Events →</a>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
