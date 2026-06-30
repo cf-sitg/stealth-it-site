@@ -122,11 +122,63 @@
   </url>
 
   <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-field-lab.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-what-a-soc-lab-actually-is.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-lab-architecture.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-prepare-the-kubernetes-lab.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-on-kubernetes.html</loc>
+  </url>
+
+  <url>
     <loc>https://stealthitgroup.com/kubernetes-soc-troubleshooting-wazuh-on-kubernetes.html</loc>
   </url>
 
   <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-understanding-wazuh-components.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-accessing-the-wazuh-dashboard.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-agents.html</loc>
+  </url>
+
+  <url>
     <loc>https://stealthitgroup.com/kubernetes-soc-windows-host-agent.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-generating-test-security-events.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-investigating-alerts-in-wazuh.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-detection-and-tuning-notes.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-incident-workflow.html</loc>
+  </url>
+
+  <url>
+    <loc>https://stealthitgroup.com/kubernetes-soc-final-project.html</loc>
   </url>
 
   <url>
