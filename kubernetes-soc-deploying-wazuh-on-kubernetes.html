@@ -433,21 +433,6 @@ kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
           <li>Events should not show ongoing image pull, mount, scheduling, or readiness failures.</li>
         </ul>
 
-                <h3>StatefulSet pods stay Pending because PVCs are Pending</h3>
-
-<p>
-  If the dashboard pod is running but the Wazuh indexer and manager pods are Pending, check the PVCs before troubleshooting Wazuh itself.
-</p>
-
-<div class="code-block">
-<pre>kubectl get pvc -n wazuh
-kubectl get events -n wazuh --sort-by=.lastTimestamp</pre>
-</div>
-
-<p>
-  If the events show <strong>failed to provision volume with StorageClass "wazuh-storage": configuration error, no node was specified</strong>, update <strong>envs/local-env/storage-class.yaml</strong> so the StorageClass uses <strong>volumeBindingMode: WaitForFirstConsumer</strong>.
-</p>
-
         <h2>Step 14: Access the dashboard with port-forwarding</h2>
 
         <p>
@@ -543,6 +528,15 @@ Get-ChildItem .\wazuh\certs\dashboard_http\*.pem</pre>
         <p>
           This is expected if you created the namespace earlier with <strong>kubectl create namespace wazuh</strong>. The apply command patches the missing annotation automatically and continues. Treat it as a warning, not a deployment failure.
         </p>
+
+        <h3>StatefulSet pods stay Pending because PVCs are Pending</h3>
+
+        <p>If the dashboard is Running but the Wazuh indexer and manager pods are Pending, check PVCs before troubleshooting Wazuh itself.</p>
+
+        <div class="code-block"><pre>kubectl get pvc -n wazuh
+kubectl get events -n wazuh --sort-by=.lastTimestamp</pre></div>
+
+        <p>If events show <strong>failed to provision volume with StorageClass "wazuh-storage": configuration error, no node was specified</strong>, the local StorageClass likely needs <strong>volumeBindingMode: WaitForFirstConsumer</strong>. The next lesson walks through this in detail.</p>
 
         <h3>Pods stay Pending</h3>
 
@@ -656,7 +650,7 @@ kubectl describe pod -n wazuh &lt;pod-name&gt;</pre>
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-prepare-the-kubernetes-lab.html">← Previous: Preparing the Kubernetes Lab for Wazuh</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
-          <a class="nav-next" href="/kubernetes-soc-understanding-wazuh-components.html">Next: Understanding the Wazuh Components →</a>
+          <a class="nav-next" href="/kubernetes-soc-troubleshooting-wazuh-on-kubernetes.html">Next: Troubleshooting Wazuh on Kubernetes →</a>
         </div>
       </article>
     </main>
