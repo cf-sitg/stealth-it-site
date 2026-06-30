@@ -932,3 +932,50 @@ html {
   margin-top: 1.75rem;
 }
 
+/* Article bottom navigation polish */
+.article-nav.three-link {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.article-nav.three-link a {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.article-nav.three-link .nav-prev {
+  justify-self: start;
+  text-align: left;
+  max-width: 22rem;
+}
+
+.article-nav.three-link .nav-index {
+  justify-self: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.article-nav.three-link .nav-next {
+  justify-self: end;
+  text-align: right;
+  max-width: 22rem;
+}
+
+@media (max-width: 760px) {
+  .article-nav.three-link {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .article-nav.three-link .nav-prev,
+  .article-nav.three-link .nav-index,
+  .article-nav.three-link .nav-next {
+    justify-self: stretch;
+    text-align: center;
+    max-width: none;
+  }
+}
+
