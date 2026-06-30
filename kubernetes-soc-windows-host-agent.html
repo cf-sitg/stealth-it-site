@@ -53,7 +53,8 @@
           <li>Why the Windows host cannot use Kubernetes internal DNS names</li>
           <li>How to prove NodePort access does or does not work from Windows</li>
           <li>How to expose Wazuh enrollment and event ports with kubectl port-forward</li>
-          <li>How to install a Windows Wazuh agent with PowerShell</li>
+          <li>How to use the Wazuh dashboard Deploy new agent workflow for Windows</li>
+          <li>How to install and start the Windows agent from the dashboard-generated commands</li>
           <li>How to confirm the Windows endpoint appears in Wazuh</li>
           <li>How to generate safe Windows host telemetry</li>
           <li>How to compare Kubernetes agent visibility with Windows host visibility</li>
@@ -223,19 +224,108 @@ Test-NetConnection 127.0.0.1 -Port 1514</pre>
           Do not install the Windows agent until these tests pass.
         </p>
 
-        <h2>Step 6: Download the Windows Wazuh agent installer</h2>
+        <h2>Step 6: Use the Wazuh dashboard Deploy new agent workflow</h2>
 
         <p>
-          Download the Windows agent MSI from the Wazuh agent packages page or from the Deploy new agent workflow inside the Wazuh dashboard.
+          In this lab, download and install the Windows agent from the <strong>Deploy new agent</strong> workflow inside your running Wazuh dashboard. This keeps the lab tied to the Wazuh instance you already deployed instead of sending the reader to a separate package page first.
         </p>
 
         <div class="field-note">
-          <strong>Version note:</strong>
-          Try to match the Windows agent version to your Wazuh platform version. In this lab, the Kubernetes Wazuh components are using <strong>4.14.5</strong>, so use the matching Windows agent installer when available.
+          <strong>Before using the wizard:</strong>
+          Keep both port-forward PowerShell windows from Step 4 running. The Windows agent will use <strong>127.0.0.1</strong> because those port-forward sessions carry localhost traffic into the Kubernetes Wazuh services.
+        </div>
+
+        <h3>Open the Deploy new agent wizard</h3>
+
+        <ol>
+          <li>Open the Wazuh dashboard.</li>
+          <li>Go to <strong>Endpoints</strong>.</li>
+          <li>Select <strong>Deploy new agent</strong>.</li>
+        </ol>
+
+        <p>
+          The wizard has six practical parts. Work through them carefully.
+        </p>
+
+        <h3>Wizard step 1: Select the package</h3>
+
+        <p>
+          Under <strong>Windows</strong>, select:
+        </p>
+
+        <div class="code-block">
+<pre>MSI 32/64 bits</pre>
         </div>
 
         <p>
-          Save the installer somewhere simple, such as:
+          This tells Wazuh to generate Windows-specific install commands.
+        </p>
+
+        <h3>Wizard step 2: Server address</h3>
+
+        <p>
+          In <strong>Assign a server address</strong>, enter:
+        </p>
+
+        <div class="code-block">
+<pre>127.0.0.1</pre>
+        </div>
+
+        <p>
+          This is the correct value for this lab because Windows reaches Wazuh through local port-forwarding.
+        </p>
+
+        <div class="field-note">
+          <strong>Do not use Kubernetes DNS here:</strong>
+          Do not enter <strong>wazuh.wazuh.svc.cluster.local</strong> or <strong>wazuh-workers.wazuh.svc.cluster.local</strong> in the Windows agent wizard. Those names only work from inside Kubernetes pods.
+        </div>
+
+        <h3>Wizard step 3: Optional settings</h3>
+
+        <p>
+          You may leave the agent name blank and let Wazuh use the Windows hostname. For a cleaner lab, you can also assign a clear unique name such as:
+        </p>
+
+        <div class="code-block">
+<pre>windows-host-lab</pre>
+        </div>
+
+        <p>
+          For groups, use <strong>default</strong> unless you already created a dedicated Windows lab group.
+        </p>
+
+        <div class="field-note">
+          <strong>Agent name note:</strong>
+          The agent name must be unique. Do not reuse the Kubernetes node agent name that already appears in Wazuh.
+        </div>
+
+        <h3>Wizard step 4: Download and install command</h3>
+
+        <p>
+          After you enter the server address, the wizard generates the Windows download/install command. Copy that command.
+        </p>
+
+        <p>
+          Open <strong>PowerShell as Administrator</strong>, then paste and run the command from the Wazuh dashboard.
+        </p>
+
+        <div class="field-note">
+          <strong>Use the command from your dashboard:</strong>
+          The dashboard-generated command should include the correct package URL and the server address you entered. Do not copy an old command from a different Wazuh environment.
+        </div>
+
+        <h3>Manual fallback if you download the MSI yourself</h3>
+
+        <p>
+          If you choose to manually download the MSI from the wizard and save it locally, use a simple lab folder:
+        </p>
+
+        <div class="code-block">
+<pre>New-Item -ItemType Directory -Force C:\k8s\wazuh-kubernetes\lab-installers</pre>
+        </div>
+
+        <p>
+          Save the installer as:
         </p>
 
         <div class="code-block">
@@ -243,34 +333,60 @@ Test-NetConnection 127.0.0.1 -Port 1514</pre>
         </div>
 
         <p>
-          Create the folder if needed:
+          Then install it from an elevated PowerShell window:
         </p>
 
         <div class="code-block">
-<pre>New-Item -ItemType Directory -Force C:\k8s\wazuh-kubernetes\lab-installers</pre>
-        </div>
+<pre>$Installer = "C:\k8s\wazuh-kubernetes\lab-installers\wazuh-agent.msi"
 
-        <h2>Step 7: Install the Windows Wazuh agent</h2>
-
-        <p>
-          Open PowerShell as Administrator. Set the installer path:
-        </p>
-
-        <div class="code-block">
-<pre>$Installer = "C:\k8s\wazuh-kubernetes\lab-installers\wazuh-agent.msi"</pre>
-        </div>
-
-        <p>
-          Install the agent and point it at localhost. Localhost works here because the port-forward sessions from Step 4 are forwarding Windows traffic into the Kubernetes Wazuh services.
-        </p>
-
-        <div class="code-block">
-<pre>msiexec.exe /i $Installer /q WAZUH_MANAGER="127.0.0.1" WAZUH_REGISTRATION_SERVER="127.0.0.1" WAZUH_REGISTRATION_PORT="1515" WAZUH_PROTOCOL="tcp" WAZUH_AGENT_GROUP="windows-lab"</pre>
+msiexec.exe /i $Installer /q WAZUH_MANAGER="127.0.0.1" WAZUH_REGISTRATION_SERVER="127.0.0.1" WAZUH_REGISTRATION_PORT="1515" WAZUH_PROTOCOL="tcp" WAZUH_AGENT_GROUP="windows-lab"</pre>
         </div>
 
         <div class="field-note">
           <strong>What this means:</strong>
           The Windows agent sends event traffic to <strong>127.0.0.1:1514</strong> and enrollment traffic to <strong>127.0.0.1:1515</strong>. The port-forward sessions carry that traffic into the Wazuh services running in Kubernetes.
+        </div>
+
+        <h3>Wizard step 5: Start the agent</h3>
+
+        <p>
+          The dashboard wizard also shows a command to start the Windows agent service. You can use the dashboard-generated command, or run this from elevated PowerShell:
+        </p>
+
+        <div class="code-block">
+<pre>Start-Service WazuhSvc</pre>
+        </div>
+
+        <p>
+          If the service already exists and needs to reload configuration, restart it:
+        </p>
+
+        <div class="code-block">
+<pre>Restart-Service WazuhSvc</pre>
+        </div>
+
+        <h3>Wizard step 6: Verify the agent connection</h3>
+
+        <p>
+          Return to the Wazuh dashboard and go back to the endpoint list. The Windows host should appear as a new endpoint after the service starts and enrollment completes.
+        </p>
+
+        <h2>Step 7: Confirm the Windows agent service is running</h2>
+
+        <p>
+          In elevated PowerShell, confirm the service is running:
+        </p>
+
+        <div class="code-block">
+<pre>Get-Service WazuhSvc</pre>
+        </div>
+
+        <p>
+          If the service is not running, start it:
+        </p>
+
+        <div class="code-block">
+<pre>Start-Service WazuhSvc</pre>
         </div>
 
         <h2>Step 8: Start or restart the Windows agent service</h2>
