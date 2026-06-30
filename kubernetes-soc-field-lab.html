@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="A guided lab path for deploying Wazuh on Kubernetes, troubleshooting the platform, deploying agents, generating safe security events, and using Wazuh from a SOC analyst perspective.">
+  <meta name="description" content="A guided lab path for deploying Wazuh on Kubernetes, troubleshooting the platform, deploying Kubernetes and Windows host agents, generating safe security events, and using Wazuh from a SOC analyst perspective.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Build a hands-on SOC lab on Kubernetes using Wazuh. | Stealth IT Group">
-  <meta property="og:description" content="A guided lab path for deploying Wazuh on Kubernetes, troubleshooting the platform, deploying agents, generating safe security events, and using Wazuh from a SOC analyst perspective.">
+  <meta property="og:description" content="A guided lab path for deploying Wazuh on Kubernetes, troubleshooting the platform, deploying Kubernetes and Windows host agents, generating safe security events, and using Wazuh from a SOC analyst perspective.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-field-lab.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-field-lab.html">
   <title>Build a hands-on SOC lab on Kubernetes using Wazuh. | Kubernetes SOC Field Lab | Stealth IT Group</title>
@@ -26,13 +26,13 @@
     <main class="kubernetes-soc-field-lab-page">
         <div class="badge">Kubernetes SOC Field Lab</div>
         <h1>Build a hands-on SOC lab on Kubernetes using Wazuh.</h1>
-        <p class="intro">A guided lab path for deploying Wazuh on Kubernetes, troubleshooting the platform, deploying agents, generating safe security events, and using Wazuh from a SOC analyst perspective.</p>
+        <p class="intro">A guided lab path for deploying Wazuh on Kubernetes, troubleshooting the platform, deploying Kubernetes and Windows host agents, generating safe security events, and using Wazuh from a SOC analyst perspective.</p>
         
 
   <div class="section">
     <h2>What this path is for</h2>
-    <p>This lab series builds on Kubernetes Field Notes and uses Wazuh to create a practical SOC-style environment. The goal is to understand how Kubernetes operations, Wazuh deployment, agent enrollment, SIEM visibility, alert triage, detection notes, incident workflow, and cleanup fit together.</p>
-    <div class="field-note"><strong>Field note:</strong> This path is intended to be followed as a working lab. If something breaks, the troubleshooting is part of the training.</div>
+    <p>This lab series builds on Kubernetes Field Notes and uses Wazuh to create a practical SOC-style environment. The goal is to understand how Kubernetes operations, Wazuh deployment, agent enrollment, SIEM visibility, endpoint monitoring, alert triage, detection notes, incident workflow, and cleanup fit together.</p>
+    <div class="field-note"><strong>Field note:</strong> This path is intended to be followed as a working lab. If something breaks, the troubleshooting is part of the training. The lab now includes both a Kubernetes DaemonSet agent and a Windows host agent so the reader can compare cluster telemetry with host telemetry.</div>
   </div>
   <div class="section">
     <h2>Prerequisites from Kubernetes Field Notes</h2>
@@ -40,7 +40,7 @@
   </div>
   <div class="section">
     <h2>Recommended path</h2>
-    <p>Work through these lessons in order. The path starts with SOC concepts, moves into Wazuh-on-Kubernetes deployment and troubleshooting, then finishes with agent monitoring, alert investigation, detection notes, and incident workflow.</p>
+    <p>Work through these lessons in order. The path starts with SOC concepts, moves into Wazuh-on-Kubernetes deployment and troubleshooting, then adds Kubernetes and Windows endpoint monitoring before moving into safe event generation, alert investigation, detection notes, and incident workflow.</p>
     <div class="path-list">
       <div class="path-item soc-foundations-card">
         <span class="soc-category soc-foundations">SOC Foundations</span>
@@ -78,34 +78,39 @@
         <p>Access the dashboard safely, validate Wazuh health, confirm services and endpoints, and prepare for SOC analyst workflow.</p>
       </div>
       <div class="path-item soc-k8s-security-card">
-        <span class="soc-category soc-k8s-security">Agent Deployment</span>
+        <span class="soc-category soc-k8s-security">Kubernetes Agent Deployment</span>
         <h3><a href="/kubernetes-soc-deploying-wazuh-agents.html">8. Deploying a Wazuh Agent DaemonSet</a></h3>
-        <p>Deploy a real Wazuh agent DaemonSet, connect it to the Wazuh manager, validate enrollment, and document monitoring coverage.</p>
+        <p>Deploy a real Wazuh agent DaemonSet, connect it to the Wazuh manager, validate enrollment, and document Kubernetes monitoring coverage.</p>
+      </div>
+      <div class="path-item soc-k8s-security-card">
+        <span class="soc-category soc-k8s-security">Windows Host Agent</span>
+        <h3><a href="/kubernetes-soc-windows-host-agent.html">9. Installing a Wazuh Agent on the Windows Host</a></h3>
+        <p>Install a Wazuh agent on the Windows host, use port-forwarding to reach the Kubernetes-hosted Wazuh manager, validate enrollment, and compare Windows host telemetry with Kubernetes telemetry.</p>
       </div>
       <div class="path-item soc-detection-card">
         <span class="soc-category soc-detection">Detection Testing</span>
-        <h3><a href="/kubernetes-soc-generating-test-security-events.html">9. Generating Safe Security Events</a></h3>
+        <h3><a href="/kubernetes-soc-generating-test-security-events.html">10. Generating Safe Security Events</a></h3>
         <p>Generate safe lab events that create useful SOC telemetry without teaching exploit behavior.</p>
       </div>
       <div class="path-item soc-ir-card">
         <span class="soc-category soc-ir">Alert Investigation</span>
-        <h3><a href="/kubernetes-soc-investigating-alerts-in-wazuh.html">10. Investigating Alerts in Wazuh</a></h3>
+        <h3><a href="/kubernetes-soc-investigating-alerts-in-wazuh.html">11. Investigating Alerts in Wazuh</a></h3>
         <p>Triage Wazuh alerts using timestamp, source, rule, severity, description, full log, scope, and recommended action.</p>
       </div>
       <div class="path-item soc-detection-card">
         <span class="soc-category soc-detection">Detection Engineering</span>
-        <h3><a href="/kubernetes-soc-detection-and-tuning-notes.html">11. Detection and Tuning Notes</a></h3>
+        <h3><a href="/kubernetes-soc-detection-and-tuning-notes.html">12. Detection and Tuning Notes</a></h3>
         <p>Write practical detection notes, false-positive notes, tuning recommendations, and alert-quality observations.</p>
       </div>
       <div class="path-item soc-ir-card">
         <span class="soc-category soc-ir">Incident Response</span>
-        <h3><a href="/kubernetes-soc-incident-workflow.html">12. SOC Incident Workflow</a></h3>
+        <h3><a href="/kubernetes-soc-incident-workflow.html">13. SOC Incident Workflow</a></h3>
         <p>Turn an alert into a structured SOC investigation with triage, scope, evidence, impact, containment, remediation, and lessons learned.</p>
       </div>
       <div class="path-item soc-final-card">
         <span class="soc-category soc-final">Final Project</span>
-        <h3><a href="/kubernetes-soc-final-project.html">13. Final Project: Build and Operate a Kubernetes SOC Lab</a></h3>
-        <p>Deploy the SOC lab, validate Wazuh, onboard monitoring, generate test events, investigate alerts, write findings, and document cleanup.</p>
+        <h3><a href="/kubernetes-soc-final-project.html">14. Final Project: Build and Operate a Kubernetes SOC Lab</a></h3>
+        <p>Deploy the SOC lab, validate Wazuh, onboard Kubernetes and Windows host monitoring, generate test events, investigate alerts, write findings, and document cleanup.</p>
       </div>
     </div>
   </div>
