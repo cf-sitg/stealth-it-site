@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Learn how to troubleshoot Wazuh like a Kubernetes operator: start with pods, PVCs, StorageClasses, services, and events before blaming Wazuh itself.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Troubleshooting Wazuh on Kubernetes | Stealth IT Group">
+  <meta property="og:description" content="Learn how to troubleshoot Wazuh like a Kubernetes operator: start with pods, PVCs, StorageClasses, services, and events before blaming Wazuh itself.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-troubleshooting-wazuh-on-kubernetes.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-troubleshooting-wazuh-on-kubernetes.html">
+  <title>Troubleshooting Wazuh on Kubernetes | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Kubernetes Troubleshooting</div>
+        <h1>Troubleshooting Wazuh on Kubernetes</h1>
+        <p class="intro">Learn how to troubleshoot Wazuh like a Kubernetes operator: start with pods, PVCs, StorageClasses, services, and events before blaming Wazuh itself.</p>
+        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
+
+        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-platform">Platform Operations</span><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-k8s-security">Kubernetes Security</span></div>
+        <h2>What this lesson covers</h2><ul><li>Why a running dashboard does not mean Wazuh is fully healthy</li><li>How StatefulSets depend on PVCs</li><li>How to diagnose Pending pods and Pending PVCs</li><li>How to read namespace events</li><li>How to fix local-path StorageClass binding issues</li><li>Why LoadBalancer services may stay pending in a local lab</li><li>PowerShell alternatives for Linux commands such as grep</li></ul>
+        <div class="field-note"><strong>Field note:</strong> Wazuh on Kubernetes is a Kubernetes troubleshooting lab as much as it is a SOC lab.</div>
+        <h2>The Wazuh health model</h2><p>Do not treat the dashboard as the only health indicator. The dashboard can be Running while the indexer and manager are still Pending or unhealthy.</p><div class="code-block"><pre>Dashboard Running
+  does not automatically mean
+Indexer Ready
+  does not automatically mean
+Manager Ready
+  does not automatically mean
+Agents enrolled
+  does not automatically mean
+Telemetry is complete</pre></div>
+        <h2>Step 1: Check Wazuh pods</h2><div class="code-block"><pre>kubectl get pods -n wazuh -o wide</pre></div>
+        <h2>Step 2: Check StatefulSets and Deployments</h2><div class="code-block"><pre>kubectl get statefulset -n wazuh
+kubectl get deployment -n wazuh</pre></div><p>Wazuh indexer and manager components are stateful. They need persistent storage. The dashboard is a Deployment and can often start even when stateful components are blocked.</p>
+        <h2>Step 3: Check PVCs before application logs</h2><div class="code-block"><pre>kubectl get pvc -n wazuh</pre></div><p>If the PVCs are Pending, the Wazuh StatefulSet pods cannot schedule. Fix storage first.</p>
+        <h2>Step 4: Read namespace events</h2><div class="code-block"><pre>kubectl get events -n wazuh --sort-by=.lastTimestamp</pre></div><p>Events usually tell you the real reason a pod or volume is stuck.</p>
+        <h2>Storage issue: no node was specified</h2><p>If you see messages like these, the issue is storage binding:</p><div class="code-block"><pre>failed to provision volume with StorageClass "wazuh-storage": configuration error, no node was specified
+
+pod has unbound immediate PersistentVolumeClaims</pre></div>
+        <h3>Check the StorageClass</h3><div class="code-block"><pre>kubectl get storageclass wazuh-storage -o yaml</pre></div><p>For a local lab using the <strong>rancher.io/local-path</strong> provisioner, the StorageClass should normally include:</p><div class="code-block"><pre>volumeBindingMode: WaitForFirstConsumer</pre></div>
+        <h3>Fix the local Wazuh storage class file</h3><div class="code-block"><pre>notepad .\envs\local-env\storage-class.yaml</pre></div><div class="code-block"><pre>apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: wazuh-storage
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer</pre></div>
+        <h3>Clean up failed pending PVCs</h3><div class="code-block"><pre>kubectl delete pvc -n wazuh wazuh-indexer-wazuh-indexer-0
+kubectl delete pvc -n wazuh wazuh-manager-master-wazuh-manager-master-0
+kubectl delete pvc -n wazuh wazuh-manager-worker-wazuh-manager-worker-0
+
+kubectl delete storageclass wazuh-storage
+
+kubectl apply -k envs/local-env/</pre></div>
+        <h3>Watch PVCs and pods</h3><div class="code-block"><pre>kubectl get pvc -n wazuh -w
+kubectl get pods -n wazuh -w</pre></div>
+        <h2>LoadBalancer EXTERNAL-IP pending in a local lab</h2><p>In a local Kubernetes lab, services of type <strong>LoadBalancer</strong> may show <strong>EXTERNAL-IP &lt;pending&gt;</strong>. For this lab, dashboard access uses port-forwarding, so a pending external IP does not block dashboard access.</p>
+        <h2>PowerShell note: grep is not available by default</h2><div class="code-block"><pre>kubectl get namespaces | Select-String wazuh</pre></div><p>Or use:</p><div class="code-block"><pre>kubectl get namespaces</pre></div>
+        <h2>Troubleshooting checklist</h2><div class="code-block"><pre>1. kubectl get pods -n wazuh -o wide
+2. kubectl get statefulset -n wazuh
+3. kubectl get deployment -n wazuh
+4. kubectl get pvc -n wazuh
+5. kubectl get storageclass wazuh-storage -o yaml
+6. kubectl get events -n wazuh --sort-by=.lastTimestamp
+7. kubectl describe pod -n wazuh &lt;pod-name&gt;
+8. kubectl describe pvc -n wazuh &lt;pvc-name&gt;
+9. kubectl logs -n wazuh &lt;pod-name&gt;</pre></div>
+        <div class="field-note"><strong>Bottom line:</strong> Kubernetes events and PVC state usually tell you why Wazuh is not starting. Use platform evidence before guessing at the application.</div>
+    
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-deploying-wazuh-on-kubernetes.html">← Previous: Deploying Wazuh on Kubernetes</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-understanding-wazuh-components.html">Next: Understanding the Wazuh Components →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
