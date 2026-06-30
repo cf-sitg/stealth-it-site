@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Deploy the SOC lab, validate Wazuh, onboard monitoring, generate test events, investigate alerts, write findings, and document cleanup.">
+  <meta name="description" content="Complete the Kubernetes SOC Field Lab by documenting platform health, endpoint coverage, safe event tests, alert investigation, detection notes, incident workflow, and cleanup.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Final Project: Build and Operate a Kubernetes SOC Lab | Stealth IT Group">
-  <meta property="og:description" content="Deploy the SOC lab, validate Wazuh, onboard monitoring, generate test events, investigate alerts, write findings, and document cleanup.">
+  <meta property="og:description" content="Complete the Kubernetes SOC Field Lab by documenting platform health, endpoint coverage, safe event tests, alert investigation, detection notes, incident workflow, and cleanup.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-final-project.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-final-project.html">
   <title>Final Project: Build and Operate a Kubernetes SOC Lab | Kubernetes SOC Field Lab | Stealth IT Group</title>
@@ -15,8 +15,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
   <link rel="stylesheet" href="/assets/site.css">
@@ -24,84 +22,127 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Final Project</div>
+
         <h1>Final Project: Build and Operate a Kubernetes SOC Lab</h1>
-        <p class="intro">Deploy the SOC lab, validate Wazuh, onboard monitoring, generate test events, investigate alerts, write findings, and document cleanup.</p>
-        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-final">Final Project</span><span class="cert-track soc-platform">Platform Operations</span><span class="cert-track soc-siem">SIEM Operations</span><span class="cert-track soc-detection">Detection Engineering</span><span class="cert-track soc-ir">Incident Response</span></div>
-        <h2>Final scenario</h2><p>You are asked to build a Kubernetes-hosted SOC lab using Wazuh, validate monitoring visibility, generate safe test events, investigate alerts, write a tuning note, produce an incident-style summary, and document cleanup.</p>
-        <h2>Project deliverables</h2><ul><li>Namespace plan</li><li>Wazuh deployment validation</li><li>Dashboard access method</li><li>Agent or monitoring visibility note</li><li>Safe test event log</li><li>Alert investigation worksheet</li><li>Detection/tuning note</li><li>Incident-style summary</li><li>Cleanup procedure</li></ul>
-        <h2>Step 1: Validate platform</h2><div class="code-block"><pre>kubectl config current-context
-kubectl get nodes
-kubectl get pods -A
-kubectl get storageclass</pre></div>
-        <h2>Step 2: Validate Wazuh</h2><div class="code-block"><pre>kubectl get all -n wazuh
-kubectl get pvc -n wazuh
-kubectl get svc -n wazuh
-kubectl get events -n wazuh --sort-by=.lastTimestamp</pre></div>
-        <h2>Step 3: Access dashboard</h2><div class="code-block"><pre>kubectl get svc -n wazuh
-kubectl port-forward -n wazuh svc/&lt;dashboard-service-name&gt; 5601:5601</pre></div>
-        <h2>Step 4: Generate a safe test event</h2><div class="code-block"><pre>kubectl create namespace soc-lab --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n soc-lab create deployment final-soc-demo --image=nginx:latest
-kubectl -n soc-lab exec -it deploy/final-soc-demo -- /bin/sh -c "echo final SOC lab test > /tmp/final-soc-test.txt && cat /tmp/final-soc-test.txt"</pre></div>
-        <h2>Step 5: Investigate in Wazuh</h2><p>Search for activity around the test timestamp. Record source, rule, severity, description, and full-log summary.</p>
-        <h2>Step 6: Write the final notes</h2><div class="code-block"><pre>Finding:
-Evidence:
-Expected or unexpected:
-Impact:
-Recommended action:
-Detection/tuning note:
-Cleanup performed:
-Remaining gaps:</pre></div>
-        <h2>Step 7: Clean up demo workload</h2><div class="code-block"><pre>kubectl -n soc-lab delete deployment final-soc-demo</pre></div>
-        <div class="field-note"><strong>Bottom line:</strong> Completing the final project proves you can deploy, validate, investigate, document, and clean up a Kubernetes SOC lab instead of merely clicking through a security dashboard.</div>
+        <p class="intro">
+          Complete the Kubernetes SOC Field Lab by documenting platform health, endpoint coverage, safe event tests, alert investigation, detection notes, incident workflow, and cleanup.
+        </p>
 
-        <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+        <div class="cert-track-list">
+          <span class="cert-track soc-final">Final Project</span>
+          <span class="cert-track soc-platform">Platform Operations</span>
+          <span class="cert-track soc-ir">Incident Response</span>
+        </div>
+
+        <h2>Final project objective</h2>
+        <p>
+          Build, validate, operate, and document a local Kubernetes SOC lab using Wazuh. The final deliverable should prove that the learner can deploy the platform, troubleshoot it, onboard endpoints, generate safe telemetry, investigate alerts, write detection notes, and document response workflow.
+        </p>
+
+        <h2>Required lab evidence</h2>
+        <div class="code-block"><pre>Platform evidence:
+- Wazuh dashboard is reachable
+- Wazuh indexer is Running/Ready
+- Wazuh manager master is Running/Ready
+- Wazuh manager worker is Running/Ready
+- PVCs are Bound
+- No active CrashLoopBackOff
+
+Endpoint evidence:
+- Kubernetes DaemonSet agent active
+- Windows host agent active
+- Recent keep alive for both endpoints
+- Inventory visible for Windows
+- Endpoint list screenshot or notes</pre></div>
+
+        <h2>Required analyst work</h2>
+        <div class="code-block"><pre>Analyst deliverables:
+- One Kubernetes visibility test
+- One Windows visibility test
+- One Wazuh event investigation
+- One detection/tuning note
+- One incident workflow note
+- One cleanup plan</pre></div>
+
+        <h2>Final report template</h2>
+        <div class="code-block"><pre>Kubernetes SOC Lab Final Report
+
+1. Lab summary
+2. Architecture
+3. Wazuh deployment notes
+4. Troubleshooting performed
+5. Endpoint coverage
+6. Safe event tests
+7. Alert investigation
+8. Detection and tuning notes
+9. Incident workflow
+10. Known limitations
+11. Cleanup procedure
+12. Lessons learned</pre></div>
+
+        <h2>Known limitations to document</h2>
+        <ul>
+          <li>This is a local lab, not a production SOC.</li>
+          <li>Windows host access may depend on port-forward sessions.</li>
+          <li>Kind networking differs from production Kubernetes networking.</li>
+          <li>HostPath mounts require careful review outside a lab.</li>
+          <li>No alert does not guarantee no activity.</li>
+          <li>Default lab credentials and secrets are not production acceptable.</li>
+        </ul>
+
+        <h2>Cleanup procedure</h2>
+        <div class="code-block"><pre>Optional cleanup:
+- Stop Windows Wazuh agent service if no longer needed
+- Uninstall Windows Wazuh agent if desired
+- Delete Wazuh agent DaemonSet
+- Delete wazuh-agents namespace
+- Delete Wazuh deployment only when done with the lab
+- Review PVCs before deleting stateful data</pre></div>
+
+        <div class="field-note">
+          <strong>Final milestone:</strong>
+          Completing this project means the learner did more than install tools. They operated the environment, diagnosed platform issues, onboarded endpoints, generated telemetry, investigated alerts, and wrote SOC-style documentation.
+        </div>
+
+        <h2>Completion checklist</h2>
         <ol>
-          <li>What is the goal of the final project?</li>
-          <li>What should be validated before investigating alerts?</li>
-          <li>Why document dashboard access?</li>
-          <li>Why generate a safe test event?</li>
-          <li>What should the investigation worksheet include?</li>
-          <li>Why write a tuning note?</li>
-          <li>Why clean up demo workloads?</li>
-          <li>What does a finding document?</li>
-          <li>What does remaining gaps mean?</li>
-          <li>How does this final project build on Kubernetes Field Notes?</li>
+          <li>Wazuh deployed on Kubernetes.</li>
+          <li>Storage fixed and PVCs bound.</li>
+          <li>Manager memory fixed and pods stable.</li>
+          <li>Kubernetes DaemonSet agent active.</li>
+          <li>Windows host agent active.</li>
+          <li>Safe events generated.</li>
+          <li>At least one event investigated.</li>
+          <li>Detection/tuning note written.</li>
+          <li>Incident workflow note written.</li>
+          <li>Final report completed.</li>
         </ol>
-        <details class="field-note">
-          <summary><strong>Answer key</strong></summary>
-          <ol>
-            <li>Build and operate a SOC lab end to end.</li>
-            <li>Cluster health, Wazuh health, storage, services, and agent visibility.</li>
-            <li>So access is repeatable and understood.</li>
-            <li>To create controlled telemetry for practice.</li>
-            <li>Timestamp, source, rule, severity, full log, evidence, and recommendation.</li>
-            <li>To improve alert quality and reduce future noise.</li>
-            <li>To keep the lab clean and avoid confusing future tests.</li>
-            <li>Evidence-based observation and recommended action.</li>
-            <li>Known blind spots or unfinished work.</li>
-            <li>It uses namespaces, storage, services, logs, events, troubleshooting, and security concepts.</li>
-          </ol>
-        </details>
 
-    
+
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-incident-workflow.html">← Previous: SOC Incident Workflow</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
-          <a class="nav-next" href="/kubernetes-field-notes.html">Back to Kubernetes Field Notes →</a>
+          <a class="nav-next" href="/kubernetes-soc-field-lab.html">Back to series →</a>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
   <script src="/assets/includes.js"></script>
 </body>
 </html>
