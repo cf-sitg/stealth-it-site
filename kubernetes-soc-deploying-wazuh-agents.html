@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Deploy a Wazuh agent as a Kubernetes DaemonSet, connect it to the Wazuh manager, validate enrollment, inspect logs, troubleshoot startup issues, and document monitoring coverage.">
+  <meta name="description" content="Deploy a Wazuh agent as a Kubernetes DaemonSet, write the agent ossec.conf through init containers, connect it to the Wazuh manager services, validate enrollment, inspect logs, and document monitoring coverage.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Deploying a Wazuh Agent DaemonSet | Stealth IT Group">
-  <meta property="og:description" content="Deploy a Wazuh agent as a Kubernetes DaemonSet, connect it to the Wazuh manager, validate enrollment, inspect logs, troubleshoot startup issues, and document monitoring coverage.">
+  <meta property="og:description" content="Deploy a Wazuh agent as a Kubernetes DaemonSet, write the agent ossec.conf through init containers, connect it to the Wazuh manager services, validate enrollment, inspect logs, and document monitoring coverage.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-agents.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-deploying-wazuh-agents.html">
   <title>Deploying a Wazuh Agent DaemonSet | Kubernetes SOC Field Lab | Stealth IT Group</title>
@@ -32,7 +32,7 @@
         <h1>Deploying a Wazuh Agent DaemonSet</h1>
 
         <p class="intro">
-          Deploy a real Wazuh agent into Kubernetes using a DaemonSet pattern, connect it to the Wazuh manager service, validate enrollment, troubleshoot startup issues, and document what the agent can and cannot see.
+          Deploy a real Wazuh agent into Kubernetes using a DaemonSet pattern, write the agent configuration with init containers, connect it to the Wazuh manager services, validate enrollment, and document monitoring coverage.
         </p>
 
         <p class="article-meta">
@@ -40,7 +40,6 @@
         </p>
 
         <h2>Domain alignment</h2>
-
         <div class="cert-track-list">
           <span class="cert-track soc-k8s-security">Kubernetes Security</span>
           <span class="cert-track soc-siem">SIEM Operations</span>
@@ -48,16 +47,15 @@
         </div>
 
         <h2>What this lesson covers</h2>
-
         <ul>
           <li>Why the DaemonSet model is a good first Kubernetes agent lab</li>
-          <li>How the agent reaches the Wazuh manager inside the cluster</li>
-          <li>Where the <strong>WAZUH_MANAGER</strong> value is set</li>
-          <li>Where to create the Wazuh agent DaemonSet manifest</li>
+          <li>Why the agent needs a real <strong>ossec.conf</strong>, not just environment variables</li>
+          <li>How the agent reaches the Wazuh manager services inside the cluster</li>
           <li>How to create an agent namespace</li>
-          <li>How to create or copy the Wazuh enrollment password secret</li>
-          <li>How to apply a DaemonSet manifest</li>
-          <li>How to validate scheduling, startup, and enrollment</li>
+          <li>How to copy the Wazuh enrollment password into the agent namespace</li>
+          <li>Where to create the DaemonSet manifest file</li>
+          <li>How to write agent configuration through init containers</li>
+          <li>How to validate scheduling, startup, configuration, and enrollment</li>
           <li>How to verify the agent in the dashboard</li>
           <li>How to document monitoring coverage and blind spots</li>
         </ul>
@@ -68,182 +66,127 @@
         </div>
 
         <h2>Step 1: Confirm the Wazuh platform is healthy</h2>
-
         <p>
-          Do not deploy agents until the Wazuh manager, indexer, dashboard, and persistent storage are healthy. Agents depend on the manager for enrollment and communication.
+          Do not deploy agents until the Wazuh manager and indexer are healthy. Agent enrollment depends on the Wazuh manager, and alert flow depends on the manager and indexer working together.
         </p>
-
         <div class="code-block">
 <pre>kubectl get pods -n wazuh
 kubectl get svc -n wazuh
 kubectl get pvc -n wazuh</pre>
         </div>
-
         <p>
           You want the indexer, manager master, manager worker, and dashboard pods to be Running and Ready, and the PVCs to be Bound.
         </p>
-
         <div class="field-note">
           <strong>Do not continue yet:</strong>
-          If a manager pod shows <strong>CrashLoopBackOff</strong>, a rising restart count, <strong>OOMKilled</strong>, or <strong>Exit Code 137</strong>, stop and fix the Wazuh platform before deploying agents.
+          If a Wazuh manager pod is in <strong>CrashLoopBackOff</strong>, or if <strong>kubectl describe pod</strong> shows <strong>Reason: OOMKilled</strong> with <strong>Exit Code: 137</strong>, go back to the troubleshooting lesson and fix manager stability before deploying agents.
         </div>
 
-        <h3>Stable platform checklist</h3>
-
-        <div class="code-block">
-<pre>Expected before continuing:
-- wazuh-indexer-0: 1/1 Running
-- wazuh-manager-master-0: 1/1 Running
-- wazuh-manager-worker-0: 1/1 Running
-- wazuh-dashboard: 1/1 Running
-- PVCs: Bound
-- Restart counts: not actively increasing</pre>
-        </div>
-
-        <h2>Step 2: Identify the manager service the agent will use</h2>
-
-        <p>
-          The agent needs a network address for the Wazuh manager. Inside Kubernetes, pods can use Kubernetes DNS names instead of external IP addresses.
-        </p>
-
+        <h2>Step 2: Identify the manager services the agent will use</h2>
         <div class="code-block">
 <pre>kubectl get svc -n wazuh</pre>
         </div>
-
         <p>
-          In this lab, the agent will communicate with the Wazuh manager service inside the cluster. The service named <strong>wazuh</strong> exposes the manager/authd side for the master. The service named <strong>wazuh-workers</strong> exposes agent event traffic to workers.
+          In this lab, the agent uses two in-cluster Wazuh service paths:
         </p>
-
+        <ul>
+          <li><strong>wazuh.wazuh.svc.cluster.local</strong> for registration/enrollment on port <strong>1515</strong>.</li>
+          <li><strong>wazuh-workers.wazuh.svc.cluster.local</strong> for agent event traffic on port <strong>1514</strong>.</li>
+        </ul>
         <div class="field-note">
           <strong>Local lab note:</strong>
           Services may show <strong>EXTERNAL-IP &lt;pending&gt;</strong> in a local cluster. That does not block in-cluster communication. Pods can still use Kubernetes DNS service names.
         </div>
 
-        <h2>Step 3: Decide the in-cluster manager address</h2>
-
+        <h2>Step 3: Decide the in-cluster manager addresses</h2>
         <p>
-          For this lab, the Wazuh manager address will be:
+          This step defines values that will be written into the agent's <strong>ossec.conf</strong> file later in Step 6. You are not setting these values globally in Kubernetes, and you are not running a command yet. You are deciding what the DaemonSet manifest will write into the agent configuration.
         </p>
-
         <div class="code-block">
-<pre>wazuh.wazuh.svc.cluster.local</pre>
+<pre>Agent event manager:
+wazuh-workers.wazuh.svc.cluster.local
+
+Agent enrollment / registration manager:
+wazuh.wazuh.svc.cluster.local</pre>
         </div>
-
         <p>
-          This value is not applied by itself in Step 3. You will set it inside the DaemonSet YAML file in Step 6 as environment variables on the Wazuh agent container.
+          In the DaemonSet manifest, these appear in the <strong>write-ossec-config</strong> init container:
         </p>
-
         <div class="code-block">
 <pre>- name: WAZUH_MANAGER
-  value: "wazuh.wazuh.svc.cluster.local"
+  value: "wazuh-workers.wazuh.svc.cluster.local"
+
 - name: WAZUH_REGISTRATION_SERVER
   value: "wazuh.wazuh.svc.cluster.local"</pre>
         </div>
-
+        <p>
+          The init container then writes those values into <strong>/var/ossec/etc/ossec.conf</strong> before the main Wazuh agent container starts.
+        </p>
         <div class="field-note">
-          <strong>Operator note:</strong>
-          Step 3 is a design decision. Step 6 is where you actually place the value in the Kubernetes manifest.
+          <strong>Important correction:</strong>
+          Setting <strong>WAZUH_MANAGER</strong> as an environment variable by itself may not be enough. If the agent starts with an empty <strong>&lt;address&gt;</strong> in <strong>ossec.conf</strong>, the logs may show <strong>Invalid server address found: ''</strong> and <strong>No client configured</strong>. This lab writes the config file explicitly to avoid that problem.
         </div>
 
-        <h3>Optional DNS check</h3>
-
+        <h3>Optional DNS test</h3>
         <p>
-          Before deploying the agent, you can confirm that Kubernetes DNS resolves the Wazuh manager service from another namespace.
+          Before deploying the agent, you can confirm Kubernetes DNS can resolve the Wazuh manager service names.
         </p>
-
         <div class="code-block">
 <pre>kubectl create namespace wazuh-agents --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl run dns-test -n wazuh-agents --image=busybox:latest --restart=Never -- sleep 3600
 kubectl exec -n wazuh-agents dns-test -- nslookup wazuh.wazuh.svc.cluster.local
+kubectl exec -n wazuh-agents dns-test -- nslookup wazuh-workers.wazuh.svc.cluster.local
 kubectl delete pod -n wazuh-agents dns-test</pre>
         </div>
 
         <h2>Step 4: Create an agent namespace</h2>
-
         <p>
           Keep the agent deployment separate from the Wazuh platform namespace. This makes troubleshooting and cleanup easier.
         </p>
-
         <div class="code-block">
 <pre>kubectl create namespace wazuh-agents --dry-run=client -o yaml | kubectl apply -f -</pre>
         </div>
-
-        <p>
-          Verify the namespace exists:
-        </p>
-
+        <p>Confirm the namespace exists:</p>
         <div class="code-block">
 <pre>kubectl get namespace wazuh-agents</pre>
         </div>
 
-        <h2>Step 5: Create the enrollment password secret</h2>
-
+        <h2>Step 5: Copy the enrollment password secret</h2>
         <p>
-          The Wazuh Kubernetes deployment creates a secret named <strong>wazuh-authd-pass</strong> in the <strong>wazuh</strong> namespace. The agent namespace needs access to the same enrollment password, so create a matching secret in <strong>wazuh-agents</strong>.
+          The Wazuh Kubernetes deployment creates a secret named <strong>wazuh-authd-pass</strong> in the <strong>wazuh</strong> namespace. The agent DaemonSet runs in <strong>wazuh-agents</strong>, so it needs access to the same enrollment password in its own namespace.
         </p>
-
-        <h3>Confirm the source secret exists</h3>
-
         <div class="code-block">
 <pre>kubectl get secret -n wazuh wazuh-authd-pass</pre>
         </div>
-
-        <h3>Copy the secret value into the agent namespace</h3>
-
-        <p>
-          From PowerShell, read the existing secret value, decode it, and create the same secret key in the agent namespace.
-        </p>
-
+        <p>Use PowerShell to copy the secret value into the agent namespace:</p>
         <div class="code-block">
 <pre>$EncodedAuthdPass = kubectl get secret wazuh-authd-pass -n wazuh -o jsonpath="{.data.authd\.pass}"
 $AuthdPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedAuthdPass))
 
 kubectl create secret generic wazuh-authd-pass -n wazuh-agents --from-literal=authd.pass=$AuthdPass --dry-run=client -o yaml | kubectl apply -f -</pre>
         </div>
-
-        <h3>Verify the agent namespace secret</h3>
-
+        <p>Confirm the secret exists in the agent namespace:</p>
         <div class="code-block">
 <pre>kubectl get secret -n wazuh-agents wazuh-authd-pass</pre>
         </div>
-
         <div class="field-note">
-          <strong>Security note:</strong>
-          Do not hardcode real passwords into public training repos. In this lab, the manifest references a Kubernetes Secret instead of putting the password directly in the YAML file.
+          <strong>Expected warning:</strong>
+          If you previously created this secret without <strong>kubectl apply</strong>, Kubernetes may warn that the secret is missing the <strong>last-applied-configuration</strong> annotation. In this lab, that warning is not a failure. Kubernetes patches the annotation and continues.
         </div>
 
         <h2>Step 6: Create the Wazuh agent DaemonSet manifest</h2>
-
         <p>
-          Create the DaemonSet YAML file on your workstation in the Wazuh Kubernetes working directory. Do not place this directly inside the upstream Wazuh deployment folders. Keep your lab-created manifests in a separate folder so it is obvious what came from Wazuh and what you added for the lab.
+          Create the manifest inside your Wazuh Kubernetes working directory so the lab files stay together.
         </p>
-
-        <h3>Create a local lab manifest folder</h3>
-
-        <p>
-          From PowerShell:
-        </p>
-
         <div class="code-block">
 <pre>cd C:\k8s\wazuh-kubernetes
-New-Item -ItemType Directory -Force .\lab-manifests</pre>
+New-Item -ItemType Directory -Force .\lab-manifests
+notepad .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
         </div>
-
-        <h3>Create the DaemonSet YAML file</h3>
-
-        <div class="code-block">
-<pre>notepad .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
-        </div>
-
         <p>
-          Paste the manifest below into Notepad, save it, and close the file.
+          In Notepad, paste the full manifest below and save the file.
         </p>
-
-        <div class="field-note">
-          <strong>Where the Step 3 value goes:</strong>
-          The manager address from Step 3 is set in this file under the container <strong>env</strong> section as <strong>WAZUH_MANAGER</strong> and <strong>WAZUH_REGISTRATION_SERVER</strong>.
-        </div>
 
         <div class="code-block">
 <pre>apiVersion: v1
@@ -269,168 +212,274 @@ spec:
         app: wazuh-agent
     spec:
       serviceAccountName: wazuh-agent
+      terminationGracePeriodSeconds: 20
       tolerations:
         - operator: Exists
+
+      initContainers:
+        - name: cleanup-ossec-stale
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              set -e
+              echo "[init] Cleaning stale Wazuh agent pid and lock files..."
+              mkdir -p /agent/var/run /agent/queue/ossec
+              rm -f /agent/var/run/*.pid || true
+              rm -f /agent/queue/ossec/*.lock || true
+          volumeMounts:
+            - name: ossec-data
+              mountPath: /agent
+
+        - name: seed-ossec-tree
+          image: wazuh/wazuh-agent:4.14.5
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              set -e
+              echo "[init] Checking whether /var/ossec needs to be seeded..."
+              if [ ! -d /agent/bin ]; then
+                echo "[init] Seeding /var/ossec into the agent hostPath..."
+                tar -C /var/ossec -cf - . | tar -C /agent -xpf -
+              else
+                echo "[init] Existing Wazuh agent data found. Skipping seed."
+              fi
+          volumeMounts:
+            - name: ossec-data
+              mountPath: /agent
+
+        - name: fix-permissions
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              set -e
+              echo "[init] Fixing Wazuh agent file permissions..."
+              for d in etc logs queue var rids tmp active-response; do
+                [ -d "/agent/$d" ] &amp;&amp; chown -R 999:999 "/agent/$d"
+              done
+              chown -R 0:0 /agent/bin /agent/lib || true
+              find /agent/bin -type f -exec chmod 0755 {} \; || true
+          volumeMounts:
+            - name: ossec-data
+              mountPath: /agent
+
+        - name: write-ossec-config
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WAZUH_MANAGER
+              value: "wazuh-workers.wazuh.svc.cluster.local"
+            - name: WAZUH_PORT
+              value: "1514"
+            - name: WAZUH_PROTOCOL
+              value: "tcp"
+            - name: WAZUH_REGISTRATION_SERVER
+              value: "wazuh.wazuh.svc.cluster.local"
+            - name: WAZUH_REGISTRATION_PORT
+              value: "1515"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              set -e
+              echo "[init] Writing Wazuh agent ossec.conf..."
+              mkdir -p /agent/etc
+              cat > /agent/etc/ossec.conf &lt;&lt;'AGENTCONF'
+              &lt;ossec_config&gt;
+                &lt;client&gt;
+                  &lt;server&gt;
+                    &lt;address&gt;${WAZUH_MANAGER}&lt;/address&gt;
+                    &lt;port&gt;${WAZUH_PORT}&lt;/port&gt;
+                    &lt;protocol&gt;${WAZUH_PROTOCOL}&lt;/protocol&gt;
+                  &lt;/server&gt;
+                  &lt;enrollment&gt;
+                    &lt;enabled&gt;yes&lt;/enabled&gt;
+                    &lt;agent_name&gt;${NODE_NAME}&lt;/agent_name&gt;
+                    &lt;manager_address&gt;${WAZUH_REGISTRATION_SERVER}&lt;/manager_address&gt;
+                    &lt;port&gt;${WAZUH_REGISTRATION_PORT}&lt;/port&gt;
+                    &lt;authorization_pass_path&gt;/var/ossec/etc/authd.pass&lt;/authorization_pass_path&gt;
+                  &lt;/enrollment&gt;
+                &lt;/client&gt;
+              &lt;/ossec_config&gt;
+AGENTCONF
+              sed -i "s|\${WAZUH_MANAGER}|${WAZUH_MANAGER}|g" /agent/etc/ossec.conf
+              sed -i "s|\${WAZUH_PORT}|${WAZUH_PORT}|g" /agent/etc/ossec.conf
+              sed -i "s|\${WAZUH_PROTOCOL}|${WAZUH_PROTOCOL}|g" /agent/etc/ossec.conf
+              sed -i "s|\${NODE_NAME}|${NODE_NAME}|g" /agent/etc/ossec.conf
+              sed -i "s|\${WAZUH_REGISTRATION_SERVER}|${WAZUH_REGISTRATION_SERVER}|g" /agent/etc/ossec.conf
+              sed -i "s|\${WAZUH_REGISTRATION_PORT}|${WAZUH_REGISTRATION_PORT}|g" /agent/etc/ossec.conf
+              chown 999:999 /agent/etc/ossec.conf
+              chmod 0640 /agent/etc/ossec.conf
+              echo "[init] ossec.conf created:"
+              cat /agent/etc/ossec.conf
+          volumeMounts:
+            - name: ossec-data
+              mountPath: /agent
+
+        - name: copy-authd-pass
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              set -e
+              echo "[init] Copying authd.pass from Kubernetes Secret..."
+              mkdir -p /agent/etc
+              cp /secret/authd.pass /agent/etc/authd.pass
+              chown 0:999 /agent/etc/authd.pass
+              chmod 0640 /agent/etc/authd.pass
+              ls -l /agent/etc/authd.pass
+          volumeMounts:
+            - name: ossec-data
+              mountPath: /agent
+            - name: wazuh-authd-pass
+              mountPath: /secret/authd.pass
+              subPath: authd.pass
+              readOnly: true
+
       containers:
         - name: wazuh-agent
           image: wazuh/wazuh-agent:4.14.5
           imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              set -e
+              ln -sf /var/ossec/etc/ossec.conf /etc/ossec.conf || true
+              exec /init
           env:
             - name: WAZUH_MANAGER
-              value: "wazuh.wazuh.svc.cluster.local"
-            - name: WAZUH_REGISTRATION_SERVER
-              value: "wazuh.wazuh.svc.cluster.local"
-            - name: WAZUH_AGENT_NAME
+              value: "wazuh-workers.wazuh.svc.cluster.local"
+            - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            - name: WAZUH_AGENT_GROUP
-              value: "kubernetes"
-            - name: WAZUH_REGISTRATION_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: wazuh-authd-pass
-                  key: authd.pass
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 300m
-              memory: 512Mi
           securityContext:
             runAsUser: 0
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+                - SETGID
+                - SETUID
           volumeMounts:
-            - name: var-log
+            - name: varlog
               mountPath: /var/log
               readOnly: true
-            - name: os-release
-              mountPath: /host/etc/os-release
-              readOnly: true
+            - name: ossec-data
+              mountPath: /var/ossec
+
       volumes:
-        - name: var-log
+        - name: varlog
           hostPath:
             path: /var/log
             type: Directory
-        - name: os-release
+        - name: ossec-data
           hostPath:
-            path: /etc/os-release
-            type: File</pre>
-        </div>
-
-        <h3>Verify the file exists</h3>
-
-        <div class="code-block">
-<pre>Get-Item .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
-        </div>
-
-        <h3>Preview what Kubernetes will receive</h3>
-
-        <div class="code-block">
-<pre>kubectl apply --dry-run=client -f .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
+            path: /var/lib/wazuh-agent
+            type: DirectoryOrCreate
+        - name: wazuh-authd-pass
+          secret:
+            secretName: wazuh-authd-pass</pre>
         </div>
 
         <div class="field-note">
           <strong>Best-practice note:</strong>
-          This lab manifest is intentionally limited. It mounts host logs read-only and avoids broad host filesystem access. A production DaemonSet requires a deeper review of privileges, hostPath mounts, update strategy, node selectors, tolerations, resource limits, and organizational policy.
+          This lab manifest is intentionally limited and practical for a local SOC lab. It uses a DaemonSet, a dedicated namespace, a Kubernetes Secret, read-only access to <strong>/var/log</strong>, and a local hostPath for Wazuh agent state. A production deployment requires deeper review of privileges, hostPath mounts, update strategy, node selectors, tolerations, resource limits, RBAC, network policy, and secret management.
+        </div>
+
+        <h3>Confirm the file exists</h3>
+        <div class="code-block">
+<pre>Get-Item .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
+        </div>
+
+        <h3>Validate the manifest before applying it</h3>
+        <div class="code-block">
+<pre>kubectl apply --dry-run=client -f .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
         </div>
 
         <h2>Step 7: Apply the DaemonSet</h2>
-
-        <p>
-          Apply the manifest from the location where you created it.
-        </p>
-
+        <p>Apply the manifest from the same directory where you created it.</p>
         <div class="code-block">
 <pre>kubectl apply -f .\lab-manifests\wazuh-agent-daemonset.yaml</pre>
         </div>
 
         <h2>Step 8: Verify the DaemonSet exists</h2>
-
         <div class="code-block">
 <pre>kubectl get daemonset -n wazuh-agents
 kubectl get pods -n wazuh-agents -o wide</pre>
         </div>
-
         <p>
           In a single-node lab, expect one Wazuh agent pod. In a multi-node lab, expect one agent pod per schedulable node.
         </p>
 
         <h2>Step 9: Watch the agent logs</h2>
-
-        <p>
-          Get the agent pod name:
-        </p>
-
+        <p>First capture the agent pod name into a PowerShell variable:</p>
         <div class="code-block">
-<pre>kubectl get pods -n wazuh-agents</pre>
+<pre>$AgentPod = kubectl get pods -n wazuh-agents -l app=wazuh-agent -o jsonpath="{.items[0].metadata.name}"</pre>
         </div>
-
-        <p>
-          Then check logs by label:
-        </p>
-
+        <p>Check the init container that writes <strong>ossec.conf</strong>:</p>
+        <div class="code-block">
+<pre>kubectl logs -n wazuh-agents $AgentPod -c write-ossec-config</pre>
+        </div>
+        <p>You should see the generated manager values:</p>
+        <div class="code-block">
+<pre>&lt;address&gt;wazuh-workers.wazuh.svc.cluster.local&lt;/address&gt;
+&lt;manager_address&gt;wazuh.wazuh.svc.cluster.local&lt;/manager_address&gt;</pre>
+        </div>
+        <p>Then check the main agent logs:</p>
         <div class="code-block">
 <pre>kubectl logs -n wazuh-agents -l app=wazuh-agent --tail=100</pre>
         </div>
-
-        <p>
-          Look for messages that indicate the agent is connecting to the manager and enrolling successfully.
-        </p>
+        <p>The agent should no longer fail with an empty manager address.</p>
 
         <h2>Step 10: Troubleshoot agent startup</h2>
+        <h3>Agent says Invalid server address found: ''</h3>
+        <p>This means the agent started without a valid manager address in <strong>ossec.conf</strong>.</p>
+        <div class="code-block">
+<pre>wazuh-agentd: ERROR: (4112): Invalid server address found: ''
+wazuh-agentd: ERROR: (1215): No client configured. Exiting.</pre>
+        </div>
+        <p>
+          Fix this by confirming the <strong>write-ossec-config</strong> init container exists and wrote the manager address into the config file.
+        </p>
+        <div class="code-block">
+<pre>$AgentPod = kubectl get pods -n wazuh-agents -l app=wazuh-agent -o jsonpath="{.items[0].metadata.name}"
+kubectl logs -n wazuh-agents $AgentPod -c write-ossec-config</pre>
+        </div>
 
         <h3>Image pull failure</h3>
-
         <div class="code-block">
 <pre>kubectl describe pod -n wazuh-agents &lt;agent-pod-name&gt;</pre>
         </div>
-
-        <p>
-          Confirm the image tag exists and the node can pull from the registry.
-        </p>
+        <p>Confirm the image tag exists and the node can pull from the registry.</p>
 
         <h3>Secret error</h3>
-
         <div class="code-block">
 <pre>kubectl get secret -n wazuh-agents wazuh-authd-pass
 kubectl describe pod -n wazuh-agents &lt;agent-pod-name&gt;</pre>
         </div>
-
-        <p>
-          If the secret or key name is wrong, the pod may not start or the environment variable may not populate.
-        </p>
+        <p>If the secret or key name is wrong, the pod may fail during the <strong>copy-authd-pass</strong> init container.</p>
 
         <h3>Manager connection or DNS error</h3>
-
         <div class="code-block">
 <pre>kubectl run dns-test -n wazuh-agents --image=busybox:latest --restart=Never -- sleep 3600
 kubectl exec -n wazuh-agents dns-test -- nslookup wazuh.wazuh.svc.cluster.local
+kubectl exec -n wazuh-agents dns-test -- nslookup wazuh-workers.wazuh.svc.cluster.local
 kubectl delete pod -n wazuh-agents dns-test</pre>
         </div>
-
-        <p>
-          If DNS fails, troubleshoot cluster DNS or service naming before troubleshooting Wazuh enrollment.
-        </p>
-
-        <h3>Agent pod starts but does not enroll</h3>
-
-        <div class="code-block">
-<pre>kubectl logs -n wazuh-agents -l app=wazuh-agent --tail=200
-kubectl get svc -n wazuh
-kubectl get endpoints -n wazuh</pre>
-        </div>
-
-        <p>
-          Confirm the manager service has endpoints, the manager pods are healthy, and the registration password secret matches what the manager expects.
-        </p>
+        <p>If DNS fails, troubleshoot cluster DNS or service naming before troubleshooting Wazuh enrollment.</p>
 
         <h2>Step 11: Verify the agent in the Wazuh dashboard</h2>
-
         <p>
-          Open the Wazuh dashboard and navigate to the agent management or agent summary view. Confirm the Kubernetes node agent appears.
+          Open the Wazuh dashboard and navigate to agent management or the agent summary view. Confirm the Kubernetes node agent appears.
         </p>
-
         <div class="code-block">
 <pre>Expected evidence:
 - Agent visible in Wazuh
@@ -441,11 +490,9 @@ kubectl get endpoints -n wazuh</pre>
         </div>
 
         <h2>Step 12: Generate a safe node-level test event</h2>
-
         <p>
-          Generate a simple lab event. Keep this benign and documented.
+          Generate a simple log event on the node through a lab pod. Keep this benign and documented.
         </p>
-
         <div class="code-block">
 <pre>kubectl run soc-agent-test -n wazuh-agents --image=busybox:latest --restart=Never -- sh -c "echo Wazuh agent DaemonSet lab test && sleep 30"
 
@@ -453,25 +500,22 @@ kubectl logs -n wazuh-agents soc-agent-test
 
 kubectl delete pod -n wazuh-agents soc-agent-test</pre>
         </div>
-
         <p>
           Then search the Wazuh dashboard around the timestamp of the test. Depending on agent configuration and collected log paths, this may show directly as an event or may support timing correlation.
         </p>
 
         <h2>Step 13: Document monitoring coverage</h2>
-
         <div class="code-block">
 <pre>Agent deployment model:
-Manifest file path:
 Namespace:
 DaemonSet name:
 Agent image/tag:
-Manager service address:
-Registration server address:
-Secret used:
+Manager event service address:
+Manager registration service address:
 Nodes covered:
 Nodes not covered:
 Host paths mounted:
+Secrets used:
 Agent visible in dashboard:
 Known blind spots:
 Next tuning action:</pre>
@@ -479,17 +523,30 @@ Next tuning action:</pre>
 
         <div class="field-note">
           <strong>Bottom line:</strong>
-          Deploying an agent is not complete until you can prove it is running, enrolled, visible in Wazuh, and documented with clear coverage boundaries.
+          Deploying an agent is not complete until you can prove it is running, configured, enrolled, visible in Wazuh, and documented with clear coverage boundaries.
+        </div>
+
+        <h2>Cleanup note</h2>
+        <p>
+          If you need to remove the lab agent deployment, delete the DaemonSet and then decide whether to keep or remove the namespace and secret.
+        </p>
+        <div class="code-block">
+<pre>kubectl delete daemonset wazuh-agent -n wazuh-agents
+kubectl delete serviceaccount wazuh-agent -n wazuh-agents</pre>
+        </div>
+        <p>To fully remove the agent lab namespace:</p>
+        <div class="code-block">
+<pre>kubectl delete namespace wazuh-agents</pre>
         </div>
 
         <h2>Check your understanding</h2>
-
         <ol>
-          <li>Where is the <strong>WAZUH_MANAGER</strong> value actually set?</li>
-          <li>Why did we create <strong>lab-manifests</strong> instead of editing the upstream Wazuh folders?</li>
           <li>Why is a DaemonSet useful for Kubernetes agent deployment?</li>
           <li>Why should agents be deployed after Wazuh manager/indexer health is confirmed?</li>
           <li>Why use a separate namespace for agents?</li>
+          <li>Why does the agent need <strong>ossec.conf</strong> to contain a valid manager address?</li>
+          <li>Where is <strong>WAZUH_MANAGER</strong> set in this lab?</li>
+          <li>Why is the registration service different from the event service?</li>
           <li>Why use a Kubernetes Secret for the enrollment password?</li>
           <li>What does one agent pod per node tell you?</li>
           <li>Why is <strong>EXTERNAL-IP &lt;pending&gt;</strong> not a blocker for in-cluster agent communication?</li>
@@ -502,12 +559,13 @@ Next tuning action:</pre>
         <details class="field-note">
           <summary><strong>Answer key</strong></summary>
           <ol>
-            <li>Inside the DaemonSet YAML file under the Wazuh agent container <strong>env</strong> section.</li>
-            <li>It keeps lab-created manifests separate from the upstream Wazuh deployment files and makes cleanup easier.</li>
             <li>It schedules one agent on each node, which is useful for node-level monitoring.</li>
             <li>Agents must connect to a working manager and the platform must be able to process data.</li>
             <li>It separates monitoring agents from the Wazuh platform and simplifies cleanup/troubleshooting.</li>
-            <li>It avoids putting the password directly in the manifest.</li>
+            <li>Without a valid <strong>&lt;client&gt;</strong> server address, the Wazuh agent has no manager to connect to and exits.</li>
+            <li>It is set in the DaemonSet manifest, specifically in the <strong>write-ossec-config</strong> init container, which writes the value into <strong>ossec.conf</strong>.</li>
+            <li>The master service handles enrollment/registration on port 1515, while the worker service receives agent event traffic on port 1514.</li>
+            <li>It avoids putting the enrollment password directly in the manifest.</li>
             <li>The DaemonSet is scheduling as expected across available nodes.</li>
             <li>Pods can communicate through ClusterIP/DNS service names inside the cluster.</li>
             <li>Cluster DNS, service name, namespace, and service existence.</li>
