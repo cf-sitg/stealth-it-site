@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Install a Wazuh agent on the Windows host that runs the local Kubernetes lab, expose Wazuh manager ports with kubectl port-forward, validate enrollment, and compare Windows host telemetry with Kubernetes agent telemetry.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Stealth IT Group">
+  <meta property="og:title" content="Installing a Wazuh Agent on the Windows Host | Stealth IT Group">
+  <meta property="og:description" content="Install a Wazuh agent on the Windows host that runs the local Kubernetes lab, expose Wazuh manager ports with kubectl port-forward, validate enrollment, and compare Windows host telemetry with Kubernetes agent telemetry.">
+  <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-windows-host-agent.html">
+  <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-windows-host-agent.html">
+  <title>Installing a Wazuh Agent on the Windows Host | Kubernetes SOC Field Lab | Stealth IT Group</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#08111f">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <div class="page">
+    <div data-include="/partials/header.html"></div>
+
+    <main>
+      <article class="article">
+        <div class="badge">Windows Host Monitoring</div>
+
+        <h1>Installing a Wazuh Agent on the Windows Host</h1>
+
+        <p class="intro">
+          Extend the Kubernetes SOC lab by installing a Wazuh agent on the Windows host that runs the lab. You will expose the Wazuh manager ports through kubectl port-forward, install the Windows agent, verify enrollment, generate safe Windows telemetry, and compare Windows host visibility with Kubernetes agent visibility.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+
+        <div class="cert-track-list">
+          <span class="cert-track soc-siem">SIEM Operations</span>
+          <span class="cert-track soc-ir">Incident Response</span>
+          <span class="cert-track soc-platform">Platform Operations</span>
+        </div>
+
+        <h2>What this lesson covers</h2>
+
+        <ul>
+          <li>Why the Windows host cannot use Kubernetes internal DNS names</li>
+          <li>How to prove NodePort access does or does not work from Windows</li>
+          <li>How to expose Wazuh enrollment and event ports with kubectl port-forward</li>
+          <li>How to install a Windows Wazuh agent with PowerShell</li>
+          <li>How to confirm the Windows endpoint appears in Wazuh</li>
+          <li>How to generate safe Windows host telemetry</li>
+          <li>How to compare Kubernetes agent visibility with Windows host visibility</li>
+          <li>How to document endpoint coverage and lab limitations</li>
+        </ul>
+
+        <div class="field-note">
+          <strong>Lab note:</strong>
+          The Kubernetes DaemonSet agent proves cluster-side monitoring. The Windows host agent proves endpoint-side monitoring. Together, they make the lab feel much more like a real SOC environment.
+        </div>
+
+        <h2>Before you start</h2>
+
+        <p>
+          This lesson assumes the Wazuh platform is healthy and the Kubernetes DaemonSet agent is already active in the Wazuh dashboard.
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get pods -n wazuh
+kubectl get pods -n wazuh-agents
+kubectl get svc -n wazuh</pre>
+        </div>
+
+        <p>
+          You should already have one active Kubernetes endpoint in Wazuh before adding the Windows host.
+        </p>
+
+        <h2>Step 1: Understand the network problem</h2>
+
+        <p>
+          The Wazuh services inside Kubernetes have internal DNS names such as:
+        </p>
+
+        <div class="code-block">
+<pre>wazuh.wazuh.svc.cluster.local
+wazuh-workers.wazuh.svc.cluster.local</pre>
+        </div>
+
+        <p>
+          Those names work from pods inside the Kubernetes cluster. They do not work from the Windows host, because Windows is outside the cluster network.
+        </p>
+
+        <div class="field-note">
+          <strong>Important:</strong>
+          Do not configure the Windows agent with <strong>wazuh.wazuh.svc.cluster.local</strong>. That address is only valid inside Kubernetes.
+        </div>
+
+        <h2>Step 2: Check the Wazuh service ports</h2>
+
+        <p>
+          From PowerShell, check the Wazuh services:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get svc -n wazuh</pre>
+        </div>
+
+        <p>
+          In this lab, the important ports are:
+        </p>
+
+        <ul>
+          <li><strong>1515/TCP</strong> for agent enrollment/registration through the <strong>wazuh</strong> service.</li>
+          <li><strong>1514/TCP</strong> for agent event traffic through the <strong>wazuh-workers</strong> service.</li>
+        </ul>
+
+        <p>
+          Your service output may also show NodePorts such as <strong>31124</strong> for registration and <strong>30308</strong> for worker event traffic. In a kind-on-Windows lab, those NodePorts may not be reachable directly from Windows.
+        </p>
+
+        <h2>Step 3: Test whether NodePort access works from Windows</h2>
+
+        <p>
+          First test localhost NodePort access:
+        </p>
+
+        <div class="code-block">
+<pre>Test-NetConnection 127.0.0.1 -Port 31124
+Test-NetConnection 127.0.0.1 -Port 30308</pre>
+        </div>
+
+        <p>
+          Then check the kind node IP:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl get nodes -o wide</pre>
+        </div>
+
+        <p>
+          Test the node IP and NodePorts:
+        </p>
+
+        <div class="code-block">
+<pre>Test-NetConnection &lt;kind-node-ip&gt; -Port 31124
+Test-NetConnection &lt;kind-node-ip&gt; -Port 30308</pre>
+        </div>
+
+        <p>
+          If these tests fail, that is not a Wazuh problem. It means the Windows host cannot reach those Kubernetes NodePorts directly.
+        </p>
+
+        <div class="field-note">
+          <strong>Your lab result:</strong>
+          In this kind-on-Windows lab, direct tests to <strong>127.0.0.1:31124</strong>, <strong>127.0.0.1:30308</strong>, <strong>172.18.0.2:31124</strong>, and <strong>172.18.0.2:30308</strong> failed. That means the Windows host agent needs a different path into Wazuh.
+        </div>
+
+        <h2>Step 4: Use port-forwarding for the Windows host lab</h2>
+
+        <p>
+          Use <strong>kubectl port-forward</strong> to expose the Wazuh agent ports to the Windows host on localhost.
+        </p>
+
+        <h3>PowerShell window 1: registration port</h3>
+
+        <p>
+          Open a dedicated PowerShell window and run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl -n wazuh port-forward --address 127.0.0.1 service/wazuh 1515:1515</pre>
+        </div>
+
+        <p>
+          Leave this window open.
+        </p>
+
+        <h3>PowerShell window 2: agent event port</h3>
+
+        <p>
+          Open a second dedicated PowerShell window and run:
+        </p>
+
+        <div class="code-block">
+<pre>kubectl -n wazuh port-forward --address 127.0.0.1 service/wazuh-workers 1514:1514</pre>
+        </div>
+
+        <p>
+          Leave this window open too.
+        </p>
+
+        <div class="field-note">
+          <strong>Operator note:</strong>
+          These port-forward sessions are part of the lab network path. If either PowerShell window closes, the Windows agent may lose its connection to Wazuh.
+        </div>
+
+        <h2>Step 5: Prove the Windows host can reach Wazuh</h2>
+
+        <p>
+          Open a third PowerShell window and test localhost access:
+        </p>
+
+        <div class="code-block">
+<pre>Test-NetConnection 127.0.0.1 -Port 1515
+Test-NetConnection 127.0.0.1 -Port 1514</pre>
+        </div>
+
+        <p>
+          You want both tests to show:
+        </p>
+
+        <div class="code-block">
+<pre>TcpTestSucceeded : True</pre>
+        </div>
+
+        <p>
+          Do not install the Windows agent until these tests pass.
+        </p>
+
+        <h2>Step 6: Download the Windows Wazuh agent installer</h2>
+
+        <p>
+          Download the Windows agent MSI from the Wazuh agent packages page or from the Deploy new agent workflow inside the Wazuh dashboard.
+        </p>
+
+        <div class="field-note">
+          <strong>Version note:</strong>
+          Try to match the Windows agent version to your Wazuh platform version. In this lab, the Kubernetes Wazuh components are using <strong>4.14.5</strong>, so use the matching Windows agent installer when available.
+        </div>
+
+        <p>
+          Save the installer somewhere simple, such as:
+        </p>
+
+        <div class="code-block">
+<pre>C:\k8s\wazuh-kubernetes\lab-installers\wazuh-agent.msi</pre>
+        </div>
+
+        <p>
+          Create the folder if needed:
+        </p>
+
+        <div class="code-block">
+<pre>New-Item -ItemType Directory -Force C:\k8s\wazuh-kubernetes\lab-installers</pre>
+        </div>
+
+        <h2>Step 7: Install the Windows Wazuh agent</h2>
+
+        <p>
+          Open PowerShell as Administrator. Set the installer path:
+        </p>
+
+        <div class="code-block">
+<pre>$Installer = "C:\k8s\wazuh-kubernetes\lab-installers\wazuh-agent.msi"</pre>
+        </div>
+
+        <p>
+          Install the agent and point it at localhost. Localhost works here because the port-forward sessions from Step 4 are forwarding Windows traffic into the Kubernetes Wazuh services.
+        </p>
+
+        <div class="code-block">
+<pre>msiexec.exe /i $Installer /q WAZUH_MANAGER="127.0.0.1" WAZUH_REGISTRATION_SERVER="127.0.0.1" WAZUH_REGISTRATION_PORT="1515" WAZUH_PROTOCOL="tcp" WAZUH_AGENT_GROUP="windows-lab"</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>What this means:</strong>
+          The Windows agent sends event traffic to <strong>127.0.0.1:1514</strong> and enrollment traffic to <strong>127.0.0.1:1515</strong>. The port-forward sessions carry that traffic into the Wazuh services running in Kubernetes.
+        </div>
+
+        <h2>Step 8: Start or restart the Windows agent service</h2>
+
+        <p>
+          Start the Wazuh agent service:
+        </p>
+
+        <div class="code-block">
+<pre>Start-Service WazuhSvc</pre>
+        </div>
+
+        <p>
+          If the service already exists and needs to reload configuration, restart it:
+        </p>
+
+        <div class="code-block">
+<pre>Restart-Service WazuhSvc</pre>
+        </div>
+
+        <p>
+          Confirm the service is running:
+        </p>
+
+        <div class="code-block">
+<pre>Get-Service WazuhSvc</pre>
+        </div>
+
+        <h2>Step 9: Check the Windows agent log</h2>
+
+        <p>
+          The Windows agent log is usually located at:
+        </p>
+
+        <div class="code-block">
+<pre>C:\Program Files (x86)\ossec-agent\ossec.log</pre>
+        </div>
+
+        <p>
+          Check the last lines:
+        </p>
+
+        <div class="code-block">
+<pre>Get-Content "C:\Program Files (x86)\ossec-agent\ossec.log" -Tail 80</pre>
+        </div>
+
+        <p>
+          Look for successful enrollment, connection, or keepalive messages. If you see connection refused, confirm both port-forward windows are still running and rerun the <strong>Test-NetConnection</strong> commands from Step 5.
+        </p>
+
+        <h2>Step 10: Verify the Windows endpoint in Wazuh</h2>
+
+        <p>
+          Open the Wazuh dashboard and go to the endpoints or agents view. You should now see at least two endpoints:
+        </p>
+
+        <ul>
+          <li>The Kubernetes node agent from the DaemonSet lab.</li>
+          <li>The Windows host agent from this lab.</li>
+        </ul>
+
+        <p>
+          Confirm the Windows endpoint shows as <strong>active</strong>.
+        </p>
+
+        <div class="code-block">
+<pre>Expected evidence:
+- Windows endpoint appears in Wazuh
+- Status is active
+- Operating system is Windows
+- Agent version matches the installer
+- Recent keepalive or event timestamp is present</pre>
+        </div>
+
+        <h2>Step 11: Generate safe Windows host telemetry</h2>
+
+        <p>
+          Run simple, benign commands that help create normal endpoint activity. The goal is endpoint visibility, not attacker simulation.
+        </p>
+
+        <div class="code-block">
+<pre>whoami
+hostname
+ipconfig
+Get-Process | Select-Object -First 5</pre>
+        </div>
+
+        <p>
+          Create and remove a harmless temporary file:
+        </p>
+
+        <div class="code-block">
+<pre>New-Item -Path "$env:TEMP\wazuh-lab-test.txt" -ItemType File -Force
+Add-Content -Path "$env:TEMP\wazuh-lab-test.txt" -Value "Wazuh Windows host lab test"
+Get-Content -Path "$env:TEMP\wazuh-lab-test.txt"
+Remove-Item -Path "$env:TEMP\wazuh-lab-test.txt" -Force</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Safety boundary:</strong>
+          Do not use malware, credential dumping, bypasses, exploit tools, evasion commands, or destructive actions in this lab. Keep the activity benign and focused on visibility.
+        </div>
+
+        <h2>Step 12: Compare Kubernetes and Windows visibility</h2>
+
+        <p>
+          In the Wazuh dashboard, compare what each endpoint represents.
+        </p>
+
+        <div class="code-block">
+<pre>Kubernetes DaemonSet agent:
+- Represents the Kubernetes node/container environment
+- Helps validate cluster-side monitoring
+- Uses in-cluster service DNS
+
+Windows host agent:
+- Represents the Windows workstation/host
+- Helps validate endpoint-side monitoring
+- Uses localhost port-forwarding into Kubernetes</pre>
+        </div>
+
+        <h2>Step 13: Troubleshoot Windows agent enrollment</h2>
+
+        <h3>Port-forward windows are closed</h3>
+
+        <p>
+          If the port-forward windows close, the Windows agent cannot reach Wazuh through localhost.
+        </p>
+
+        <div class="code-block">
+<pre>Test-NetConnection 127.0.0.1 -Port 1515
+Test-NetConnection 127.0.0.1 -Port 1514</pre>
+        </div>
+
+        <h3>Agent does not appear in Wazuh</h3>
+
+        <div class="code-block">
+<pre>Get-Service WazuhSvc
+Get-Content "C:\Program Files (x86)\ossec-agent\ossec.log" -Tail 120</pre>
+        </div>
+
+        <p>
+          Check for enrollment errors, connection refused, authentication failures, or manager address mistakes.
+        </p>
+
+        <h3>Wrong manager address</h3>
+
+        <p>
+          For this lab, the Windows agent should use:
+        </p>
+
+        <div class="code-block">
+<pre>127.0.0.1</pre>
+        </div>
+
+        <p>
+          It should not use Kubernetes service DNS names such as <strong>wazuh.wazuh.svc.cluster.local</strong> because those are only valid inside Kubernetes.
+        </p>
+
+        <h3>Port 1514 or 1515 is already in use</h3>
+
+        <p>
+          If port-forwarding fails because a local port is already in use, check what is listening:
+        </p>
+
+        <div class="code-block">
+<pre>Get-NetTCPConnection -LocalPort 1514 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -LocalPort 1515 -ErrorAction SilentlyContinue</pre>
+        </div>
+
+        <p>
+          Stop the conflicting process or choose a different local forwarding approach and update the Windows agent configuration accordingly.
+        </p>
+
+        <h2>Step 14: Document endpoint coverage</h2>
+
+        <div class="code-block">
+<pre>Windows host agent lab record:
+Date:
+Wazuh platform version:
+Windows agent version:
+Windows hostname:
+Manager address used by Windows agent:
+Registration path:
+Event path:
+Port-forward windows required:
+Agent status in Wazuh:
+Safe test activity generated:
+Events or visibility confirmed:
+Known limitations:
+Cleanup plan:</pre>
+        </div>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          You now have Wazuh monitoring from two perspectives: inside Kubernetes through the DaemonSet agent and outside Kubernetes through the Windows host agent. That is a much stronger SOC lab than a single isolated endpoint.
+        </div>
+
+        <h2>Cleanup note</h2>
+
+        <p>
+          To stop the Windows host lab path temporarily, close the port-forward PowerShell windows. To remove the Windows Wazuh agent entirely, uninstall it through Windows Apps/Programs or use the Wazuh uninstall guidance for Windows agents.
+        </p>
+
+        <h2>Check your understanding</h2>
+
+        <ol>
+          <li>Why can the Kubernetes DaemonSet agent use Kubernetes DNS names while the Windows host agent cannot?</li>
+          <li>Why did this lab use port-forwarding instead of NodePort access?</li>
+          <li>Which Wazuh port is used for enrollment?</li>
+          <li>Which Wazuh port is used for agent event traffic?</li>
+          <li>Why should you test ports before installing the agent?</li>
+          <li>Why does the Windows agent use <strong>127.0.0.1</strong> in this lab?</li>
+          <li>What should you check if the Windows endpoint does not appear in Wazuh?</li>
+          <li>Why is safe telemetry generation different from attacker simulation?</li>
+          <li>What is the value of having both Kubernetes and Windows endpoints in the lab?</li>
+        </ol>
+
+        <details class="field-note">
+          <summary><strong>Answer key</strong></summary>
+          <ol>
+            <li>The DaemonSet agent runs inside Kubernetes, while the Windows host is outside the cluster network.</li>
+            <li>Direct NodePort access from Windows failed in this kind-on-Windows lab, so port-forwarding created a working localhost path.</li>
+            <li>Port <strong>1515/TCP</strong>.</li>
+            <li>Port <strong>1514/TCP</strong>.</li>
+            <li>It proves the network path works before changing the endpoint.</li>
+            <li>Because localhost is forwarded into the Kubernetes Wazuh services by kubectl port-forward.</li>
+            <li>The Wazuh service, local port-forward sessions, Windows Wazuh service, and Windows agent log.</li>
+            <li>Safe telemetry validates visibility without teaching harmful behavior.</li>
+            <li>It lets the analyst compare cluster-side visibility with endpoint-side visibility.</li>
+          </ol>
+        </details>
+
+        <div class="article-nav three-link">
+          <a class="nav-prev" href="/kubernetes-soc-deploying-wazuh-agents.html">← Previous: Deploying a Wazuh Agent DaemonSet</a>
+          <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
+          <a class="nav-next" href="/kubernetes-soc-generating-test-security-events.html">Next: Generating Safe Security Events →</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
+      <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
+    </footer>
+  </div>
+
+  <script src="/assets/includes.js"></script>
+</body>
+</html>
