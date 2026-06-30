@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Turn an alert into a structured SOC investigation with triage, scope, evidence, impact, containment, remediation, and lessons learned.">
+  <meta name="description" content="Turn Wazuh alerts into a structured SOC workflow with triage, scope, evidence, containment, remediation, and lessons learned.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="SOC Incident Workflow | Stealth IT Group">
-  <meta property="og:description" content="Turn an alert into a structured SOC investigation with triage, scope, evidence, impact, containment, remediation, and lessons learned.">
+  <meta property="og:description" content="Turn Wazuh alerts into a structured SOC workflow with triage, scope, evidence, containment, remediation, and lessons learned.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-incident-workflow.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-incident-workflow.html">
   <title>SOC Incident Workflow | Kubernetes SOC Field Lab | Stealth IT Group</title>
@@ -15,8 +15,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
   <link rel="stylesheet" href="/assets/site.css">
@@ -24,86 +22,131 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Incident Response</div>
-        <h1>SOC Incident Workflow</h1>
-        <p class="intro">Turn an alert into a structured SOC investigation with triage, scope, evidence, impact, containment, remediation, and lessons learned.</p>
-        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-ir">Incident Response</span><span class="cert-track soc-detection">Detection Engineering</span></div>
-        <h2>Workflow objective</h2><p>Convert an alert into a structured investigation and response recommendation. This lesson focuses on process discipline.</p>
-        <h2>SOC workflow</h2><div class="code-block"><pre>1. Alert received
-2. Triage
-3. Scope
-4. Evidence collection
-5. Impact assessment
-6. Containment recommendation
-7. Remediation recommendation
-8. Communication
-9. Lessons learned
-10. Detection/tuning follow-up</pre></div>
-        <h2>Incident summary template</h2><div class="code-block"><pre>Incident title:
-Date/time detected:
-Detected by:
-Initial severity:
-Affected namespace/workload:
+        <h1>SOC Incident Workflow</h1>
+
+        <p class="intro">
+          Turn Wazuh alerts into a structured SOC workflow with triage, scope, evidence, containment, remediation, and lessons learned.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+        <div class="cert-track-list">
+          <span class="cert-track soc-ir">Incident Response</span>
+          <span class="cert-track soc-siem">SIEM Operations</span>
+        </div>
+
+        <h2>What this lesson covers</h2>
+        <ul>
+          <li>Turning an alert into an incident workflow</li>
+          <li>Writing scope, evidence, impact, containment, and remediation notes</li>
+          <li>Deciding when an alert is not an incident</li>
+          <li>Using Kubernetes and Windows evidence together</li>
+        </ul>
+
+        <h2>Step 1: Start with the triage decision</h2>
+        <div class="code-block"><pre>Triage decision:
+- Expected lab activity
+- Benign but useful signal
+- Needs more investigation
+- Suspicious
+- Confirmed incident</pre></div>
+
+        <h2>Step 2: Define scope</h2>
+        <div class="code-block"><pre>Scope:
+Affected endpoint(s):
+Affected user(s):
+Affected namespace/pod if Kubernetes:
+Affected file/path/process if Windows:
+Start time:
+End time:
+Related events:
+Data involved:
+Business impact:</pre></div>
+
+        <h2>Step 3: Capture evidence</h2>
+        <div class="code-block"><pre>Evidence:
+Wazuh alert URL or screenshot:
+Rule ID:
+Full log:
+Endpoint inventory:
+Kubernetes command output:
+Windows command output:
+Timeline notes:
+Analyst observations:</pre></div>
+
+        <h2>Step 4: Decide response actions</h2>
+        <div class="code-block"><pre>Containment:
+- None needed
+- Isolate endpoint
+- Stop workload
+- Restrict namespace
+- Disable account
+- Block network path
+
+Remediation:
+- Remove unwanted file/process
+- Patch system
+- Correct configuration
+- Rotate secret
+- Update deployment
+- Improve monitoring</pre></div>
+
+        <h2>Step 5: Write the incident note</h2>
+        <div class="code-block"><pre>Incident note:
 Summary:
-Evidence:
+Status:
+Severity:
+Detection source:
+Timeline:
 Scope:
+Evidence:
 Impact:
-Containment recommendation:
-Remediation recommendation:
-Detection/tuning follow-up:
-Current status:
-Owner:
-Next review date:</pre></div>
-        <h2>Containment in a Kubernetes lab</h2><p>In a safe lab, containment may mean scaling down a demo deployment, isolating a namespace with NetworkPolicy, removing a test pod, rotating a demo secret, or stopping a test workload. Do not perform destructive actions on real systems without an approved response process.</p>
-        <div class="field-note"><strong>Incident note:</strong> Avoid vague claims like “Kubernetes was hacked.” Say what alert fired, what workload was involved, what evidence exists, and what action is recommended.</div>
+Containment:
+Remediation:
+Lessons learned:
+Follow-up actions:</pre></div>
+
+        <h2>Step 6: Close or escalate</h2>
+        <p>
+          Most lab events should close as expected activity. The purpose is to practice the workflow, not invent drama. Escalate only when evidence supports it.
+        </p>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Incident response is a structured decision process. The quality of the response depends on evidence, scope, timeline, and clear reasoning.
+        </div>
 
         <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
         <ol>
-          <li>What is triage?</li>
-          <li>What is scoping?</li>
-          <li>Why collect evidence before action?</li>
-          <li>What is impact assessment?</li>
-          <li>What is containment?</li>
-          <li>What is remediation?</li>
-          <li>Why include detection follow-up?</li>
-          <li>Why should communication avoid vague claims?</li>
-          <li>What is a lab-safe containment action?</li>
-          <li>Why not use this lab as a real incident plan by itself?</li>
+          <li>Why is triage not the same as incident confirmation?</li>
+          <li>Why does scope matter?</li>
+          <li>Why should containment be proportional?</li>
+          <li>What makes an incident note useful?</li>
         </ol>
-        <details class="field-note">
-          <summary><strong>Answer key</strong></summary>
-          <ol>
-            <li>Determining what the alert means and what action is needed.</li>
-            <li>Determining affected systems, users, namespaces, workloads, and timeframe.</li>
-            <li>To support decisions and avoid guessing.</li>
-            <li>Determining business/technical effect.</li>
-            <li>Limiting further activity or exposure.</li>
-            <li>Fixing the underlying issue.</li>
-            <li>To improve future alert quality.</li>
-            <li>Vague claims create confusion and poor decisions.</li>
-            <li>Scaling down or deleting a demo workload, or isolating a lab namespace.</li>
-            <li>Real incidents require approved organizational processes.</li>
-          </ol>
-        </details>
 
-    
+
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-detection-and-tuning-notes.html">← Previous: Detection and Tuning Notes</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
-          <a class="nav-next" href="/kubernetes-soc-final-project.html">Next: Final Project: Build and Operate a Kubernetes SOC Lab →</a>
+          <a class="nav-next" href="/kubernetes-soc-final-project.html">Next: Final Project →</a>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
   <script src="/assets/includes.js"></script>
 </body>
 </html>
