@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="Write practical detection notes, false-positive notes, tuning recommendations, and alert-quality observations.">
+  <meta name="description" content="Write practical detection notes, false-positive notes, tuning recommendations, and collection-gap observations from the SOC lab.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Stealth IT Group">
   <meta property="og:title" content="Detection and Tuning Notes | Stealth IT Group">
-  <meta property="og:description" content="Write practical detection notes, false-positive notes, tuning recommendations, and alert-quality observations.">
+  <meta property="og:description" content="Write practical detection notes, false-positive notes, tuning recommendations, and collection-gap observations from the SOC lab.">
   <meta property="og:url" content="https://stealthitgroup.com/kubernetes-soc-detection-and-tuning-notes.html">
   <link rel="canonical" href="https://stealthitgroup.com/kubernetes-soc-detection-and-tuning-notes.html">
   <title>Detection and Tuning Notes | Kubernetes SOC Field Lab | Stealth IT Group</title>
@@ -15,8 +15,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08111f">
   <link rel="stylesheet" href="/assets/site.css">
@@ -24,71 +22,109 @@
 <body>
   <div class="page">
     <div data-include="/partials/header.html"></div>
+
     <main>
       <article class="article">
         <div class="badge">Detection Engineering</div>
-        <h1>Detection and Tuning Notes</h1>
-        <p class="intro">Write practical detection notes, false-positive notes, tuning recommendations, and alert-quality observations.</p>
-        <p class="article-meta">Kubernetes SOC Field Lab · Practical Security Operations</p>
 
-        <h2>Domain alignment</h2><div class="cert-track-list"><span class="cert-track soc-detection">Detection Engineering</span><span class="cert-track soc-siem">SIEM Operations</span></div>
-        <h2>Lab objective</h2><p>Learn how to write detection and tuning notes. Good SOC work includes improving signal quality, not just reviewing alerts.</p>
-        <h2>Detection note template</h2><div class="code-block"><pre>Detection name:
-Purpose:
-Data source:
-Expected behavior:
-Suspicious behavior:
-Rule/alert involved:
+        <h1>Detection and Tuning Notes</h1>
+
+        <p class="intro">
+          Write practical detection notes, false-positive notes, tuning recommendations, and collection-gap observations from the SOC lab.
+        </p>
+
+        <p class="article-meta">
+          Kubernetes SOC Field Lab · Practical Security Operations
+        </p>
+
+        <h2>Domain alignment</h2>
+        <div class="cert-track-list">
+          <span class="cert-track soc-detection">Detection Engineering</span>
+          <span class="cert-track soc-siem">SIEM Operations</span>
+        </div>
+
+        <h2>What this lesson covers</h2>
+        <ul>
+          <li>Writing practical detection notes</li>
+          <li>Identifying false positives and expected activity</li>
+          <li>Documenting collection gaps</li>
+          <li>Separating tuning ideas from immediate changes</li>
+          <li>Creating a simple detection backlog</li>
+        </ul>
+
+        <h2>Step 1: Pick an alert or missing alert</h2>
+        <p>
+          Detection notes can be written for alerts that fired or for expected activity that did not produce useful visibility.
+        </p>
+        <div class="code-block"><pre>Detection note types:
+- Alert fired and was useful
+- Alert fired but was noisy
+- Alert fired but severity felt wrong
+- Expected activity did not appear
+- Activity appeared but lacked context</pre></div>
+
+        <h2>Step 2: Write the detection note</h2>
+        <div class="code-block"><pre>Detection note:
+Event or behavior:
+Endpoint:
+Rule ID:
+Rule description:
 Severity:
-Known false positives:
-Tuning recommendation:
-Validation steps:
+Was this expected? yes/no
+Was the alert useful? yes/no
+What context was missing?
+False positive reason if applicable:
+Recommended tuning:
+Risk of tuning too aggressively:
 Owner:
 Status:</pre></div>
-        <h2>When to write a tuning note</h2><ul><li>The alert fires on expected lab activity.</li><li>The alert has useful intent but too much noise.</li><li>The alert lacks enough context for analysts.</li><li>The detection is correct but severity feels wrong.</li><li>The same benign pattern repeats frequently.</li></ul>
-        <h2>Do not tune blindly</h2><p>Tuning should be evidence-based. Do not suppress an alert just because it is annoying. First understand the source, rule, pattern, affected systems, and risk.</p>
-        <h2>Example tuning note</h2><div class="code-block"><pre>Detection name: Test shell execution in soc-lab
-Purpose: Identify interactive command execution in monitored lab workloads
-Data source: Wazuh agent telemetry from Kubernetes lab node
-Expected behavior: Instructor-generated lab commands during scheduled exercises
-Suspicious behavior: Unplanned shell execution in application workloads
-Known false positives: Training exercises using kubectl exec
-Tuning recommendation: Add lab namespace context to analyst notes; do not suppress globally
-Validation steps: Compare timestamp with lab exercise log
-Status: Monitor</pre></div>
-        <div class="field-note"><strong>Analyst note:</strong> Good tuning preserves useful signal while reducing unnecessary noise. Bad tuning hides risk.</div>
+
+        <h2>Step 3: Classify the finding</h2>
+        <div class="code-block"><pre>Keep:
+  The alert is useful as-is.
+
+Tune:
+  The alert is useful but needs filtering, grouping, severity adjustment, or documentation.
+
+Investigate:
+  The alert may represent real suspicious behavior.
+
+Improve collection:
+  The issue is not the rule. The sensor is not collecting enough context.
+
+Document only:
+  The behavior is expected lab activity and does not need a change.</pre></div>
+
+        <h2>Step 4: Build a small backlog</h2>
+        <div class="code-block"><pre>Detection backlog item:
+Title:
+Source endpoint:
+Problem:
+Recommended change:
+Expected benefit:
+Risk:
+Priority:
+Next action:</pre></div>
+
+        <h2>Step 5: Do not tune blindly</h2>
+        <p>
+          In a real SOC, tuning can reduce noise, but it can also hide important behavior. Every tuning decision needs a reason and a rollback path.
+        </p>
+
+        <div class="field-note">
+          <strong>Bottom line:</strong>
+          Detection engineering starts with observation. Capture what fired, what did not fire, what context was missing, and what change would make the signal better.
+        </div>
 
         <h2>Check your understanding</h2>
-        <p>Use these questions to check whether the lab and analyst concepts are clear before moving forward.</p>
         <ol>
-          <li>What is a detection note?</li>
-          <li>What is a tuning note?</li>
-          <li>Why should tuning be evidence-based?</li>
-          <li>Why not suppress globally too quickly?</li>
-          <li>What is a false positive?</li>
-          <li>What is expected behavior?</li>
-          <li>What is suspicious behavior?</li>
-          <li>Why track data source?</li>
-          <li>Why include validation steps?</li>
-          <li>What is the risk of bad tuning?</li>
+          <li>Why can a missing alert be a useful detection note?</li>
+          <li>Why should tuning recommendations include risk?</li>
+          <li>What is the difference between tuning and improving collection?</li>
+          <li>Why should expected lab activity still be documented?</li>
         </ol>
-        <details class="field-note">
-          <summary><strong>Answer key</strong></summary>
-          <ol>
-            <li>A document explaining the purpose and logic of an alert/detection.</li>
-            <li>A recommendation to improve alert quality or reduce noise.</li>
-            <li>To avoid hiding real risk.</li>
-            <li>It may remove useful signal from other contexts.</li>
-            <li>An alert on benign/expected activity.</li>
-            <li>Normal or approved activity.</li>
-            <li>Activity that is abnormal, unauthorized, or risky.</li>
-            <li>To know where telemetry comes from.</li>
-            <li>To prove the note can be tested.</li>
-            <li>It can hide incidents or create blind spots.</li>
-          </ol>
-        </details>
 
-    
+
         <div class="article-nav three-link">
           <a class="nav-prev" href="/kubernetes-soc-investigating-alerts-in-wazuh.html">← Previous: Investigating Alerts in Wazuh</a>
           <a class="nav-index" href="/kubernetes-soc-field-lab.html">Series index</a>
@@ -96,11 +132,13 @@ Status: Monitor</pre></div>
         </div>
       </article>
     </main>
+
     <footer>
       © 2026 Stealth IT Group · <a href="/privacy.html">Privacy Notice</a>
       <p class="sdvosb">Service-Disabled Veteran-Owned Small Business (SDVOSB)</p>
     </footer>
   </div>
+
   <script src="/assets/includes.js"></script>
 </body>
 </html>
